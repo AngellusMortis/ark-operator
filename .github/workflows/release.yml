@@ -31,6 +31,7 @@ jobs:
   release:
     name: 🚚 Create Release
     runs-on: ubuntu-latest
+    environment: release
     steps:
       - name: 📡 Download Lint Results
         uses: actions/download-artifact@v4
@@ -50,9 +51,6 @@ jobs:
           name: package
           run-id: ${{ inputs.ci_run_id }}
 
-      - name: List Files
-        run: ls -laR
-
       - name: 🚚 Create Release
         uses: softprops/action-gh-release@v2
         with:
@@ -66,3 +64,6 @@ jobs:
             coverage.json
             *.tar.gz
             *.whl
+
+      - name: 🚀 Publish Package
+        uses: pypa/gh-action-pypi-publish@release/v1
