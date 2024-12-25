@@ -86,7 +86,11 @@ jobs:
           subject-digest: ${{ inputs.digest_dev }}
           push-to-registry: true
 
+      - name: 🚚 Move Python Packages
+        run: |
+          mkdir -p dist/
+          mv *.tar.gz dist/
+          mv *.whl dist/
+
       - name: 🚀 Publish Package
         uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: .
