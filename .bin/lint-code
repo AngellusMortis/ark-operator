@@ -1,0 +1,34 @@
+#!/bin/bash
+
+BASE_DIR=$( realpath $( dirname "${BASH_SOURCE[0]}" )/../ )
+source "$BASE_DIR/.bin/lib/common.sh"
+setRoot
+
+pushd "$ROOT_PATH" 2>&1 >/dev/null
+
+echo "Running ruff..."
+extraArgs=""
+if [[ ! -z "${CI+x}" ]]; then
+    extraArgs="--output-format=github"
+    ruff check --output-format=sarif --output-file=ruff.sarif .
+fi
+ruff check $extraArgs .
+exit_code=$?
+echo
+
+echo "Running mypy..."
+extraArgs=""
+if [[ ! -z "${CI+x}" ]]; then
+    extraArgs="--html-report .mypy_cache"
+fi
+mypy $extraArgs .
+if [[ ! -z "${CI+x}" ]]; then
+    cd .mypy_cache && zip -r ../mypy-html.zip mypy-html.css index.html html && cd ..
+fi
+test $? -eq 0 -a $exit_code -eq 0
+exit_code=$?
+echo
+
+popd 2>&1 >/dev/null
+
+exit $exit_code

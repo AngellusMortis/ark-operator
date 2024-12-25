@@ -1,0 +1,27 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+BASE_DIR=$( realpath $( dirname "${BASH_SOURCE[0]}" )/../ )
+PY_VERSION=$(python -c 'import sys; print(".".join(map(str, sys.version_info[:2])))')
+source "$BASE_DIR/.bin/lib/common.sh"
+setRoot
+
+pushd "$ROOT_PATH" 2>&1 >/dev/null
+
+rm -rf .coverage*
+
+echo -e "Running pytest..."
+extraArgs=""
+if [[ ! -z "${CI+x}" ]]; then
+    extraArgs="--cov-report html --cov-report json --cov-report xml"
+fi
+pytest --color=yes $extraArgs
+if [[ ! -z "${CI+x}" && "$PY_VERSION" == "$DEFAULT_PYTHON" ]]; then
+    zip -r coverage-html.zip htmlcov
+    echo "$(coverage report --format=markdown)" >> "$GITHUB_STEP_SUMMARY"
+fi
+
+popd 2>&1 >/dev/null

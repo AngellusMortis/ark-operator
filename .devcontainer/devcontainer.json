@@ -1,0 +1,110 @@
+{
+    // docs: https://containers.dev/implementors/json_reference/
+    "name": "Ark Operator",
+    "build": {
+        "dockerfile": "../Dockerfile",
+        "context": "..",
+        "target": "dev",
+        "cacheFrom": "ghcr.io/angellusmortis/ark-operator-dev:master"
+    },
+    "workspaceFolder": "/workspaces/ark-operator",
+    "updateRemoteUserUID": true,
+    "containerUser": "app",
+    "onCreateCommand": [
+        "/bin/bash",
+        "-c",
+        "sudo -E HOME=/root uv pip install -e '.[dev]' && docker-fix"
+    ],
+    "updateContentCommand": [
+        "/bin/bash",
+        "-c",
+        "sudo -E HOME=/root uv pip sync requirements.txt dev-requirements.txt && sudo -E HOME=/root uv pip install -e '.[dev]'"
+    ],
+    "features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+    },
+    // codespaces specific configurations
+    "hostRequirements": {
+        "cpus": 2,
+        "memory": "8gb",
+        "storage": "32gb"
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                // common
+                "eamodio.gitlens",
+                "github.codespaces",
+                "github.vscode-github-actions",
+                "gitHub.vscode-pull-request-github",
+                "jasonnutter.vscode-codeowners",
+                "mikestead.dotenv",
+                "ms-azuretools.vscode-docker",
+                "ms-vsliveshare.vsliveshare",
+                "streetsidesoftware.code-spell-checker",
+                "tamasfe.even-better-toml",
+                // common lint/test
+                "ryanluker.vscode-coverage-gutters",
+                // python
+                "charliermarsh.ruff",
+                "ms-python.mypy-type-checker",
+                "ms-python.python",
+                "ms-python.debugpy",
+                "ms-python.vscode-pylance",
+                "njpwerner.autodocstring",
+                "samuelcolvin.jinjahtml"
+            ],
+            "settings": {
+                // common
+                "editor.formatOnSave": true,
+                "editor.formatOnSaveTimeout": 3000,
+                "editor.insertSpaces": true,
+                "files.insertFinalNewline": true,
+                "files.trimTrailingWhitespace": true,
+                "[toml]": {
+                    "editor.formatOnSave": false
+                },
+                // python common
+                "[python]": {
+                    "editor.defaultFormatter": "charliermarsh.ruff",
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": "always",
+                        "source.fixAll": "always"
+                    }
+                },
+                "python.envFile": "${workspaceFolder}/.env",
+                "python.defaultInterpreterPath": "/usr/local/bin/python",
+                "python.pythonPath": "/usr/local/bin/python",
+                "python.formatting.provider": "none",
+                // python linting
+                "python.linting.enabled": false,
+                "black.args": [
+                    "--config=./pyproject.toml"
+                ],
+                "mypy.configFile": "./pyproject.toml",
+                "ruff.lint.args": [
+                    "--config=./pyproject.toml"
+                ],
+                "ruff.fixAll": true,
+                "ruff.organizeImports": true,
+                // python tests
+                "coverage-gutters.xmlname": "coverage.xml",
+                "coverage-gutters.customizable.status-bar-toggler-watchCoverageAndVisibleEditors-enabled": true,
+                "coverage-gutters.showLineCoverage": true,
+                "python.testing.promptToConfigure": false,
+                "python.testing.pytestEnabled": true,
+                "python.testing.unittestEnabled": false,
+                "python.testing.nosetestsEnabled": false,
+                "python.testing.pytestArgs": [
+                    "--cov-report=xml",
+                    "--color=no"
+                ],
+                // spelling rules
+                "cSpell.allowCompoundWords": true,
+                "cSpell.words": [
+                    "dotenv"
+                ]
+            }
+        }
+    }
+}

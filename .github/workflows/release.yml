@@ -1,0 +1,68 @@
+name: 🚚 Create Release
+
+on:
+  workflow_call:
+    inputs:
+      ci_run_id:
+        required: true
+        type: string
+      tag_name:
+        required: true
+        type: string
+
+  workflow_dispatch:
+    inputs:
+      ci_run_id:
+        required: true
+        type: string
+      tag_name:
+        required: true
+        type: string
+
+
+concurrency:
+  group: release-${{ inputs.tag_name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: 🚚 Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📡 Download Lint Results
+        uses: actions/download-artifact@v4
+        with:
+          name: lint-results
+          run-id: ${{ inputs.ci_run_id }}
+
+      - name: 📡 Download Code Coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: code-coverage-report
+          run-id: ${{ inputs.ci_run_id }}
+
+      - name: 📡 Download Package
+        uses: actions/download-artifact@v4
+        with:
+          name: package
+          run-id: ${{ inputs.ci_run_id }}
+
+      - name: List Files
+        run: ls -laR
+
+      - name: 🚚 Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: false
+          tag_name: ${{ inputs.tag_name }}
+          files: |
+            ruff.sarif
+            mypy-html.zip
+            coverage-html.zip
+            coverage.xml
+            coverage.json
+            *.tar.gz
+            *.whl

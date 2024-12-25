@@ -1,0 +1,152 @@
+[build-system]
+requires = [ "hatchling", "hatch-vcs", "wheel" ]
+build-backend = "hatchling.build"
+
+[project]
+name = "ark-operator"
+description = "K8s operator for managing ARK server clusters"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Framework :: AsyncIO",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: Free For Educational Use",
+    "License :: Free For Home Use",
+    "License :: Free for non-commercial use",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Games/Entertainment",
+    "Topic :: System :: Systems Administration",
+]
+dependencies = [
+    "kopf"
+]
+dynamic = ["version"]
+
+[[project.authors]]
+name = "Christopher Bailey"
+email = "cbailey@mort.is"
+
+
+[[project.maintainers]]
+name = "Christopher Bailey"
+email = "cbailey@mort.is"
+
+
+[project.license]
+file = "LICENSE"
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "coverage[toml]",
+    "mypy",
+    "pytest-asyncio",
+    "pytest-cov",
+    "pytest-env",
+    "pytest-timeout",
+    "pytest-xdist[psutil]",
+    "pytest",
+    "python-dotenv",
+    "ruff",
+    "twine",
+]
+
+## build backend metadata
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.sdist]
+only-include = ["src/ark_operator"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ark_operator"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+## linting metadata
+[tool.ruff]
+exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv"]
+line-length = 88
+target-version = "py312"
+
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D202", # perfer emptry string after docstring
+    "D203", # incompatible with D211
+    "D212", # incompatible with D213
+    "COM812", # incompatible ruff format
+    "ISC001", # incompatible ruff format
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"**/*.py" = []
+"cli.py" = ["T"] # CLI allows print
+"test/tests/**/*.py" = ["FBT", "D", "SLF001", "PLR2004", "RUF029", "S", "E501"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_unused_configs = true
+disable_error_code = "no-redef"
+exclude = ["dist", "/usr/local/lib", "codeql"]
+disallow_any_generics = true
+disallow_subclassing_any = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
+implicit_reexport = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_calls = false
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+check_untyped_defs = false
+
+
+## test metadata
+[tool.coverage.run]
+branch = true
+omit = []
+disable_warnings = ["no-data-collected", "couldnt-parse"]
+plugins = []
+relative_files = true
+
+[tool.coverage.report]
+skip_covered = false
+skip_empty = true
+exclude_also = ["if TYPE_CHECKING:"]
+
+[tool.coverage.html]
+skip_covered = false
+show_contexts = true
+
+[tool.pytest.ini_options]
+addopts = "--strict-markers -ra -Wd --ignore=.* --cov-report term-missing --no-cov-on-fail --cov=src/ark_operator --cov-append --maxfail=10 -n=auto"
+filterwarnings = []
+testpaths = ["test"]
+timeout_func_only = false
+log_level = "DEBUG"
+asyncio_mode = "strict"
+asyncio_default_fixture_loop_scope = "function"

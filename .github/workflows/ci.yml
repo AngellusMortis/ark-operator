@@ -1,0 +1,277 @@
+name: 📦 CI
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled, synchronize, ready_for_review, converted_to_draft]
+    paths: ["**", "!**/README.md"]
+  push:
+    paths: ["**", "!**/README.md"]
+  workflow_dispatch:
+
+
+concurrency:
+  group: ci-${{ github.event.workflow_run.head_branch || github.ref }}
+  cancel-in-progress: true
+
+
+env:
+  DEFAULT_PYTHON: "3.12"
+
+
+permissions:
+  id-token: write
+  contents: read
+  packages: read
+
+
+jobs:
+  build_docker:
+    name: 🔨 Build Docker
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        target: ["dev", "prod"]
+
+    steps:
+      - name: ⬇️ Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: 🔧 Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔒 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 📦 apt Cache
+        uses: actions/cache@v3
+        id: apt-cache
+        with:
+          path: |
+            apt-cache-amd64
+            apt-data-amd64
+            apt-cache-arm64
+            apt-data-arm64
+          key: apt-cache-${{ hashFiles('Dockerfile') }}
+
+      - name: 🔧 Inject apt cache into docker
+        uses: reproducible-containers/buildkit-cache-dance@v3.1.2
+        with:
+          cache-map: |
+            {
+              "apt-cache-amd64": {"id": "apt-cache-linux/amd64", "target": "/var/cache/apt"},
+              "apt-data-amd64": {"id": "apt-data-linux/amd64", "target": "/var/lib/apt"},
+              "apt-cache-arm64": {"id": "apt-cache-linux/arm64", "target": "/var/cache/apt"},
+              "apt-data-arm64": {"id": "apt-data-linux/arm64", "target": "/var/lib/apt"}
+            }
+          skip-extraction: ${{ steps.apt-cache.outputs.cache-hit }}
+
+      - name: 📦 pip Cache
+        uses: actions/cache@v3
+        id: pip-cache
+        with:
+          path: |
+            pip-amd64
+            pip-arm64
+          key: pip-cache-${{ hashFiles('requirements.txt', 'dev-requirements.txt') }}
+
+      - name: 🔧 Inject pip cache into docker
+        uses: reproducible-containers/buildkit-cache-dance@v3.1.2
+        with:
+          cache-map: |
+            {
+              "pip-amd64": {"id": "pip-linux/amd64", "target": "/root/.cache"},
+              "pip-arm64": {"id": "pip-linux/arm64", "target": "/root/.cache"}
+            }
+          skip-extraction: ${{ steps.pip-cache.outputs.cache-hit }}
+
+      - name: 🔧 Set Image Name
+        run: |
+          DOCKER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator"
+          if [[ ${{ matrix.target }} == "dev" ]]; then
+            DOCKER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator-dev"
+          fi
+
+          echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME"
+          echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> $GITHUB_ENV
+
+      - name: 🔧 Set Docker Tags
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKER_IMAGE_NAME }}
+
+      - name: 🔨 Build Docker
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: ${{ matrix.target }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: ${{ steps.meta.outputs.tags }}
+
+  python_base:
+    name: 🐍 Create Environment
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        experimental: [ false ]
+        include:
+          - python-version: "3.13"
+            experimental: true
+
+    steps:
+    - name: ⬇️ Checkout Repo
+      uses: actions/checkout@v4
+
+    - name: 🐍 Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: 📦 Cache venv
+      id: python-venv
+      uses: actions/cache@v4
+      with:
+        path: ./.venv
+        key: python-${{ matrix.python-version }}-${{ hashFiles('requirements.txt', 'dev-requirements.txt') }}
+
+    - name: 🔨 Create venv
+      run: |
+        python -m pip install --upgrade pip uv
+        uv venv
+        uv pip install -r dev-requirements.txt
+        uv pip install -e ".[dev]"
+
+  lint:
+    name: 🧹 Lint Code
+    runs-on: ubuntu-latest
+    needs: [ python_base ]
+
+    steps:
+      - name: ⬇️ Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 📦 Restore venv
+        uses: actions/cache/restore@v4
+        with:
+          path: ./.venv
+          key: python-${{ env.DEFAULT_PYTHON }}-${{ hashFiles('requirements.txt', 'dev-requirements.txt') }}
+          fail-on-cache-miss: true
+
+      - name: 🧹 Lint Code
+        run: |
+          source ./.venv/bin/activate
+          ./.bin/lint-code
+
+      - name: 📡 Upload Lint Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          if-no-files-found: error
+          path: |
+            ruff.sarif
+            mypy-html.zip
+
+  test:
+    name: 🧪 Test Code
+    runs-on: ubuntu-latest
+    needs: [ python_base ]
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+        experimental: [ false ]
+        include:
+          - python-version: "3.13"
+            experimental: true
+
+    steps:
+      - name: ⬇️ Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 📦 Restore venv
+        uses: actions/cache/restore@v4
+        with:
+          path: ./.venv
+          key: python-${{ matrix.python-version }}-${{ hashFiles('requirements.txt', 'dev-requirements.txt') }}
+          fail-on-cache-miss: true
+
+      - name: 🧪 Test Code
+        run: |
+          source ./.venv/bin/activate
+          ./.bin/test-code
+
+      - name: 📡 Upload Code Coverage
+        if: ${{ matrix.python-version == env.DEFAULT_PYTHON && always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          if-no-files-found: error
+          path: |
+            coverage-html.zip
+            coverage.xml
+            coverage.json
+
+  build_package:
+    name: 🔨 Build Package
+    runs-on: ubuntu-latest
+    needs: [ python_base ]
+
+    steps:
+      - name: ⬇️ Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: 📦 Restore venv
+        uses: actions/cache/restore@v4
+        with:
+          path: ./.venv
+          key: python-${{ env.DEFAULT_PYTHON }}-${{ hashFiles('requirements.txt', 'dev-requirements.txt') }}
+          fail-on-cache-miss: true
+
+      - name: 🔨 Build Package
+        run: |
+          source ./.venv/bin/activate
+          python -m build .
+
+      - name: 📡 Upload package
+        uses: actions/upload-artifact@v4
+        with:
+          name: package
+          if-no-files-found: error
+          path: |
+            dist/*.tar.gz
+            dist/*.whl
+
+  release:
+    uses: ./.github/workflows/release.yml
+    needs: [ lint, test, build_package ]
+    if: ${{ github.ref_type == 'tag' }}
+    secrets: inherit
+    permissions:
+      contents: write
+    with:
+      ci_run_id: ${{ github.run_id }}
+      tag_name: ${{ github.ref_name }}
