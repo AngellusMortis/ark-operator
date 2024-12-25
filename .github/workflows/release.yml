@@ -30,7 +30,7 @@ jobs:
         id: check_tag
         run: |
           GIT_IS_TAG=false
-          if [[ "${{ github.event.workflow_run.head_branch }}" =~ v* ]]; then
+          if [[ "${{ github.event.workflow_run.head_branch }}" =~ ^v.*$ ]]; then
             GIT_IS_TAG=true
           fi
 
