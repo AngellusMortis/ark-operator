@@ -37,10 +37,6 @@ jobs:
       matrix:
         target: ["dev", "prod"]
 
-    outputs:
-      digest_dev: ${{ steps.generate_output.outputs.digest_dev }}
-      digest_prod: ${{ steps.generate_output.outputs.digest_prod }}
-
     steps:
       - name: ⬇️ Checkout Repo
         uses: actions/checkout@v4
@@ -102,20 +98,20 @@ jobs:
 
       - name: 🔧 Set Image Name
         run: |
-          DOCKER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator"
+          CONTAINER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator"
           if [[ ${{ matrix.target }} == "dev" ]]; then
-            DOCKER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator-dev"
+            CONTAINER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator-dev"
           fi
 
-          echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME"
-          echo "DOCKER_IMAGE_NAME=$DOCKER_IMAGE_NAME" >> $GITHUB_ENV
+          echo "CONTAINER_IMAGE_NAME=$CONTAINER_IMAGE_NAME"
+          echo "CONTAINER_IMAGE_NAME=$CONTAINER_IMAGE_NAME" >> $GITHUB_ENV
 
       - name: 🔧 Set Docker Tags
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.DOCKER_IMAGE_NAME }}
+            ${{ env.CONTAINER_IMAGE_NAME }}
 
       - name: 🔨 Build Docker
         uses: docker/build-push-action@v6
@@ -126,15 +122,21 @@ jobs:
           target: ${{ matrix.target }}
           platforms: linux/amd64,linux/arm64
           push: true
-          cache-from: type=gha,scope=buildkit-${{ matrix.target}}
-          cache-to: type=gha,mode=max,scope=buildkit-${{ matrix.target}}
+          cache-from: type=gha,scope=buildkit-${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=buildkit-${{ matrix.target }}
           tags: ${{ steps.meta.outputs.tags }}
 
       - name: 🖨️ Generate Digest Output
-        id: generate_output
         run: |
-          echo "digest_${{ matrix.target }}=${{ steps.docker_build.outputs.digest }}"
-          echo "digest_${{ matrix.target }}=${{ steps.docker_build.outputs.digest }}" >> "$GITHUB_OUTPUT"
+          echo "${{ steps.docker_build.outputs.digest }}" > container_digest_${{ matrix.target }}
+
+      - name: 📡 Upload Container Digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: container-digest-${{ matrix.target }}
+          if-no-files-found: error
+          path: |
+            container_digest_${{ matrix.target }}
 
   python_base:
     name: 🐍 Create Environment
@@ -153,7 +155,7 @@ jobs:
     - name: ⬇️ Checkout Repo
       uses: actions/checkout@v4
 
-    - name: 🐍 Set up Python ${{ matrix.python-version }}
+    - name: 🐍 Setup Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
@@ -220,7 +222,7 @@ jobs:
       - name: ⬇️ Checkout Repo
         uses: actions/checkout@v4
 
-      - name: 🐍 Set up Python ${{ matrix.python-version }}
+      - name: 🐍 Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -277,19 +279,3 @@ jobs:
           path: |
             dist/*.tar.gz
             dist/*.whl
-
-  release:
-    uses: ./.github/workflows/release.yml
-    needs: [ lint, test, build_package, build_docker ]
-    if: ${{ github.ref_type == 'tag' }}
-    secrets: inherit
-    permissions:
-      id-token: write
-      contents: write
-      packages: write
-      attestations: write
-    with:
-      ci_run_id: ${{ github.run_id }}
-      tag_name: ${{ github.ref_name }}
-      digest_dev: ${{ needs.build_docker.outputs.digest_dev }}
-      digest_prod: ${{ needs.build_docker.outputs.digest_prod }}
