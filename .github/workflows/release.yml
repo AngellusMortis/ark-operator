@@ -29,7 +29,7 @@ permissions:
 
 jobs:
   release:
-    name: 🚚 Create Release
+    name: 🚚 Create Github Release
     runs-on: ubuntu-latest
     environment:
       name: github
@@ -68,7 +68,7 @@ jobs:
             *.whl
 
   container:
-    name: 🚚 Create Release
+    name: 🛡️ Create Container Attestions
     runs-on: ubuntu-latest
     environment:
       name: ghcr
@@ -97,7 +97,7 @@ jobs:
           push-to-registry: true
 
   pypi:
-    name: 🚚 Create Release
+    name: 🚚 Upload to PyPi
     runs-on: ubuntu-latest
     environment:
       name: pypi
