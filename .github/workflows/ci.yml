@@ -284,9 +284,10 @@ jobs:
     permissions:
       id-token: write
       contents: write
+      packages: write
       attestations: write
     with:
       ci_run_id: ${{ github.run_id }}
       tag_name: ${{ github.ref_name }}
-      digest_dev: ${{ needs.jobs.build_docker.digest_dev }}
-      digest_prod: ${{ needs.jobs.build_docker.digest_prod }}
+      digest_dev: ${{ needs.build_docker.outputs.digest_dev }}
+      digest_prod: ${{ needs.build_docker.outputs.digest_prod }}
