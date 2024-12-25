@@ -267,10 +267,11 @@ jobs:
 
   release:
     uses: ./.github/workflows/release.yml
-    needs: [ lint, test, build_package ]
+    needs: [ lint, test, build_package, build_docker ]
     if: ${{ github.ref_type == 'tag' }}
     secrets: inherit
     permissions:
+      id-token: write
       contents: write
     with:
       ci_run_id: ${{ github.run_id }}
