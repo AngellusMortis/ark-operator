@@ -35,6 +35,10 @@ jobs:
       matrix:
         target: ["dev", "prod"]
 
+    outputs:
+      digest_dev: ${{ steps.generate_output.outputs.digest_dev }}
+      digest_prod: ${{ steps.generate_output.outputs.digest_prod }}
+
     steps:
       - name: ⬇️ Checkout Repo
         uses: actions/checkout@v4
@@ -113,6 +117,7 @@ jobs:
 
       - name: 🔨 Build Docker
         uses: docker/build-push-action@v6
+        id: docker_build
         with:
           context: .
           file: ./Dockerfile
@@ -122,6 +127,12 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: ${{ steps.meta.outputs.tags }}
+
+      - name: 🖨️ Generate Digest Output
+        id: generate_output
+        run: |
+          echo "digest_${{ matrix.target }}=${{ steps.docker_build.outputs.digest }}"
+          echo "digest_${{ matrix.target }}=${{ steps.docker_build.outputs.digest }}" >> "$GITHUB_OUTPUT"
 
   python_base:
     name: 🐍 Create Environment
@@ -273,6 +284,9 @@ jobs:
     permissions:
       id-token: write
       contents: write
+      attestations: write
     with:
       ci_run_id: ${{ github.run_id }}
       tag_name: ${{ github.ref_name }}
+      digest_dev: ${{ needs.jobs.build_docker.digest_dev }}
+      digest_prod: ${{ needs.jobs.build_docker.digest_prod }}

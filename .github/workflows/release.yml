@@ -9,13 +9,10 @@ on:
       tag_name:
         required: true
         type: string
-
-  workflow_dispatch:
-    inputs:
-      ci_run_id:
+      digest_dev:
         required: true
         type: string
-      tag_name:
+      digest_prod:
         required: true
         type: string
 
@@ -27,6 +24,7 @@ concurrency:
 permissions:
   id-token: write
   contents: write
+  attestations: write
 
 jobs:
   release:
@@ -66,5 +64,28 @@ jobs:
             *.tar.gz
             *.whl
 
+      - name: 🔒 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🛡️ Attest Container Image
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/angellusmortis/ark-operator
+          subject-digest: ${{ inputs.digest_prod }}
+          push-to-registry: true
+
+      - name: 🛡️ Attest Dev Container Image
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ghcr.io/angellusmortis/ark-operator-dev
+          subject-digest: ${{ inputs.digest_dev }}
+          push-to-registry: true
+
       - name: 🚀 Publish Package
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: .
