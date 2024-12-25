@@ -47,6 +47,8 @@ file = "LICENSE"
 dev = [
     "build",
     "coverage[toml]",
+    "hatch",
+    "lxml", # for mypy html report
     "mypy",
     "pytest-asyncio",
     "pytest-cov",

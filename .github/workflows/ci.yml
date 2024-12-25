@@ -254,7 +254,7 @@ jobs:
       - name: 🔨 Build Package
         run: |
           source ./.venv/bin/activate
-          python -m build .
+          hatch build
 
       - name: 📡 Upload package
         uses: actions/upload-artifact@v4
