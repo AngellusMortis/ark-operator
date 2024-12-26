@@ -41,9 +41,6 @@ jobs:
       - name: ⬇️ Checkout Repo
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
       - name: 🔧 Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -61,8 +58,6 @@ jobs:
           path: |
             apt-cache-amd64
             apt-data-amd64
-            apt-cache-arm64
-            apt-data-arm64
           key: apt-cache-${{ hashFiles('Dockerfile') }}
 
       - name: 🔧 Inject apt cache into docker
@@ -71,9 +66,7 @@ jobs:
           cache-map: |
             {
               "apt-cache-amd64": {"id": "apt-cache-linux/amd64", "target": "/var/cache/apt"},
-              "apt-data-amd64": {"id": "apt-data-linux/amd64", "target": "/var/lib/apt"},
-              "apt-cache-arm64": {"id": "apt-cache-linux/arm64", "target": "/var/cache/apt"},
-              "apt-data-arm64": {"id": "apt-data-linux/arm64", "target": "/var/lib/apt"}
+              "apt-data-amd64": {"id": "apt-data-linux/amd64", "target": "/var/lib/apt"}
             }
           skip-extraction: ${{ steps.apt-cache.outputs.cache-hit }}
 
@@ -83,7 +76,6 @@ jobs:
         with:
           path: |
             pip-amd64
-            pip-arm64
           key: pip-cache-${{ hashFiles('requirements.txt', 'dev-requirements.txt') }}
 
       - name: 🔧 Inject pip cache into docker
@@ -91,8 +83,7 @@ jobs:
         with:
           cache-map: |
             {
-              "pip-amd64": {"id": "pip-linux/amd64", "target": "/root/.cache"},
-              "pip-arm64": {"id": "pip-linux/arm64", "target": "/root/.cache"}
+              "pip-amd64": {"id": "pip-linux/amd64", "target": "/root/.cache"}
             }
           skip-extraction: ${{ steps.pip-cache.outputs.cache-hit }}
 
@@ -120,7 +111,7 @@ jobs:
           context: .
           file: ./Dockerfile
           target: ${{ matrix.target }}
-          platforms: linux/amd64,linux/arm64
+          platforms: linux/amd64
           push: true
           cache-from: type=gha,scope=buildkit-${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=buildkit-${{ matrix.target }}
