@@ -12,23 +12,35 @@ aiosignal==1.3.2
     # via
     #   -c requirements.txt
     #   aiohttp
+annotated-types==0.7.0
+    # via
+    #   -c requirements.txt
+    #   pydantic
 anyio==4.7.0
     # via httpx
 attrs==24.3.0
     # via
     #   -c requirements.txt
     #   aiohttp
+    #   cyclopts
 build==1.2.2.post1
     # via ark-operator (pyproject.toml)
+cachetools==5.5.0
+    # via
+    #   -c requirements.txt
+    #   steam
 certifi==2024.12.14
     # via
+    #   -c requirements.txt
     #   httpcore
     #   httpx
     #   requests
 cffi==1.17.1
     # via cryptography
 charset-normalizer==3.4.1
-    # via requests
+    # via
+    #   -c requirements.txt
+    #   requests
 click==8.1.8
     # via
     #   -c requirements.txt
@@ -41,10 +53,21 @@ coverage==7.6.9
     #   pytest-cov
 cryptography==44.0.0
     # via secretstorage
+cyclopts==3.1.2
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 distlib==0.3.9
     # via virtualenv
+docstring-parser==0.16
+    # via
+    #   -c requirements.txt
+    #   cyclopts
 docutils==0.21.2
-    # via readme-renderer
+    # via
+    #   -c requirements.txt
+    #   readme-renderer
+    #   rich-rst
 execnet==2.1.1
     # via pytest-xdist
 filelock==3.16.1
@@ -54,6 +77,19 @@ frozenlist==1.5.0
     #   -c requirements.txt
     #   aiohttp
     #   aiosignal
+gevent==24.11.1
+    # via
+    #   -c requirements.txt
+    #   gevent-eventemitter
+    #   steam
+gevent-eventemitter==2.1
+    # via
+    #   -c requirements.txt
+    #   steam
+greenlet==3.1.1
+    # via
+    #   -c requirements.txt
+    #   gevent
 h11==0.14.0
     # via httpcore
 hatch==1.14.0
@@ -101,9 +137,13 @@ kopf==1.37.4
 lxml==5.3.0
     # via ark-operator (pyproject.toml)
 markdown-it-py==3.0.0
-    # via rich
+    # via
+    #   -c requirements.txt
+    #   rich
 mdurl==0.1.2
-    # via markdown-it-py
+    # via
+    #   -c requirements.txt
+    #   markdown-it-py
 more-itertools==10.5.0
     # via
     #   jaraco-classes
@@ -145,14 +185,40 @@ propcache==0.2.1
     #   -c requirements.txt
     #   aiohttp
     #   yarl
+protobuf==3.20.3
+    # via
+    #   -c requirements.txt
+    #   steam
 psutil==6.1.1
     # via pytest-xdist
 ptyprocess==0.7.0
     # via pexpect
+py-steamcmd-wrapper==1.1.1
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 pycparser==2.22
     # via cffi
+pycryptodomex==3.21.0
+    # via
+    #   -c requirements.txt
+    #   steam
+pydantic==2.10.4
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
+    #   pydantic-settings
+pydantic-core==2.27.2
+    # via
+    #   -c requirements.txt
+    #   pydantic
+pydantic-settings==2.7.0
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 pygments==2.18.0
     # via
+    #   -c requirements.txt
     #   readme-renderer
     #   rich
 pyproject-hooks==1.2.0
@@ -176,7 +242,10 @@ pytest-timeout==2.3.1
 pytest-xdist==3.6.1
     # via ark-operator (pyproject.toml)
 python-dotenv==1.0.1
-    # via ark-operator (pyproject.toml)
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
+    #   pydantic-settings
 python-json-logger==3.2.1
     # via
     #   -c requirements.txt
@@ -185,11 +254,18 @@ pyyaml==6.0.2
     # via
     #   -c requirements.txt
     #   kopf
+rcon==2.4.9
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 readme-renderer==44.0
     # via twine
 requests==2.32.3
     # via
+    #   -c requirements.txt
+    #   py-steamcmd-wrapper
     #   requests-toolbelt
+    #   steam
     #   twine
 requests-toolbelt==1.0.0
     # via twine
@@ -197,16 +273,36 @@ rfc3986==2.0.0
     # via twine
 rich==13.9.4
     # via
+    #   -c requirements.txt
+    #   cyclopts
     #   hatch
+    #   rich-rst
     #   twine
+rich-rst==1.3.1
+    # via
+    #   -c requirements.txt
+    #   cyclopts
 ruff==0.8.4
     # via ark-operator (pyproject.toml)
 secretstorage==3.3.3
     # via keyring
+setuptools==75.6.0
+    # via
+    #   -c requirements.txt
+    #   zope-event
+    #   zope-interface
 shellingham==1.5.4
     # via hatch
+six==1.17.0
+    # via
+    #   -c requirements.txt
+    #   steam
 sniffio==1.3.1
     # via anyio
+steam @ git+https://github.com/solsticegamestudios/steam@c3f78074117691ef0ddf9a9020879eb5a426e090
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 tomli-w==1.1.0
     # via hatch
 tomlkit==0.13.2
@@ -221,19 +317,36 @@ typing-extensions==4.12.2
     #   anyio
     #   kopf
     #   mypy
-urllib3==2.3.0
+    #   pydantic
+    #   pydantic-core
+urllib3==1.26.20
     # via
+    #   -c requirements.txt
     #   requests
+    #   steam
     #   twine
 userpath==1.9.2
     # via hatch
 uv==0.5.11
     # via hatch
+vdf==3.4
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
+    #   steam
 virtualenv==20.28.0
     # via hatch
 yarl==1.18.3
     # via
     #   -c requirements.txt
     #   aiohttp
+zope-event==5.0
+    # via
+    #   -c requirements.txt
+    #   gevent
+zope-interface==7.2
+    # via
+    #   -c requirements.txt
+    #   gevent
 zstandard==0.23.0
     # via hatch

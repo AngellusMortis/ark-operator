@@ -6,20 +6,50 @@ aiohttp==3.11.11
     # via kopf
 aiosignal==1.3.2
     # via aiohttp
+annotated-types==0.7.0
+    # via pydantic
 attrs==24.3.0
-    # via aiohttp
+    # via
+    #   aiohttp
+    #   cyclopts
+cachetools==5.5.0
+    # via steam
+certifi==2024.12.14
+    # via requests
+charset-normalizer==3.4.1
+    # via requests
 click==8.1.8
     # via kopf
+cyclopts==3.1.2
+    # via ark-operator (pyproject.toml)
+docstring-parser==0.16
+    # via cyclopts
+docutils==0.21.2
+    # via rich-rst
 frozenlist==1.5.0
     # via
     #   aiohttp
     #   aiosignal
+gevent==24.11.1
+    # via
+    #   gevent-eventemitter
+    #   steam
+gevent-eventemitter==2.1
+    # via steam
+greenlet==3.1.1
+    # via gevent
 idna==3.10
-    # via yarl
+    # via
+    #   requests
+    #   yarl
 iso8601==2.1.0
     # via kopf
 kopf==1.37.4
     # via ark-operator (pyproject.toml)
+markdown-it-py==3.0.0
+    # via rich
+mdurl==0.1.2
+    # via markdown-it-py
 multidict==6.1.0
     # via
     #   aiohttp
@@ -28,11 +58,64 @@ propcache==0.2.1
     # via
     #   aiohttp
     #   yarl
+protobuf==3.20.3
+    # via steam
+py-steamcmd-wrapper==1.1.1
+    # via ark-operator (pyproject.toml)
+pycryptodomex==3.21.0
+    # via steam
+pydantic==2.10.4
+    # via
+    #   ark-operator (pyproject.toml)
+    #   pydantic-settings
+pydantic-core==2.27.2
+    # via pydantic
+pydantic-settings==2.7.0
+    # via ark-operator (pyproject.toml)
+pygments==2.18.0
+    # via rich
+python-dotenv==1.0.1
+    # via pydantic-settings
 python-json-logger==3.2.1
     # via kopf
 pyyaml==6.0.2
     # via kopf
+rcon==2.4.9
+    # via ark-operator (pyproject.toml)
+requests==2.32.3
+    # via
+    #   py-steamcmd-wrapper
+    #   steam
+rich==13.9.4
+    # via
+    #   cyclopts
+    #   rich-rst
+rich-rst==1.3.1
+    # via cyclopts
+setuptools==75.6.0
+    # via
+    #   zope-event
+    #   zope-interface
+six==1.17.0
+    # via steam
+steam @ git+https://github.com/solsticegamestudios/steam@c3f78074117691ef0ddf9a9020879eb5a426e090
+    # via ark-operator (pyproject.toml)
 typing-extensions==4.12.2
-    # via kopf
+    # via
+    #   kopf
+    #   pydantic
+    #   pydantic-core
+urllib3==1.26.20
+    # via
+    #   requests
+    #   steam
+vdf==3.4
+    # via
+    #   ark-operator (pyproject.toml)
+    #   steam
 yarl==1.18.3
     # via aiohttp
+zope-event==5.0
+    # via gevent
+zope-interface==7.2
+    # via gevent

@@ -26,7 +26,14 @@ classifiers = [
     "Topic :: System :: Systems Administration",
 ]
 dependencies = [
-    "kopf"
+    "cyclopts",
+    "kopf",
+    "py-steamcmd-wrapper",
+    "pydantic < 3",
+    "pydantic-settings",
+    "rcon",
+    "steam[client] @ git+https://github.com/solsticegamestudios/steam@v1.6.1",
+    "vdf",
 ]
 dynamic = ["version"]
 
@@ -97,6 +104,7 @@ max-complexity = 10
 [tool.ruff.lint.per-file-ignores]
 "**/*.py" = []
 "cli.py" = ["T"] # CLI allows print
+"__main__.py" = ["T"] # CLI allows print
 "test/tests/**/*.py" = ["FBT", "D", "SLF001", "PLR2004", "RUF029", "S", "E501"]
 
 [tool.mypy]
@@ -126,6 +134,17 @@ disallow_untyped_defs = false
 disallow_incomplete_defs = false
 check_untyped_defs = false
 
+[[tool.mypy.overrides]]
+module = [
+    "pysteamcmdwrapper",
+    "rcon",
+    "rcon.source",
+    "steam",
+    "steam.client",
+    "steam.client.cdn",
+    "vdf",
+]
+ignore_missing_imports = true
 
 ## test metadata
 [tool.coverage.run]

@@ -9,6 +9,11 @@ ARG TARGETPLATFORM
 RUN addgroup --system --gid 1000 app \
     && adduser --system --shell /bin/bash --uid 1000 --home /home/app --ingroup app app
 
+RUN --mount=type=cache,mode=0755,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,mode=0755,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq \
+    && apt-get install -yqq lib32stdc++6
+
 
 FROM base AS builder-prod
 

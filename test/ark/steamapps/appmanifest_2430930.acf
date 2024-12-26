@@ -1,0 +1,44 @@
+"AppState"
+{
+	"appid"		"2430930"
+	"Universe"		"1"
+	"name"		"ARK: Survival Ascended Dedicated Server"
+	"StateFlags"		"4"
+	"installdir"		"ARK Survival Ascended Dedicated Server"
+	"LastUpdated"		"1735153526"
+	"LastPlayed"		"0"
+	"SizeOnDisk"		"31583069878"
+	"StagingSize"		"0"
+	"buildid"		"16828472"
+	"LastOwner"		"0"
+	"UpdateResult"		"0"
+	"BytesToDownload"		"0"
+	"BytesDownloaded"		"0"
+	"BytesToStage"		"0"
+	"BytesStaged"		"0"
+	"TargetBuildID"		"16828472"
+	"AutoUpdateBehavior"		"0"
+	"AllowOtherDownloadsWhileRunning"		"0"
+	"ScheduledAutoUpdate"		"0"
+	"FullValidateBeforeNextUpdate"		"1"
+	"FullValidateAfterNextUpdate"		"1"
+	"InstalledDepots"
+	{
+		"1004"
+		{
+			"manifest"		"7747775778018907449"
+			"size"		"46727128"
+		}
+		"2430931"
+		{
+			"manifest"		"5058566692590155205"
+			"size"		"31536342750"
+		}
+	}
+	"UserConfig"
+	{
+	}
+	"MountedConfig"
+	{
+	}
+}
