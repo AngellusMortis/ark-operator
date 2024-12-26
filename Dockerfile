@@ -26,14 +26,17 @@ COPY requirements.txt /
 RUN --mount=type=cache,mode=0755,id=pip-$TARGETPLATFORM,target=/root/.cache \
     pip install --root-user-action=ignore -U pip uv \
     && uv pip install -r /requirements.txt \
-    && rm /requirements.txt
+    && rm /requirements.txt \
+    # do not keep uv for prod layer as it is large
+    && pip uninstall -y uv
 
 
 FROM builder-prod AS builder-dev
 
 COPY dev-requirements.txt /
 RUN --mount=type=cache,mode=0755,id=pip,target=/root/.cache \
-    uv pip install -r /dev-requirements.txt \
+    pip install --root-user-action=ignore -U pip uv \
+    && uv pip install -r /dev-requirements.txt \
     && rm /dev-requirements.txt
 
 
