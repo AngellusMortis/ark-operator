@@ -49,40 +49,40 @@ jobs:
 
     steps:
       - name: 📡 Download Lint Results
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: lint-results
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download Code Coverage
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: code-coverage-report
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download Package
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: package
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download Package
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: package
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download dev Container Digest
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: container-digest-dev
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download prod Container Digest
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: container-digest-prod
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 🚚 Create Release
         uses: softprops/action-gh-release@v2
@@ -111,16 +111,16 @@ jobs:
 
     steps:
       - name: 📡 Download dev Container Digest
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: container-digest-dev
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download prod Container Digest
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: container-digest-prod
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 🔧 Set Attest Envs
         run: |
@@ -165,10 +165,10 @@ jobs:
 
     steps:
       - name: 📡 Download Package
-        uses: actions/download-artifact@v4
+        uses: dawidd6/action-download-artifact@v7
         with:
           name: package
-          run-id: ${{ github.event.workflow_run.id }}
+          run_id: ${{ github.event.workflow_run.id }}
 
       - name: 🚚 Move Python Packages
         run: |
