@@ -16,6 +16,7 @@ permissions:
   contents: write
   packages: write
   attestations: write
+  actions: read
 
 jobs:
   metadata:
@@ -45,42 +46,43 @@ jobs:
     environment:
       name: github
       url: https://github.com/AngellusMortis/ark-operator/releases
+
     steps:
       - name: 📡 Download Lint Results
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: lint-results
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download Code Coverage
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: code-coverage-report
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download Package
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: package
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download Package
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: package
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download dev Container Digest
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: container-digest-dev
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download prod Container Digest
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: container-digest-prod
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 🚚 Create Release
         uses: softprops/action-gh-release@v2
@@ -109,16 +111,16 @@ jobs:
 
     steps:
       - name: 📡 Download dev Container Digest
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: container-digest-dev
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 📡 Download prod Container Digest
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: container-digest-prod
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 🔧 Set Attest Envs
         run: |
@@ -163,10 +165,10 @@ jobs:
 
     steps:
       - name: 📡 Download Package
-        uses: dawidd6/action-download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: package
-          run_id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id }}
 
       - name: 🚚 Move Python Packages
         run: |
