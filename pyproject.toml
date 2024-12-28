@@ -27,6 +27,7 @@ classifiers = [
 ]
 dependencies = [
     "cyclopts",
+    "gamercon-async",
     "jinja2",
     "kopf[full-auth]",
     "kubernetes_asyncio",
@@ -34,7 +35,6 @@ dependencies = [
     "pydantic < 3",
     "pydantic-settings",
     "pyyaml",
-    "rcon",
     "steam[client] @ git+https://github.com/solsticegamestudios/steam@v1.6.1",
     "typing_extensions",
     "vdf",
@@ -143,6 +143,7 @@ check_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = [
+    "gamercon_async",
     "kubernetes_asyncio.client.api_client",
     "kubernetes_asyncio",
     "pysteamcmdwrapper",

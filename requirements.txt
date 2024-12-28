@@ -39,6 +39,8 @@ frozenlist==1.5.0
     # via
     #   aiohttp
     #   aiosignal
+gamercon-async==1.0.7
+    # via ark-operator (pyproject.toml)
 gevent==24.11.1
     # via
     #   gevent-eventemitter
@@ -120,8 +122,6 @@ pyyaml==6.0.2
     #   kubernetes
     #   kubernetes-asyncio
     #   pykube-ng
-rcon==2.4.9
-    # via ark-operator (pyproject.toml)
 requests==2.32.3
     # via
     #   kubernetes

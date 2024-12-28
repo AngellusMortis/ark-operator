@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Generic, TypedDict, TypeVar
-
-from typing_extensions import NotRequired
+from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
     from datetime import datetime, timedelta
@@ -20,33 +18,9 @@ if TYPE_CHECKING:
         OperatorSettings,
         Patch,
         Resource,
+        Spec,
         Status,
     )
-
-T = TypeVar("T")
-
-
-class ArkServerSpec(TypedDict):
-    """ArkCluster.spec.server CRD spec."""
-
-    steamStorageClass: NotRequired[str]
-    storageClass: NotRequired[str]
-    size: NotRequired[int | str]
-    maps: NotRequired[list[str]]
-
-
-class ArkDataSpec(TypedDict):
-    """ArkCluster.spec.data CRD spec."""
-
-    storageClass: NotRequired[str]
-    size: NotRequired[int | str]
-
-
-class ArkClusterSpec(TypedDict):
-    """ArkCluster.spec CRD spec."""
-
-    server: NotRequired[ArkServerSpec]
-    data: NotRequired[ArkDataSpec]
 
 
 class ActivityEvent(TypedDict):
@@ -61,7 +35,7 @@ class ActivityEvent(TypedDict):
     param: Any
 
 
-class ChangeEvent(Generic[T], TypedDict):
+class ChangeEvent(TypedDict):
     """Kopf change event."""
 
     retry: int
@@ -71,7 +45,7 @@ class ChangeEvent(Generic[T], TypedDict):
     labels: Labels
     body: Body
     meta: Meta
-    spec: T
+    spec: Spec
     status: Status
     resource: Resource
     uid: str | None

@@ -85,6 +85,10 @@ frozenlist==1.5.0
     #   -c requirements.txt
     #   aiohttp
     #   aiosignal
+gamercon-async==1.0.7
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 gevent==24.11.1
     # via
     #   -c requirements.txt
@@ -309,10 +313,6 @@ pyyaml==6.0.2
     #   kubernetes
     #   kubernetes-asyncio
     #   pykube-ng
-rcon==2.4.9
-    # via
-    #   -c requirements.txt
-    #   ark-operator (pyproject.toml)
 readme-renderer==44.0
     # via twine
 requests==2.32.3

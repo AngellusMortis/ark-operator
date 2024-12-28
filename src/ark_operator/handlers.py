@@ -10,10 +10,6 @@ try:
 except ImportError:
     from typing_extensions import Unpack
 
-
-DEFAULT_SERVER_SIZE = "50Gi"
-DEFAULT_DATA_SIZE = "50Gi"
-DEFAULT_DATA_PERSIST = True
 MIN_SIZE_SERVER = "50Gi"
 
 
@@ -33,23 +29,21 @@ async def cleanup(**_: Unpack[ActivityEvent]) -> None:
 
 
 @kopf.on.create("arkcluster")
-async def on_create(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
+async def on_create(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
     logger = kwargs.pop("logger")
 
     name = kwargs.pop("name")
     namespace = kwargs.pop("namespace")
-    spec = kwargs.pop("spec")
-    server = spec.get("server", {})
-    data = spec.get("data", {})
+    spec = ArkClusterSpec(**kwargs.pop("spec"))
 
     await create_pvc(
         cluster_name=name,
         pvc_name="server-a",
         namespace=namespace,
-        storage_class=server.get("storageClass"),
-        size=server.get("size", DEFAULT_SERVER_SIZE),
+        storage_class=spec.server.storage_class,
+        size=spec.server.size,
         logger=logger,
         min_size=MIN_SIZE_SERVER,
     )
@@ -57,8 +51,8 @@ async def on_create(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
         cluster_name=name,
         pvc_name="server-b",
         namespace=namespace,
-        storage_class=server.get("storageClass"),
-        size=server.get("size", DEFAULT_SERVER_SIZE),
+        storage_class=spec.server.storage_class,
+        size=spec.server.size,
         logger=logger,
         min_size=MIN_SIZE_SERVER,
     )
@@ -66,8 +60,8 @@ async def on_create(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
         cluster_name=name,
         pvc_name="data",
         namespace=namespace,
-        storage_class=data.get("storageClass"),
-        size=data.get("size", DEFAULT_DATA_SIZE),
+        storage_class=spec.data.storage_class,
+        size=spec.data.size,
         logger=logger,
         allow_exist=True,
     )
@@ -85,20 +79,16 @@ async def on_update(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
     logger = kwargs.pop("logger")
     name = kwargs.pop("name")
     namespace = kwargs.pop("namespace")
-    spec: ArkClusterSpec = kwargs.pop("spec")
-    server = spec.get("server", {})
-    size = server.get("size", DEFAULT_SERVER_SIZE)
+    spec = ArkClusterSpec(**kwargs.pop("spec"))
 
     old = kwargs.pop("old", {})
-    old_spec = old.get("spec", {})
-    old_server = old_spec.get("server", {})
-    old_size = old_server.get("size", DEFAULT_SERVER_SIZE)
+    old_spec = ArkClusterSpec(**old.pop("spec"))
 
     if await resize_pvc(
         name=f"{name}-server-a",
         namespace=namespace,
-        new_size=size,
-        size=old_size,
+        new_size=spec.server.size,
+        size=old_spec.server.size,
         logger=logger,
     ):
         # TODO: decide how to handle resizing PVCs with servers
@@ -107,24 +97,18 @@ async def on_update(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
     if await resize_pvc(
         name=f"{name}-server-b",
         namespace=namespace,
-        new_size=size,
-        size=old_size,
+        new_size=spec.server.size,
+        size=old_spec.server.size,
         logger=logger,
     ):
         # TODO: decide how to handle resizing PVCs with servers
         pass
 
-    data = spec.get("data", {})
-    size = data.get("size", DEFAULT_DATA_SIZE)
-
-    old_data = old.get("data", {})
-    old_size = old_data.get("size", DEFAULT_DATA_SIZE)
-
     if await resize_pvc(
         name=f"{name}-data",
         namespace=namespace,
-        new_size=size,
-        size=old_size,
+        new_size=spec.data.size,
+        size=old_spec.data.size,
         logger=logger,
     ):
         # TODO: decide how to handle resizing PVCs with servers
@@ -142,8 +126,7 @@ async def on_delete(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
 
     name = kwargs.pop("name")
     namespace = kwargs.pop("namespace")
-    spec = kwargs.pop("spec")
-    data = spec.get("data", {})
+    spec = ArkClusterSpec(**kwargs.pop("spec"))
 
     await delete_pvc(
         cluster_name=name,
@@ -157,7 +140,7 @@ async def on_delete(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
         namespace=namespace,
         logger=logger,
     )
-    if not data.get("persist", DEFAULT_DATA_PERSIST):
+    if not spec.data.persist:
         await delete_pvc(
             cluster_name=name,
             pvc_name="data",

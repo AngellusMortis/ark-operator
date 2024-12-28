@@ -1,11 +1,14 @@
 """ARK Operator data."""
 
-from ark_operator.data.models import Config, Steam
-from ark_operator.data.types import (
-    ActivityEvent,
+from ark_operator.data.models import (
     ArkClusterSpec,
     ArkDataSpec,
     ArkServerSpec,
+    Config,
+    Steam,
+)
+from ark_operator.data.types import (
+    ActivityEvent,
     ChangeEvent,
 )
 

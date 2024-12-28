@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+import re
 import shutil
+from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -17,6 +19,16 @@ if TYPE_CHECKING:
 
 ARK_SERVER_APP_ID = 2430930
 _LOGGER = logging.getLogger(__name__)
+MAP_NAME_LOOKUP = {
+    "Aberration_WP": "Aberration",
+    "BobsMissions_WP": "Club Ark",
+    "Extinction_WP": "Extinction",
+    "ScorchedEarth_WP": "Scorched Earth",
+    "TheCenter_WP": "The Center",
+    "TheIsland_WP": "The Island",
+}
+
+CAMEL_RE = re.compile(r"((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))")
 
 
 def install_ark(steam: Steam, *, ark_dir: Path) -> None:
@@ -91,3 +103,22 @@ def copy_ark(src: Path, dest: Path) -> None:
 
     _LOGGER.info("Copying src ARK to dest ARK")
     shutil.copytree(src, dest)
+
+
+@lru_cache(maxsize=20)
+def get_map_name(map_id: str) -> str:
+    """Get map name from map ID."""
+
+    if map_name := MAP_NAME_LOOKUP.get(map_id):
+        return map_name
+
+    map_name = map_id.lstrip("M_")
+    if map_name.endswith("_SOTF"):
+        map_name = map_name.rstrip("_SOTF")
+        map_name = CAMEL_RE.sub(r" \1", map_name)
+        map_name = f"The Survival of the Fittest ({map_name})"
+    else:
+        map_name = map_name.rstrip("WP").rstrip("_")
+        map_name = CAMEL_RE.sub(r" \1", map_name)
+
+    return map_name.replace("_", "").title()

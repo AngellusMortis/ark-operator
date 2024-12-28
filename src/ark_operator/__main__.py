@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from pathlib import Path
+from typing import cast
 
-from rcon.source import Client
+from gamercon_async import GameRCON
 
-from ark_operator.ark_utils import copy_ark, has_newer_version, install_ark
-from ark_operator.data import Config, Steam
+from ark_operator.ark_utils import (
+    copy_ark,
+    has_newer_version,
+    install_ark,
+)
+from ark_operator.data import ArkServerSpec, Config, Steam
 
 try:
     from dotenv import load_dotenv
@@ -40,24 +46,30 @@ def install() -> None:
     install_ark(steam, ark_dir=config.ark_b_install_dir)
 
 
-def rcon(cmd: str, *args: str) -> None:
+async def send_cmd(cmd: str, *, host: str, port: int, password: str) -> str:
+    """Run rcon command againt server."""
+
+    async with GameRCON(host, port, password, timeout=5) as client:
+        return cast(str, await client.send(cmd))
+
+
+async def send_cmd_all(cmd: str, *, spec: ArkServerSpec) -> None:
     """Run rcon command against all servers."""
 
-    servers = [
-        (27020, "Club Ark"),
-        (27021, "The Island"),
-        (27022, "The Center"),
-        (27023, "Scorched Earth"),
-        (27024, "Aberration"),
-        (27025, "Extinction"),
+    servers = spec.all_servers
+    tasks = [
+        send_cmd(
+            cmd,
+            host=os.environ["RCON_IP"],
+            port=s.rcon_port,
+            password=os.environ["RCON_PASSWORD"],
+        )
+        for s in servers
     ]
 
-    for port, name in servers:
-        with Client(
-            os.environ["RCON_IP"], port, passwd=os.environ["RCON_PASSWORD"]
-        ) as client:
-            print(f"{name} - {cmd} {' '.join(args)}")
-            response = client.run(cmd, *args)
+    responses = await asyncio.gather(*tasks)
+    for index, response in enumerate(responses):
+        print(f"{servers[index].map_name} - {cmd}")
         print(response)
 
 
@@ -71,7 +83,12 @@ def start() -> None:
         else:
             load_dotenv()
 
-    rcon(sys.argv[1], *sys.argv[2:])
+    spec = ArkServerSpec(
+        maps=["official"],
+        game_port_start=7780,
+        rcon_port_start=27020,
+    )
+    asyncio.run(send_cmd_all(" ".join(sys.argv[1:]), spec=spec))
 
 
 if __name__ == "__main__":
