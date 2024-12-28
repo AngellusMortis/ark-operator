@@ -1,38 +1,16 @@
-"""K8s resource creators."""
+"""K8s resource creators for PVCs."""
 
 import kopf
 import yaml
-from kubernetes_asyncio import client, config
-from kubernetes_asyncio.client.api_client import ApiClient
 
-from ark_operator.k8s_utils import convert_k8s_size
+from ark_operator.k8s.client import get_v1_client
+from ark_operator.k8s.utils import convert_k8s_size
 from ark_operator.templates import loader
 
 ERROR_PVC = "Failed to create PVC"
 ERROR_PVC_TOO_SMALL = "PVC is too small. Min size is {min}"
 ERROR_PVC_RESIZE_TOO_SMALL = "Failed to resize PVC, new size is smaller then old size"
 ERROR_PVC_RESIZE = "Failed to resize PVC"
-
-
-_CLIENT: ApiClient | None = None
-
-
-async def get_k8s_client() -> ApiClient:
-    """Get or create k8s API client."""
-
-    global _CLIENT  # noqa: PLW0603
-
-    if _CLIENT is None:
-        await config.load_kube_config()
-        _CLIENT = ApiClient()
-
-    return _CLIENT
-
-
-async def get_v1_client() -> client.CoreV1Api:
-    """Get v1 k8s client."""
-
-    return client.CoreV1Api(await get_k8s_client())
 
 
 async def resize_pvc(
@@ -52,7 +30,7 @@ async def resize_pvc(
     if new_size < size:
         raise kopf.PermanentError(ERROR_PVC_RESIZE_TOO_SMALL)
     if new_size == size:
-        logger.info("Skiping resize for %s, sizes (%s) match", name, display_size)
+        logger.info("Skipping resize for %s, sizes (%s) match", name, display_size)
         return False
 
     v1 = await get_v1_client()
@@ -63,7 +41,7 @@ async def resize_pvc(
         await v1.patch_namespaced_persistent_volume_claim(
             name=name,
             namespace=namespace,
-            body={"spec": {"resources": {"requests": {"storage": new_size}}}},
+            body={"spec": {"resources": {"requests": {"storage": display_new_size}}}},
         )
     except Exception as ex:
         raise kopf.PermanentError(ERROR_PVC_RESIZE) from ex
@@ -72,37 +50,40 @@ async def resize_pvc(
 
 
 async def check_pvc_exists(
-    *, name: str, namespace: str, size: int | str, logger: kopf.Logger
+    *, name: str, namespace: str, logger: kopf.Logger, new_size: int | str | None = None
 ) -> bool:
     """Check if PVC exists."""
 
     v1 = await get_v1_client()
-    pvcs = (await v1.list_namespaced_persistent_volume_claim(namespace=namespace)).items
-    for pvc in pvcs:
-        if pvc.metadata.name == name:
-            await resize_pvc(
-                name=name,
-                namespace=namespace,
-                new_size=size,
-                size=pvc.spec.resources.requests["storage"],
-                logger=logger,
-            )
-            return True
+    try:
+        pvc = await v1.read_namespaced_persistent_volume_claim(
+            name=name, namespace=namespace
+        )
+    except Exception:  # noqa: BLE001
+        return False
 
-    return False
+    if new_size:
+        await resize_pvc(
+            name=name,
+            namespace=namespace,
+            new_size=new_size,
+            size=pvc.spec.resources.requests["storage"],
+            logger=logger,
+        )
+    return True
 
 
 async def create_pvc(  # noqa: PLR0913
     *,
-    cluster_name: str,
-    pvc_name: str,
+    name: str,
     namespace: str,
-    storage_class: str | None,
     size: int | str,
     logger: kopf.Logger,
+    access_mode: str = "ReadWriteOnce",
+    storage_class: str | None = None,
     allow_exist: bool = False,
     min_size: int | str | None = None,
-) -> None:
+) -> bool:
     """Create ARK server PVC."""
 
     if min_size:
@@ -111,13 +92,13 @@ async def create_pvc(  # noqa: PLR0913
         if convert_k8s_size(size) < min_size:
             raise kopf.PermanentError(ERROR_PVC_TOO_SMALL.format(min=display_min_size))
 
-    name = f"{cluster_name}-{pvc_name}"
     pvc_tmpl = loader.get_template("pvc.yml.j2")
     pvc = yaml.safe_load(
         await pvc_tmpl.render_async(
             name=name,
             storage_class=storage_class,
             size=size,
+            access_mode=access_mode,
         )
     )
 
@@ -129,23 +110,22 @@ async def create_pvc(  # noqa: PLR0913
         )
     except Exception as ex:
         if allow_exist and await check_pvc_exists(
-            name=name, namespace=namespace, size=size, logger=logger
+            name=name, namespace=namespace, new_size=size, logger=logger
         ):
             logger.warning(
                 "Failed to delete PVC because it already exists: %s", name, exc_info=ex
             )
         else:
             raise kopf.PermanentError(ERROR_PVC) from ex
-    else:
-        logger.info("Created PVC: %s", obj)
+        return False
+
+    logger.info("Created PVC: %s", obj)
+    return True
 
 
-async def delete_pvc(
-    *, cluster_name: str, pvc_name: str, namespace: str, logger: kopf.Logger
-) -> None:
+async def delete_pvc(*, name: str, namespace: str, logger: kopf.Logger) -> bool:
     """Delete ARK server PVC."""
 
-    name = f"{cluster_name}-{pvc_name}"
     v1 = await get_v1_client()
     try:
         await v1.delete_namespaced_persistent_volume_claim(
@@ -153,5 +133,7 @@ async def delete_pvc(
         )
     except Exception as ex:  # noqa: BLE001
         logger.warning("Failed to delete PVC: %s", name, exc_info=ex)
-    else:
-        logger.info("Created Steam PVC: %s", name)
+        return False
+
+    logger.info("Created Steam PVC: %s", name)
+    return True

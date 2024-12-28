@@ -39,8 +39,7 @@ async def on_create(**kwargs: Unpack[ChangeEvent]) -> None:
     spec = ArkClusterSpec(**kwargs.pop("spec"))
 
     await create_pvc(
-        cluster_name=name,
-        pvc_name="server-a",
+        name=f"{name}-server-a",
         namespace=namespace,
         storage_class=spec.server.storage_class,
         size=spec.server.size,
@@ -48,8 +47,7 @@ async def on_create(**kwargs: Unpack[ChangeEvent]) -> None:
         min_size=MIN_SIZE_SERVER,
     )
     await create_pvc(
-        cluster_name=name,
-        pvc_name="server-b",
+        name=f"{name}-server-b",
         namespace=namespace,
         storage_class=spec.server.storage_class,
         size=spec.server.size,
@@ -57,8 +55,7 @@ async def on_create(**kwargs: Unpack[ChangeEvent]) -> None:
         min_size=MIN_SIZE_SERVER,
     )
     await create_pvc(
-        cluster_name=name,
-        pvc_name="data",
+        name=f"{name}-data",
         namespace=namespace,
         storage_class=spec.data.storage_class,
         size=spec.data.size,
@@ -129,21 +126,18 @@ async def on_delete(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
     spec = ArkClusterSpec(**kwargs.pop("spec"))
 
     await delete_pvc(
-        cluster_name=name,
-        pvc_name="server-a",
+        name=f"{name}-server-a",
         namespace=namespace,
         logger=logger,
     )
     await delete_pvc(
-        cluster_name=name,
-        pvc_name="server-b",
+        name=f"{name}-server-b",
         namespace=namespace,
         logger=logger,
     )
     if not spec.data.persist:
         await delete_pvc(
-            cluster_name=name,
-            pvc_name="data",
+            name=f"{name}-data",
             namespace=namespace,
             logger=logger,
         )

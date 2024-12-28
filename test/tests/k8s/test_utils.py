@@ -2,7 +2,7 @@
 
 import pytest
 
-from ark_operator.k8s_utils import convert_k8s_size
+from ark_operator.k8s.utils import convert_k8s_size
 
 
 @pytest.mark.parametrize(

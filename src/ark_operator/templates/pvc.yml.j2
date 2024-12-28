@@ -7,7 +7,7 @@ spec:
   storageClassName: {{ storage_class }}
 {% endif %}
   accessModes:
-    - ReadWriteOnce
+    - {{ access_mode }}
   resources:
     requests:
       storage: {{ size }}
