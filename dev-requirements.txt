@@ -18,7 +18,14 @@ annotated-types==0.7.0
     #   -c requirements.txt
     #   pydantic
 anyio==4.7.0
-    # via httpx
+    # via
+    #   -c requirements.txt
+    #   asyncer
+    #   httpx
+asyncer==0.0.8
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 attrs==24.3.0
     # via
     #   -c requirements.txt
@@ -367,7 +374,9 @@ six==1.17.0
     #   python-dateutil
     #   steam
 sniffio==1.3.1
-    # via anyio
+    # via
+    #   -c requirements.txt
+    #   anyio
 steam @ git+https://github.com/solsticegamestudios/steam@c3f78074117691ef0ddf9a9020879eb5a426e090
     # via
     #   -c requirements.txt

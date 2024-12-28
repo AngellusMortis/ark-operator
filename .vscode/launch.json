@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Run ARK Operator",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "ark_operator",
+            "justMyCode": false,
+        },
+        {
             "name": "Run Kopf",
             "type": "debugpy",
             "request": "launch",

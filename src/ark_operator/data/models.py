@@ -63,18 +63,34 @@ class Steam:
     """Steam wrapper."""
 
     cmd: SteamCMD
-    api: SteamClient
-    cdn: CDNClient
+
+    _api: SteamClient | None = None
+    _cdn: CDNClient | None = None
+
+    @property
+    def api(self) -> SteamClient:
+        """Get SteamClient."""
+
+        if self._api is None:
+            self._api = SteamClient()
+            self._api.anonymous_login()
+
+        return self._api
+
+    @property
+    def cdn(self) -> CDNClient:
+        """Get CDNClient."""
+
+        if self._cdn is None:
+            self._cdn = CDNClient(self.api)
+
+        return self._cdn
 
     @classmethod
     def create(cls, *, install_dir: Path) -> Steam:
         """Create Steam obj."""
 
-        steam = SteamClient()
-        steam.anonymous_login()
-        cdn = CDNClient(steam)
-
-        return Steam(cmd=SteamCMD(install_dir), api=steam, cdn=cdn)
+        return Steam(cmd=SteamCMD(install_dir))
 
 
 @dataclass

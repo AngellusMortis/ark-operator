@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import vdf
+from asyncer import asyncify
 from pysteamcmdwrapper import SteamCMD_command
 
 if TYPE_CHECKING:
@@ -31,6 +32,7 @@ MAP_NAME_LOOKUP = {
 CAMEL_RE = re.compile(r"((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))")
 
 
+@asyncify
 def install_ark(steam: Steam, *, ark_dir: Path) -> None:
     """Install ARK server."""
 
@@ -41,7 +43,7 @@ def install_ark(steam: Steam, *, ark_dir: Path) -> None:
     steam.cmd.execute(cmd, n_tries=3)
 
 
-def get_ark_buildid(src: Path) -> int | None:
+def get_ark_buildid_sync(src: Path) -> int | None:
     """Get buildid for ARK install."""
 
     _LOGGER.debug("get buildid: %s", src)
@@ -56,11 +58,14 @@ def get_ark_buildid(src: Path) -> int | None:
     return int(src_manifest["AppState"]["buildid"])
 
 
-def has_newer_version(steam: Steam, src: Path) -> bool:
+get_ark_buildid = asyncify(get_ark_buildid_sync)
+
+
+def has_newer_version_sync(steam: Steam, src: Path) -> bool:
     """Check if src ARK install has a newer version."""
 
     _LOGGER.debug("check update: %s", src)
-    src_buildid = get_ark_buildid(src)
+    src_buildid = get_ark_buildid_sync(src)
     if not src_buildid:
         return True
 
@@ -72,15 +77,18 @@ def has_newer_version(steam: Steam, src: Path) -> bool:
     return latest_buildid > src_buildid
 
 
-def is_ark_newer(src: Path, dest: Path) -> bool:
+has_newer_version = asyncify(has_newer_version_sync)
+
+
+def is_ark_newer_sync(src: Path, dest: Path) -> bool:
     """Check if src ARK install is newer then dest."""
 
     _LOGGER.debug("src: %s, dest: %s", src, dest)
-    src_buildid = get_ark_buildid(src)
+    src_buildid = get_ark_buildid_sync(src)
     if not src_buildid:
         return False
 
-    dest_buildid = get_ark_buildid(dest)
+    dest_buildid = get_ark_buildid_sync(dest)
     if not dest_buildid:
         return True
 
@@ -88,12 +96,16 @@ def is_ark_newer(src: Path, dest: Path) -> bool:
     return src_buildid > dest_buildid
 
 
+is_ark_newer = asyncify(is_ark_newer_sync)
+
+
+@asyncify
 def copy_ark(src: Path, dest: Path) -> None:
     """Copy ARK install to another."""
 
     _LOGGER.info("Checking if can copy src ARK (%s) to dest ARK (%s)", src, dest)
 
-    if not is_ark_newer(src, dest):
+    if not is_ark_newer_sync(src, dest):
         _LOGGER.info("src ARK is not newer")
         return
 

@@ -25,6 +25,7 @@ classifiers = [
     "Topic :: System :: Systems Administration",
 ]
 dependencies = [
+    "asyncer",
     "cyclopts",
     "gamercon-async",
     "jinja2",

@@ -23,7 +23,7 @@ except ImportError:
     load_dotenv = None  # type: ignore[assignment]
 
 
-def install() -> None:
+async def install() -> None:
     """Install ARK."""
 
     config = Config(
@@ -35,15 +35,19 @@ def install() -> None:
     steam = Steam.create(install_dir=config.steam_install_dir)
 
     print("Install ARK A")
-    print(f"ARK A has update: {has_newer_version(steam, config.ark_a_install_dir)}")
-    install_ark(steam, ark_dir=config.ark_a_install_dir)
+    print(
+        f"ARK A has update: {await has_newer_version(steam, config.ark_a_install_dir)}"
+    )
+    await install_ark(steam, ark_dir=config.ark_a_install_dir)
 
     print("Copy ARK A -> B")
-    copy_ark(config.ark_a_install_dir, config.ark_b_install_dir)
+    await copy_ark(config.ark_a_install_dir, config.ark_b_install_dir)
 
     print("Install ARK B")
-    print(f"ARK B has update: {has_newer_version(steam, config.ark_b_install_dir)}")
-    install_ark(steam, ark_dir=config.ark_b_install_dir)
+    print(
+        f"ARK B has update: {await has_newer_version(steam, config.ark_b_install_dir)}"
+    )
+    await install_ark(steam, ark_dir=config.ark_b_install_dir)
 
 
 async def send_cmd(cmd: str, *, host: str, port: int, password: str) -> str:
