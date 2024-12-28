@@ -3,7 +3,9 @@
 aiohappyeyeballs==2.4.4
     # via aiohttp
 aiohttp==3.11.11
-    # via kopf
+    # via
+    #   kopf
+    #   kubernetes-asyncio
 aiosignal==1.3.2
     # via aiohttp
 annotated-types==0.7.0
@@ -13,9 +15,14 @@ attrs==24.3.0
     #   aiohttp
     #   cyclopts
 cachetools==5.5.0
-    # via steam
+    # via
+    #   google-auth
+    #   steam
 certifi==2024.12.14
-    # via requests
+    # via
+    #   kubernetes
+    #   kubernetes-asyncio
+    #   requests
 charset-normalizer==3.4.1
     # via requests
 click==8.1.8
@@ -26,6 +33,8 @@ docstring-parser==0.16
     # via cyclopts
 docutils==0.21.2
     # via rich-rst
+durationpy==0.9
+    # via kubernetes
 frozenlist==1.5.0
     # via
     #   aiohttp
@@ -36,6 +45,8 @@ gevent==24.11.1
     #   steam
 gevent-eventemitter==2.1
     # via steam
+google-auth==2.37.0
+    # via kubernetes
 greenlet==3.1.1
     # via gevent
 idna==3.10
@@ -44,16 +55,28 @@ idna==3.10
     #   yarl
 iso8601==2.1.0
     # via kopf
+jinja2==3.1.5
+    # via ark-operator (pyproject.toml)
 kopf==1.37.4
+    # via ark-operator (pyproject.toml)
+kubernetes==31.0.0
+    # via kopf
+kubernetes-asyncio==32.0.0
     # via ark-operator (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
+markupsafe==3.0.2
+    # via jinja2
 mdurl==0.1.2
     # via markdown-it-py
 multidict==6.1.0
     # via
     #   aiohttp
     #   yarl
+oauthlib==3.2.2
+    # via
+    #   kubernetes
+    #   requests-oauthlib
 propcache==0.2.1
     # via
     #   aiohttp
@@ -62,6 +85,12 @@ protobuf==3.20.3
     # via steam
 py-steamcmd-wrapper==1.1.1
     # via ark-operator (pyproject.toml)
+pyasn1==0.6.1
+    # via
+    #   pyasn1-modules
+    #   rsa
+pyasn1-modules==0.4.1
+    # via google-auth
 pycryptodomex==3.21.0
     # via steam
 pydantic==2.10.4
@@ -74,45 +103,73 @@ pydantic-settings==2.7.0
     # via ark-operator (pyproject.toml)
 pygments==2.18.0
     # via rich
+pykube-ng==23.6.0
+    # via kopf
+python-dateutil==2.9.0.post0
+    # via
+    #   kubernetes
+    #   kubernetes-asyncio
 python-dotenv==1.0.1
     # via pydantic-settings
 python-json-logger==3.2.1
     # via kopf
 pyyaml==6.0.2
-    # via kopf
+    # via
+    #   ark-operator (pyproject.toml)
+    #   kopf
+    #   kubernetes
+    #   kubernetes-asyncio
+    #   pykube-ng
 rcon==2.4.9
     # via ark-operator (pyproject.toml)
 requests==2.32.3
     # via
+    #   kubernetes
     #   py-steamcmd-wrapper
+    #   pykube-ng
+    #   requests-oauthlib
     #   steam
+requests-oauthlib==2.0.0
+    # via kubernetes
 rich==13.9.4
     # via
     #   cyclopts
     #   rich-rst
 rich-rst==1.3.1
     # via cyclopts
+rsa==4.9
+    # via google-auth
 setuptools==75.6.0
     # via
     #   zope-event
     #   zope-interface
 six==1.17.0
-    # via steam
+    # via
+    #   kubernetes
+    #   kubernetes-asyncio
+    #   python-dateutil
+    #   steam
 steam @ git+https://github.com/solsticegamestudios/steam@c3f78074117691ef0ddf9a9020879eb5a426e090
     # via ark-operator (pyproject.toml)
 typing-extensions==4.12.2
     # via
+    #   ark-operator (pyproject.toml)
     #   kopf
     #   pydantic
     #   pydantic-core
 urllib3==1.26.20
     # via
+    #   kubernetes
+    #   kubernetes-asyncio
+    #   pykube-ng
     #   requests
     #   steam
 vdf==3.4
     # via
     #   ark-operator (pyproject.toml)
     #   steam
+websocket-client==1.8.0
+    # via kubernetes
 yarl==1.18.3
     # via aiohttp
 zope-event==5.0

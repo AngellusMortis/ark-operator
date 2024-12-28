@@ -27,12 +27,16 @@ classifiers = [
 ]
 dependencies = [
     "cyclopts",
-    "kopf",
+    "jinja2",
+    "kopf[full-auth]",
+    "kubernetes_asyncio",
     "py-steamcmd-wrapper",
     "pydantic < 3",
     "pydantic-settings",
+    "pyyaml",
     "rcon",
     "steam[client] @ git+https://github.com/solsticegamestudios/steam@v1.6.1",
+    "typing_extensions",
     "vdf",
 ]
 dynamic = ["version"]
@@ -66,6 +70,7 @@ dev = [
     "python-dotenv",
     "ruff",
     "twine",
+    "types-pyyaml",
 ]
 
 ## build backend metadata
@@ -85,7 +90,7 @@ allow-direct-references = true
 [tool.ruff]
 exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv"]
 line-length = 88
-target-version = "py312"
+target-version = "py310"
 
 
 [tool.ruff.lint]
@@ -96,6 +101,8 @@ ignore = [
     "D212", # incompatible with D213
     "COM812", # incompatible ruff format
     "ISC001", # incompatible ruff format
+    "FIX002", # do not enforce
+    "TD",
 ]
 
 [tool.ruff.lint.mccabe]
@@ -108,7 +115,7 @@ max-complexity = 10
 "test/tests/**/*.py" = ["FBT", "D", "SLF001", "PLR2004", "RUF029", "S", "E501"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.10"
 warn_unused_configs = true
 disable_error_code = "no-redef"
 exclude = ["dist", "/usr/local/lib", "codeql"]
@@ -136,12 +143,14 @@ check_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = [
+    "kubernetes_asyncio.client.api_client",
+    "kubernetes_asyncio",
     "pysteamcmdwrapper",
-    "rcon",
     "rcon.source",
-    "steam",
-    "steam.client",
+    "rcon",
     "steam.client.cdn",
+    "steam.client",
+    "steam",
     "vdf",
 ]
 ignore_missing_imports = true

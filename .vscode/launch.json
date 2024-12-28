@@ -5,14 +5,20 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Device Authorization",
+            "name": "Run Kopf",
             "type": "debugpy",
             "request": "launch",
-            "module": "databricks_oidc",
+            "module": "kopf",
             "args": [
-                "device",
-                "--dbx",
-            ]
+                "run",
+                "-n",
+                "ark-dev",
+                "--verbose",
+                "--standalone",
+                "-m",
+                "ark_operator.handlers"
+            ],
+            "justMyCode": false,
         },
         {
             "name": "Debug Tests",

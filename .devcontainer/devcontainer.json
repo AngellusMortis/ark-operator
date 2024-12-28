@@ -10,6 +10,13 @@
     "workspaceFolder": "/workspaces/ark-operator",
     "updateRemoteUserUID": true,
     "containerUser": "app",
+    // use both envs for HOME and USERPROFILE so it works on Linux, MacOS and Windows all at once. Missing envs will just be empty strings
+    "mounts": [
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.kube,target=/home/app/.kube,type=bind"
+    ],
+    "initializeCommand": {
+        "mkdir-posix": "mkdir -p $HOME/.kube $HOME/.kube $HOME/.kube || true"
+    },
     "onCreateCommand": [
         "/bin/bash",
         "-c",
@@ -102,7 +109,8 @@
                 // spelling rules
                 "cSpell.allowCompoundWords": true,
                 "cSpell.words": [
-                    "dotenv"
+                    "dotenv",
+                    "kopf"
                 ]
             }
         }

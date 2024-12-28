@@ -70,6 +70,9 @@ RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing
     apt-get update -qq \
     && apt-get install -yqq git curl vim procps curl jq yq sudo \
     && echo 'app ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
+    && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm kubectl \
     && chown app:app /home/app/.bashrc \
     && chmod +x /usr/local/bin/docker-fix
 
