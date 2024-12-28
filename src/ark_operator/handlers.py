@@ -1,26 +1,23 @@
 """Main handlers for kopf."""
 
+from typing import Unpack
+
 import kopf
 
 from ark_operator.data import ActivityEvent, ArkClusterSpec, ChangeEvent
 from ark_operator.k8s import create_pvc, delete_pvc, get_k8s_client, resize_pvc
 
-try:
-    from typing import Unpack  # type: ignore[attr-defined]
-except ImportError:
-    from typing_extensions import Unpack
-
 MIN_SIZE_SERVER = "50Gi"
 
 
-@kopf.on.startup()
+@kopf.on.startup()  # type: ignore[arg-type]
 async def startup(**_: Unpack[ActivityEvent]) -> None:
     """Kopf startup handler."""
 
     await get_k8s_client()
 
 
-@kopf.on.cleanup()
+@kopf.on.cleanup()  # type: ignore[arg-type]
 async def cleanup(**_: Unpack[ActivityEvent]) -> None:
     """Kopf cleanup handler."""
 
@@ -28,15 +25,15 @@ async def cleanup(**_: Unpack[ActivityEvent]) -> None:
     await client.close()
 
 
-@kopf.on.create("arkcluster")
+@kopf.on.create("arkcluster")  # type: ignore[arg-type]
 async def on_create(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
-    logger = kwargs.pop("logger")
+    logger = kwargs["logger"]
 
-    name = kwargs.pop("name")
-    namespace = kwargs.pop("namespace")
-    spec = ArkClusterSpec(**kwargs.pop("spec"))
+    name = kwargs.get("name")
+    namespace = kwargs.get("namespace") or "default"
+    spec = ArkClusterSpec(**kwargs["spec"])
 
     await create_pvc(
         name=f"{name}-server-a",
@@ -69,17 +66,17 @@ async def on_create(**kwargs: Unpack[ChangeEvent]) -> None:
     # Create pod for each server
 
 
-@kopf.on.update("arkcluster")
-async def on_update(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
+@kopf.on.update("arkcluster")  # type: ignore[arg-type]
+async def on_update(**kwargs: Unpack[ChangeEvent]) -> None:
     """Update an ARKCluster."""
 
-    logger = kwargs.pop("logger")
-    name = kwargs.pop("name")
-    namespace = kwargs.pop("namespace")
-    spec = ArkClusterSpec(**kwargs.pop("spec"))
+    logger = kwargs["logger"]
+    name = kwargs.get("name")
+    namespace = kwargs.get("namespace") or "default"
+    spec = ArkClusterSpec(**kwargs["spec"])
 
-    old = kwargs.pop("old", {})
-    old_spec = ArkClusterSpec(**old.pop("spec"))
+    old = kwargs.get("old") or {}
+    old_spec = ArkClusterSpec(**old.get("spec", {}))
 
     if await resize_pvc(
         name=f"{name}-server-a",
@@ -115,15 +112,15 @@ async def on_update(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
     # Check for new/removed servers and update pods
 
 
-@kopf.on.delete("arkcluster")
-async def on_delete(**kwargs: Unpack[ChangeEvent[ArkClusterSpec]]) -> None:
+@kopf.on.delete("arkcluster")  # type: ignore[arg-type]
+async def on_delete(**kwargs: Unpack[ChangeEvent]) -> None:
     """Delete an ARKCluster."""
 
-    logger = kwargs.pop("logger")
+    logger = kwargs["logger"]
 
-    name = kwargs.pop("name")
-    namespace = kwargs.pop("namespace")
-    spec = ArkClusterSpec(**kwargs.pop("spec"))
+    name = kwargs.get("name")
+    namespace = kwargs.get("namespace") or "default"
+    spec = ArkClusterSpec(**kwargs["spec"])
 
     await delete_pvc(
         name=f"{name}-server-a",
