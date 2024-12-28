@@ -30,7 +30,7 @@ def _min_size() -> Generator[None, None, None]:
         yield
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="function")
 async def _ark_cluster(kube: Client) -> None:
     await update_cluster(
         name="ark",
@@ -40,7 +40,7 @@ async def _ark_cluster(kube: Client) -> None:
     )
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="function")
 async def _ark_data_pvc(kube: Client) -> None:
     await update_data_pvc(
         name="ark",
