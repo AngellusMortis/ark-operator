@@ -3,8 +3,8 @@
 from collections.abc import Generator
 from unittest.mock import Mock, patch
 
-import pytest
-from kubetest.client import TestClient
+import pytest as
+from kubetest.client import TestClient as Client
 
 from ark_operator.ark import update_cluster
 from ark_operator.data import ArkClusterSpec
@@ -29,11 +29,11 @@ def _min_size() -> Generator[None, None, None]:
 
 
 @pytest.mark.asyncio
-async def test_create_cluster(kube: TestClient) -> None:
+async def test_create_cluster(kube: Client) -> None:
     """Test CRDs apply cleanly"""
 
     namespace = kube.namespace
-    spec = TEST_SPEC.copy()
+    spec = TEST_SPEC.model_copy()
 
     assert (
         await check_pvc_exists(name="ark-server-a", namespace=namespace, logger=Mock())
