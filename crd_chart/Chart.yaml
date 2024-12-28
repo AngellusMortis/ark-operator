@@ -1,0 +1,11 @@
+apiVersion: v2
+appVersion: "0.1.4"
+description: ARK Server Operator CRDs
+home: https://github.com/AngellusMortis/ark-operator
+maintainers:
+  - email: cbailey@mort.is
+    name: Christopher Bailey
+name: ark-operator
+sources:
+  - https://github.com/AngellusMortis/ark-operator
+version: 0.1.0

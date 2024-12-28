@@ -4,10 +4,12 @@ from typing import Unpack
 
 import kopf
 
+from ark_operator.ark import delete_cluster, update_cluster
 from ark_operator.data import ActivityEvent, ArkClusterSpec, ChangeEvent
-from ark_operator.k8s import create_pvc, delete_pvc, get_k8s_client, resize_pvc
+from ark_operator.k8s import get_k8s_client
 
-MIN_SIZE_SERVER = "50Gi"
+DEFAULT_NAME = "ark"
+DEFAULT_NAMESPACE = "default"
 
 
 @kopf.on.startup()  # type: ignore[arg-type]
@@ -25,45 +27,19 @@ async def cleanup(**_: Unpack[ActivityEvent]) -> None:
     await client.close()
 
 
-@kopf.on.create("arkcluster")  # type: ignore[arg-type]
+@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
+@kopf.on.create("arkcluster")
 async def on_create(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
     logger = kwargs["logger"]
-
-    name = kwargs.get("name")
-    namespace = kwargs.get("namespace") or "default"
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
-    await create_pvc(
-        name=f"{name}-server-a",
-        namespace=namespace,
-        storage_class=spec.server.storage_class,
-        size=spec.server.size,
-        logger=logger,
-        min_size=MIN_SIZE_SERVER,
+    await update_cluster(
+        name=name, namespace=namespace, spec=spec, logger=logger, allow_existing=False
     )
-    await create_pvc(
-        name=f"{name}-server-b",
-        namespace=namespace,
-        storage_class=spec.server.storage_class,
-        size=spec.server.size,
-        logger=logger,
-        min_size=MIN_SIZE_SERVER,
-    )
-    await create_pvc(
-        name=f"{name}-data",
-        namespace=namespace,
-        storage_class=spec.data.storage_class,
-        size=spec.data.size,
-        logger=logger,
-        allow_exist=True,
-    )
-
-    # Initial ARK server PVCs
-    # Initial ARK data PVC
-    # Create ConfigMap per server
-    # Create pod for each server
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -71,45 +47,11 @@ async def on_update(**kwargs: Unpack[ChangeEvent]) -> None:
     """Update an ARKCluster."""
 
     logger = kwargs["logger"]
-    name = kwargs.get("name")
-    namespace = kwargs.get("namespace") or "default"
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
-    old = kwargs.get("old") or {}
-    old_spec = ArkClusterSpec(**old.get("spec", {}))
-
-    if await resize_pvc(
-        name=f"{name}-server-a",
-        namespace=namespace,
-        new_size=spec.server.size,
-        size=old_spec.server.size,
-        logger=logger,
-    ):
-        # TODO: decide how to handle resizing PVCs with servers
-        pass
-
-    if await resize_pvc(
-        name=f"{name}-server-b",
-        namespace=namespace,
-        new_size=spec.server.size,
-        size=old_spec.server.size,
-        logger=logger,
-    ):
-        # TODO: decide how to handle resizing PVCs with servers
-        pass
-
-    if await resize_pvc(
-        name=f"{name}-data",
-        namespace=namespace,
-        new_size=spec.data.size,
-        size=old_spec.data.size,
-        logger=logger,
-    ):
-        # TODO: decide how to handle resizing PVCs with servers
-        pass
-
-    # Check for updates to ConfigMaps -> restart servers
-    # Check for new/removed servers and update pods
+    await update_cluster(name=name, namespace=namespace, spec=spec, logger=logger)
 
 
 @kopf.on.delete("arkcluster")  # type: ignore[arg-type]
@@ -117,27 +59,10 @@ async def on_delete(**kwargs: Unpack[ChangeEvent]) -> None:
     """Delete an ARKCluster."""
 
     logger = kwargs["logger"]
-
-    name = kwargs.get("name")
-    namespace = kwargs.get("namespace") or "default"
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
-    await delete_pvc(
-        name=f"{name}-server-a",
-        namespace=namespace,
-        logger=logger,
+    await delete_cluster(
+        name=name, namespace=namespace, persist=spec.data.persist, logger=logger
     )
-    await delete_pvc(
-        name=f"{name}-server-b",
-        namespace=namespace,
-        logger=logger,
-    )
-    if not spec.data.persist:
-        await delete_pvc(
-            name=f"{name}-data",
-            namespace=namespace,
-            logger=logger,
-        )
-
-    # Clean up ConfigMaps
-    # Clean up pods

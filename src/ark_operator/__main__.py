@@ -10,7 +10,7 @@ from typing import cast
 
 from gamercon_async import GameRCON
 
-from ark_operator.ark_utils import (
+from ark_operator.ark import (
     copy_ark,
     has_newer_version,
     install_ark,

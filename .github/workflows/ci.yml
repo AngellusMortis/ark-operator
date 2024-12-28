@@ -213,6 +213,9 @@ jobs:
       - name: ⬇️ Checkout Repo
         uses: actions/checkout@v4
 
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1
+
       - name: 🐍 Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
@@ -229,6 +232,8 @@ jobs:
         run: |
           source ./.venv/bin/activate
           ./.bin/test-code
+        env:
+          KUBE_CONFIG: ~/.kube/config
 
       - name: 📡 Upload Code Coverage
         if: ${{ matrix.python-version == env.DEFAULT_PYTHON && always() }}

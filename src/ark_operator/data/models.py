@@ -22,8 +22,6 @@ with warnings.catch_warnings():
 from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 
-from ark_operator.ark_utils import get_map_name
-
 ALL_CANONICAL = ["TheIsland_WP", "ScorchedEarth_WP", "Aberration_WP", "Extinction_WP"]
 ALL_OFFICIAL = [
     "TheIsland_WP",
@@ -104,6 +102,8 @@ class GameServer:
     @property
     def map_name(self) -> str:
         """Get user friendly name for map."""
+
+        from ark_operator.ark.utils import get_map_name
 
         return get_map_name(self.map_id)
 

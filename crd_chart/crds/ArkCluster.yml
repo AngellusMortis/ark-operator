@@ -1,0 +1,84 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: arkclusters.mort.is
+spec:
+  group: mort.is
+  scope: Namespaced
+  names:
+    plural: arkclusters
+    singular: arkcluster
+    kind: ArkCluster
+  versions:
+  - name: v1beta1
+    served: true
+    storage: true
+    schema:
+      openAPIV3Schema:
+        type: object
+        properties:
+          spec:
+            type: object
+            properties:
+              server:
+                type: object
+                properties:
+                  storageClass:
+                    type: string
+                    description: |-
+                      Storage class for the two PVCs for server install.
+                  size:
+                    anyOf:
+                      - type: integer
+                      - type: string
+                    description: |-
+                      Size of the two PVCs for server install. The server install PVCs are for ASA
+                      itself. There will always be two PVCs for A/B deploys. This does _not_ include
+                      mod data. As of Extinction, the install size of ASA is ~33 GiB. Default and
+                      minimum size is 50Gi.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[MGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  maps:
+                    type: array
+                    items:
+                      type: string
+                      pattern: ^(((canonical|official)(NoClub)?)|[A-Z][a-zA-Z0-9_\-]+_WP)$
+                    description: |-
+                      Maps to run. Each map means one server. Can be a list of maps or a string of the
+                      value `canonical` or `official`. `canonical` will run all canonical maps (The
+                      Island, SE, Aberation, Extinction) + Club Ark. `official` runs all Wildcard
+                      released maps (The Island, The Center, SE, Aberration, Extinction) + Club Ark.
+                      You can also append `NoClub` to either to not run Club Ark (`canonicalNoClub` or
+                      `officialNoClub`). Defaults to `canonical`
+                  gamePortStart:
+                    type: integer
+                    description: |-
+                      Starting port for server cluster. The first server will be this port and each
+                      additional server will be +1. Default is 7777.
+                  rconPortStart:
+                    type: integer
+                    description: |-
+                      Starting port for server cluster. The first server will be this port and each
+                      additional server will be +1. Default is 27020.
+              data:
+                type: object
+                properties:
+                  storageClass:
+                    type: string
+                    description: |-
+                      Storage class for the server data PVC.
+                  size:
+                    anyOf:
+                      - type: integer
+                      - type: string
+                    description: |-
+                      Size of PVC for server data. The server data PVC has all of the shared cluster
+                      data, `Saved` folder, mods and the `PlayersExclusiveJoinList.txt`/
+                      `PlayersJoinNoCheckList.txt` files. Default size is 50GiB. Except for the
+                      shared cluster data, all data is per server.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[MGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  persist:
+                    type: boolean
+                    description: |-
+                      Keep the data PVC after the cluster is deleted. Default to true.

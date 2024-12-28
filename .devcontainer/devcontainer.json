@@ -104,7 +104,8 @@
                 "python.testing.nosetestsEnabled": false,
                 "python.testing.pytestArgs": [
                     "--cov-report=xml",
-                    "--color=no"
+                    "--color=no",
+                    "--kube-config=/home/app/.kube/config"
                 ],
                 // spelling rules
                 "cSpell.allowCompoundWords": true,

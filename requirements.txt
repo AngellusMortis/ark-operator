@@ -37,8 +37,6 @@ docstring-parser==0.16
     # via cyclopts
 docutils==0.21.2
     # via rich-rst
-durationpy==0.9
-    # via kubernetes
 frozenlist==1.5.0
     # via
     #   aiohttp
@@ -66,9 +64,11 @@ jinja2==3.1.5
     # via ark-operator (pyproject.toml)
 kopf==1.37.4
     # via ark-operator (pyproject.toml)
-kubernetes==31.0.0
-    # via kopf
-kubernetes-asyncio==32.0.0
+kubernetes==30.1.0
+    # via
+    #   ark-operator (pyproject.toml)
+    #   kopf
+kubernetes-asyncio==30.3.1
     # via ark-operator (pyproject.toml)
 markdown-it-py==3.0.0
     # via rich
