@@ -147,6 +147,7 @@ check_untyped_defs = false
 module = [
     "gamercon_async",
     "kubernetes_asyncio.client.api_client",
+    "kubernetes_asyncio.client.models",
     "kubernetes_asyncio",
     "kubetest.client",
     "kubetest",

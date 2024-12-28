@@ -1,10 +1,14 @@
 """ARK operator code for PVCs."""
 
+import logging
+
 import kopf
 
 from ark_operator.ark.pvc import update_data_pvc, update_server_pvc
 from ark_operator.data import ArkClusterSpec
 from ark_operator.k8s import delete_pvc
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def update_cluster(
@@ -12,11 +16,12 @@ async def update_cluster(
     name: str,
     namespace: str,
     spec: ArkClusterSpec,
-    logger: kopf.Logger,
+    logger: kopf.Logger | None = None,
     allow_existing: bool = True,
 ) -> None:
     """Update ARK Cluster."""
 
+    logger = logger or _LOGGER
     await update_server_pvc(
         name=name,
         namespace=namespace,
@@ -37,10 +42,11 @@ async def update_cluster(
 
 
 async def delete_cluster(
-    *, name: str, namespace: str, persist: bool, logger: kopf.Logger
+    *, name: str, namespace: str, persist: bool, logger: kopf.Logger | None = None
 ) -> None:
     """Delete ARK cluster."""
 
+    logger = logger or _LOGGER
     await delete_pvc(
         name=f"{name}-server-a",
         namespace=namespace,

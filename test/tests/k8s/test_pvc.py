@@ -201,6 +201,13 @@ async def test_delete_pvc_error(k8s_v1_client: Mock) -> None:
 async def test_create_pvc(k8s_v1_client: Mock) -> None:
     """Test creating a PVC."""
 
+    mock_pvc = Mock()
+    mock_pvc.status.phase = "Bound"
+
+    k8s_v1_client.read_namespaced_persistent_volume_claim = AsyncMock(
+        return_value=mock_pvc
+    )
+
     assert (
         await create_pvc(name="test", namespace="test", size="50Gi", logger=Mock())
         is True
@@ -223,6 +230,13 @@ async def test_create_pvc(k8s_v1_client: Mock) -> None:
 @pytest.mark.asyncio
 async def test_create_pvc_storage_class(k8s_v1_client: Mock) -> None:
     """Test creating a PVC."""
+
+    mock_pvc = Mock()
+    mock_pvc.status.phase = "Bound"
+
+    k8s_v1_client.read_namespaced_persistent_volume_claim = AsyncMock(
+        return_value=mock_pvc
+    )
 
     assert (
         await create_pvc(
@@ -280,71 +294,6 @@ async def test_create_pvc_error(k8s_v1_client: Mock) -> None:
 
     with pytest.raises(kopf.PermanentError):
         await create_pvc(name="test", namespace="test", size="50Gi", logger=Mock())
-
-    k8s_v1_client.create_namespaced_persistent_volume_claim.assert_awaited_once_with(
-        namespace="test",
-        body={
-            "apiVersion": "v1",
-            "kind": "PersistentVolumeClaim",
-            "metadata": {"name": "test"},
-            "spec": {
-                "accessModes": ["ReadWriteOnce"],
-                "resources": {"requests": {"storage": "50Gi"}},
-            },
-        },
-    )
-
-
-@pytest.mark.asyncio
-async def test_create_pvc_error_not_exist(k8s_v1_client: Mock) -> None:
-    """Test creating a PVC."""
-
-    k8s_v1_client.create_namespaced_persistent_volume_claim.side_effect = Exception(
-        "test"
-    )
-    k8s_v1_client.read_namespaced_persistent_volume_claim.side_effect = Exception(
-        "test"
-    )
-
-    with pytest.raises(kopf.PermanentError):
-        await create_pvc(
-            name="test", namespace="test", size="50Gi", logger=Mock(), allow_exist=True
-        )
-
-    k8s_v1_client.create_namespaced_persistent_volume_claim.assert_awaited_once_with(
-        namespace="test",
-        body={
-            "apiVersion": "v1",
-            "kind": "PersistentVolumeClaim",
-            "metadata": {"name": "test"},
-            "spec": {
-                "accessModes": ["ReadWriteOnce"],
-                "resources": {"requests": {"storage": "50Gi"}},
-            },
-        },
-    )
-
-
-@pytest.mark.asyncio
-async def test_create_pvc_error_exist(k8s_v1_client: Mock) -> None:
-    """Test creating a PVC."""
-
-    mock_pvc = Mock()
-    mock_pvc.spec.resources.requests = {"storage": "50Gi"}
-
-    k8s_v1_client.read_namespaced_persistent_volume_claim = AsyncMock(
-        return_value=mock_pvc
-    )
-    k8s_v1_client.create_namespaced_persistent_volume_claim.side_effect = Exception(
-        "test"
-    )
-
-    assert (
-        await create_pvc(
-            name="test", namespace="test", size="50Gi", logger=Mock(), allow_exist=True
-        )
-        is False
-    )
 
     k8s_v1_client.create_namespaced_persistent_volume_claim.assert_awaited_once_with(
         namespace="test",
