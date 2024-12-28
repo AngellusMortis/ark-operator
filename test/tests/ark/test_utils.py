@@ -4,7 +4,6 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from tests.conftest import BASE_DIR
 
 from ark_operator.ark.utils import (
     ARK_SERVER_APP_ID,
@@ -14,6 +13,7 @@ from ark_operator.ark.utils import (
     install_ark,
     is_ark_newer,
 )
+from tests.conftest import BASE_DIR
 
 TEST_ARK = BASE_DIR / "test" / "ark"
 
