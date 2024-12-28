@@ -98,7 +98,6 @@ async def create_pvc(  # noqa: PLR0913
     logger: kopf.Logger | None = None,
     access_mode: str = "ReadWriteOnce",
     storage_class: str | None = None,
-    allow_exist: bool = False,
     min_size: int | str | None = None,
 ) -> bool:
     """Create PVC."""
