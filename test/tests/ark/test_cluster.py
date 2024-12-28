@@ -3,7 +3,7 @@
 from collections.abc import Generator
 from unittest.mock import Mock, patch
 
-import pytest as
+import pytest
 from kubetest.client import TestClient as Client
 
 from ark_operator.ark import update_cluster
