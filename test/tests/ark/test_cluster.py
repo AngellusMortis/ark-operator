@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import kopf
 import pytest
+import pytest_asyncio
 from kubetest.client import TestClient as Client
 
 from ark_operator.ark import update_cluster, update_data_pvc
@@ -24,12 +25,6 @@ TEST_SPEC = ArkClusterSpec(
 )
 
 
-@pytest.fixture(autouse=True)
-def _min_size() -> Generator[None, None, None]:
-    with patch("ark_operator.ark.pvc.MIN_SIZE_SERVER", "1Ki"):
-        yield
-
-
 @pytest.fixture(scope="session")
 def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     """New event loop."""
@@ -38,6 +33,31 @@ def event_loop() -> Generator[asyncio.AbstractEventLoop, None, None]:
     loop = policy.new_event_loop()
     yield loop
     loop.close()
+
+
+@pytest.fixture(autouse=True)
+def _min_size() -> Generator[None, None, None]:
+    with patch("ark_operator.ark.pvc.MIN_SIZE_SERVER", "1Ki"):
+        yield
+
+
+@pytest_asyncio.fixture(scope="function")
+async def _ark_cluster(kube: Client) -> None:
+    await update_cluster(
+        name="ark",
+        namespace=kube.namespace,
+        spec=TEST_SPEC.model_copy(),
+        allow_existing=False,
+    )
+
+
+@pytest_asyncio.fixture(scope="function")
+async def _ark_data_pvc(kube: Client) -> None:
+    await update_data_pvc(
+        name="ark",
+        namespace=kube.namespace,
+        spec=TEST_SPEC.data.model_copy(),
+    )
 
 
 @pytest.mark.asyncio
@@ -71,16 +91,10 @@ async def test_update_cluster_create(kube: Client) -> None:
     assert pvc.spec.resources.requests == {"storage": "10Mi"}
 
 
+@pytest.mark.usefixtures("_ark_cluster")
 @pytest.mark.asyncio
 async def test_update_cluster_with_existing_cluster(kube: Client) -> None:
     """Test allow_existing on update_cluster."""
-
-    await update_cluster(
-        name="ark",
-        namespace=kube.namespace,
-        spec=TEST_SPEC.model_copy(),
-        allow_existing=False,
-    )
 
     namespace = kube.namespace
     spec = TEST_SPEC.model_copy()
@@ -103,15 +117,10 @@ async def test_update_cluster_with_existing_cluster(kube: Client) -> None:
     assert pvc.spec.resources.requests == {"storage": "10Mi"}
 
 
+@pytest.mark.usefixtures("_ark_data_pvc")
 @pytest.mark.asyncio
 async def test_update_cluster_create_with_data(kube: Client) -> None:
     """Test update_cluster creates cluster even if there is an data PVC."""
-
-    await update_data_pvc(
-        name="ark",
-        namespace=kube.namespace,
-        spec=TEST_SPEC.data.model_copy(),
-    )
 
     namespace = kube.namespace
     spec = TEST_SPEC.model_copy()
@@ -138,16 +147,10 @@ async def test_update_cluster_create_with_data(kube: Client) -> None:
     assert pvc.spec.resources.requests == {"storage": "22Mi"}
 
 
+@pytest.mark.usefixtures("_ark_cluster")
 @pytest.mark.asyncio
 async def test_update_cluster_update(kube: Client) -> None:
     """Test update_cluster updates cluster."""
-
-    await update_cluster(
-        name="ark",
-        namespace=kube.namespace,
-        spec=TEST_SPEC.model_copy(),
-        allow_existing=False,
-    )
 
     namespace = kube.namespace
     spec = TEST_SPEC.model_copy()
