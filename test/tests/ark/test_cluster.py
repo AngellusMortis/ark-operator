@@ -1,8 +1,7 @@
 """Test ARK Cluster."""
 
-import asyncio
 from collections.abc import Generator
-from unittest.mock import patch
+from unittest.mock import ANY, call, patch
 
 import kopf
 import pytest
@@ -114,25 +113,25 @@ async def test_update_cluster_create_with_data(k8s_namespace: str) -> None:
     spec.data.size = "22Mi"
 
     # workaround for race condition with resizing PVCs to quickly after being created
-    await asyncio.sleep(60)
-    await update_cluster(
-        name="ark",
-        namespace=k8s_namespace,
-        spec=spec,
-        allow_existing=False,
+    with patch("ark_operator.k8s.pvc.resize_pvc") as mock_resize:
+        await update_cluster(
+            name="ark",
+            namespace=k8s_namespace,
+            spec=spec,
+            allow_existing=False,
+        )
+
+    mock_resize.assert_has_awaits(
+        (
+            call(
+                name="ark-data",
+                namespace=k8s_namespace,
+                new_size="22Mi",
+                size="10Mi",
+                logger=ANY,
+            ),
+        )
     )
-
-    pvc = await get_pvc(name="ark-server-a", namespace=k8s_namespace)
-    assert pvc.spec.access_modes == ["ReadWriteOnce"]
-    assert pvc.spec.resources.requests == {"storage": "20Mi"}
-
-    pvc = await get_pvc(name="ark-server-b", namespace=k8s_namespace)
-    assert pvc.spec.access_modes == ["ReadWriteOnce"]
-    assert pvc.spec.resources.requests == {"storage": "20Mi"}
-
-    pvc = await get_pvc(name="ark-data", namespace=k8s_namespace)
-    assert pvc.spec.access_modes == ["ReadWriteMany"]
-    assert pvc.spec.resources.requests == {"storage": "22Mi"}
 
 
 @pytest.mark.usefixtures("_ark_cluster")
@@ -145,17 +144,31 @@ async def test_update_cluster_update(k8s_namespace: str) -> None:
     spec.data.size = "22Mi"
 
     # workaround for race condition with resizing PVCs to quickly after being created
-    await asyncio.sleep(60)
-    await update_cluster(name="ark", namespace=k8s_namespace, spec=spec)
+    with patch("ark_operator.k8s.pvc.resize_pvc") as mock_resize:
+        await update_cluster(name="ark", namespace=k8s_namespace, spec=spec)
 
-    pvc = await get_pvc(name="ark-server-a", namespace=k8s_namespace)
-    assert pvc.spec.access_modes == ["ReadWriteOnce"]
-    assert pvc.spec.resources.requests == {"storage": "20Mi"}
-
-    pvc = await get_pvc(name="ark-server-b", namespace=k8s_namespace)
-    assert pvc.spec.access_modes == ["ReadWriteOnce"]
-    assert pvc.spec.resources.requests == {"storage": "20Mi"}
-
-    pvc = await get_pvc(name="ark-data", namespace=k8s_namespace)
-    assert pvc.spec.access_modes == ["ReadWriteMany"]
-    assert pvc.spec.resources.requests == {"storage": "22Mi"}
+    mock_resize.assert_has_awaits(
+        (
+            call(
+                name="ark-server-a",
+                namespace=k8s_namespace,
+                new_size="20Mi",
+                size="10Mi",
+                logger=ANY,
+            ),
+            call(
+                name="ark-server-b",
+                namespace=k8s_namespace,
+                new_size="20Mi",
+                size="10Mi",
+                logger=ANY,
+            ),
+            call(
+                name="ark-data",
+                namespace=k8s_namespace,
+                new_size="22Mi",
+                size="10Mi",
+                logger=ANY,
+            ),
+        )
+    )
