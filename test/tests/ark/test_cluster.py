@@ -113,7 +113,7 @@ async def test_update_cluster_create_with_data(k8s_namespace: str) -> None:
     spec.server.size = "20Mi"
     spec.data.size = "22Mi"
 
-    await asyncio.sleep(5)
+    await asyncio.sleep(10)
     await update_cluster(
         name="ark",
         namespace=k8s_namespace,
@@ -143,7 +143,7 @@ async def test_update_cluster_update(k8s_namespace: str) -> None:
     spec.server.size = "20Mi"
     spec.data.size = "22Mi"
 
-    await asyncio.sleep(5)
+    await asyncio.sleep(10)
 
     await update_cluster(name="ark", namespace=k8s_namespace, spec=spec)
 
