@@ -178,7 +178,10 @@ async def test_delete_pvc(k8s_v1_client: Mock) -> None:
     assert await delete_pvc(name="test", namespace="test", logger=Mock()) is True
 
     k8s_v1_client.delete_namespaced_persistent_volume_claim.assert_awaited_once_with(
-        name="test", namespace="test"
+        name="test",
+        namespace="test",
+        propagation_policy="Foreground",
+        grace_period_seconds=5,
     )
 
 
@@ -193,7 +196,10 @@ async def test_delete_pvc_error(k8s_v1_client: Mock) -> None:
     assert await delete_pvc(name="test", namespace="test", logger=Mock()) is False
 
     k8s_v1_client.delete_namespaced_persistent_volume_claim.assert_awaited_once_with(
-        name="test", namespace="test"
+        name="test",
+        namespace="test",
+        propagation_policy="Foreground",
+        grace_period_seconds=5,
     )
 
 

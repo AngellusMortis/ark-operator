@@ -140,7 +140,10 @@ async def delete_pvc(
     v1 = await get_v1_client()
     try:
         await v1.delete_namespaced_persistent_volume_claim(
-            name=name, namespace=namespace
+            name=name,
+            namespace=namespace,
+            propagation_policy="Foreground",
+            grace_period_seconds=5,
         )
     except Exception as ex:  # noqa: BLE001
         logger.warning("Failed to delete PVC: %s", name, exc_info=ex)
