@@ -75,6 +75,7 @@ dev = [
     "python-dotenv",
     "ruff",
     "twine",
+    "types-aiofiles",
     "types-pyyaml",
 ]
 

@@ -403,6 +403,8 @@ trove-classifiers==2024.10.21.16
     # via hatchling
 twine==6.0.1
     # via ark-operator (pyproject.toml)
+types-aiofiles==24.1.0.20241221
+    # via ark-operator (pyproject.toml)
 types-pyyaml==6.0.12.20241221
     # via ark-operator (pyproject.toml)
 typing-extensions==4.12.2
