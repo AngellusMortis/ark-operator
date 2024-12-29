@@ -119,7 +119,9 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
     # via pydantic-settings
 python-json-logger==3.2.1
-    # via kopf
+    # via
+    #   ark-operator (pyproject.toml)
+    #   kopf
 pyyaml==6.0.2
     # via
     #   ark-operator (pyproject.toml)
@@ -138,6 +140,7 @@ requests-oauthlib==2.0.0
     # via kubernetes
 rich==13.9.4
     # via
+    #   ark-operator (pyproject.toml)
     #   cyclopts
     #   rich-rst
 rich-rst==1.3.1

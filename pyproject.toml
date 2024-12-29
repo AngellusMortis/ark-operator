@@ -34,7 +34,9 @@ dependencies = [
     "py-steamcmd-wrapper",
     "pydantic < 3",
     "pydantic-settings",
+    "python-json-logger",
     "pyyaml",
+    "rich",
     "steam[client] @ git+https://github.com/solsticegamestudios/steam@v1.6.1",
     "typing_extensions",
     "vdf",
@@ -50,9 +52,9 @@ email = "cbailey@mort.is"
 name = "Christopher Bailey"
 email = "cbailey@mort.is"
 
-
 [project.license]
 file = "LICENSE"
+
 
 [project.optional-dependencies]
 dev = [
@@ -72,6 +74,9 @@ dev = [
     "twine",
     "types-pyyaml",
 ]
+
+[project.scripts]
+ark-operator = "ark_operator.__main__:_main"
 
 ## build backend metadata
 [tool.hatch.version]
@@ -110,7 +115,7 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 "**/*.py" = []
-"cli.py" = ["T"] # CLI allows print
+"cli/*.py" = ["T"] # CLI allows print
 "__main__.py" = ["T"] # CLI allows print
 "test/tests/**/*.py" = ["FBT", "D", "SLF001", "PLR2004", "RUF029", "S", "E501"]
 

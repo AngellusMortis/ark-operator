@@ -32,15 +32,17 @@ MAP_NAME_LOOKUP = {
 CAMEL_RE = re.compile(r"((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))")
 
 
-@asyncify
-def install_ark(steam: Steam, *, ark_dir: Path) -> None:
+def install_ark_sync(steam: Steam, *, ark_dir: Path, validate: bool = True) -> None:
     """Install ARK server."""
 
     cmd = SteamCMD_command()
     cmd.custom("+@sSteamCmdForcePlatformType windows")
     cmd.force_install_dir(ark_dir)
-    cmd.app_update(ARK_SERVER_APP_ID, validate=False)
-    steam.cmd.execute(cmd, n_tries=3)
+    cmd.app_update(ARK_SERVER_APP_ID, validate=validate)
+    steam.execute(cmd, n_tries=3)
+
+
+install_ark = asyncify(install_ark_sync)
 
 
 def get_ark_buildid_sync(src: Path) -> int | None:
@@ -99,8 +101,7 @@ def is_ark_newer_sync(src: Path, dest: Path) -> bool:
 is_ark_newer = asyncify(is_ark_newer_sync)
 
 
-@asyncify
-def copy_ark(src: Path, dest: Path) -> None:
+def copy_ark_sync(src: Path, dest: Path) -> None:
     """Copy ARK install to another."""
 
     _LOGGER.info("Checking if can copy src ARK (%s) to dest ARK (%s)", src, dest)
@@ -115,6 +116,9 @@ def copy_ark(src: Path, dest: Path) -> None:
 
     _LOGGER.info("Copying src ARK to dest ARK")
     shutil.copytree(src, dest)
+
+
+copy_ark = asyncify(copy_ark_sync)
 
 
 @lru_cache(maxsize=20)

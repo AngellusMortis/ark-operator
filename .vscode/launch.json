@@ -5,14 +5,30 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Run ARK Operator",
+            "name": "ARK Operator: Server Install",
             "type": "debugpy",
             "request": "launch",
             "module": "ark_operator",
+            "args": [
+                "server",
+                "install",
+            ],
             "justMyCode": false,
         },
         {
-            "name": "Run Kopf",
+            "name": "ARK Operator: RCON",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "ark_operator",
+            "args": [
+                "server",
+                "rcon",
+                "ListPlayers",
+            ],
+            "justMyCode": false,
+        },
+        {
+            "name": "ARK Operator: Run Kopf",
             "type": "debugpy",
             "request": "launch",
             "module": "kopf",

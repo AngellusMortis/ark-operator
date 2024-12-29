@@ -7,7 +7,9 @@ from dataclasses import dataclass
 from pathlib import Path  # required for Pydantic # noqa: TC003
 
 from pydantic_settings import BaseSettings
-from pysteamcmdwrapper import SteamCMD
+from pysteamcmdwrapper import SteamCMD, SteamCMD_command
+
+from ark_operator.ark_utils import copy_ark_sync, get_map_name, install_ark_sync
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
@@ -18,6 +20,8 @@ with warnings.catch_warnings():
     from steam.client import SteamClient
     from steam.client.cdn import CDNClient
 
+
+import logging
 
 from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
@@ -36,6 +40,7 @@ MAP_LOOPUP_MAP = {
     "official": ["BobsMissions_WP", *ALL_OFFICIAL],
     "officialNoClub": ALL_OFFICIAL,
 }
+_LOGGER = logging.getLogger(__name__)
 
 
 class BaseK8sModel(BaseModel):
@@ -90,6 +95,21 @@ class Steam:
 
         return Steam(cmd=SteamCMD(install_dir))
 
+    def execute(self, cmd: SteamCMD_command, n_tries: int = 1) -> None:
+        """Execute steamcmd."""
+
+        self.cmd.execute(cmd, n_tries=n_tries)
+
+    def install_ark(self, ark_dir: Path, *, validate: bool = True) -> None:
+        """Install ARK server."""
+
+        install_ark_sync(self, ark_dir=ark_dir, validate=validate)
+
+    def copy_ark(self, src_dir: Path, dest_dir: Path) -> None:
+        """Copy ARK server install."""
+
+        copy_ark_sync(src_dir, dest_dir)
+
 
 @dataclass
 class GameServer:
@@ -102,8 +122,6 @@ class GameServer:
     @property
     def map_name(self) -> str:
         """Get user friendly name for map."""
-
-        from ark_operator.ark.utils import get_map_name
 
         return get_map_name(self.map_id)
 

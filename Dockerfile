@@ -78,5 +78,9 @@ RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing
 
 ENV PYTHONPATH=/workspaces/ark-operator/src/:/workspaces/ark-operator/test/
 ENV PATH=$PATH:/workspaces/ark-operator/.bin
+ENV ARK_STEAM_DIR=/workspaces/ark-operator/steam/install
+ENV ARK_SERVER_A_DIR=/workspaces/ark-operator/steam/ark_a
+ENV ARK_SERVER_B_DIR=/workspaces/ark-operator/steam/ark_b
+
 USER app
 WORKDIR /workspaces/ark-operator/

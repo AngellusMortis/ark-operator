@@ -311,6 +311,7 @@ python-dotenv==1.0.1
 python-json-logger==3.2.1
     # via
     #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
     #   kopf
 pyyaml==6.0.2
     # via
@@ -343,6 +344,7 @@ rfc3986==2.0.0
 rich==13.9.4
     # via
     #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
     #   cyclopts
     #   hatch
     #   rich-rst

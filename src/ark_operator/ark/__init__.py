@@ -5,7 +5,7 @@ from ark_operator.ark.pvc import (
     update_data_pvc,
     update_server_pvc,
 )
-from ark_operator.ark.utils import (
+from ark_operator.ark_utils import (
     ARK_SERVER_APP_ID,
     copy_ark,
     get_ark_buildid,
