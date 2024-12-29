@@ -38,7 +38,6 @@ async def _ark_cluster(k8s_namespace: str) -> None:
         spec=TEST_SPEC.model_copy(),
         allow_existing=False,
     )
-    await asyncio.sleep(5)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -48,7 +47,6 @@ async def _ark_data_pvc(k8s_namespace: str) -> None:
         namespace=k8s_namespace,
         spec=TEST_SPEC.data.model_copy(),
     )
-    await asyncio.sleep(5)
 
 
 @pytest.mark.asyncio(loop_scope="session")
@@ -115,6 +113,7 @@ async def test_update_cluster_create_with_data(k8s_namespace: str) -> None:
     spec.server.size = "20Mi"
     spec.data.size = "22Mi"
 
+    await asyncio.sleep(5)
     await update_cluster(
         name="ark",
         namespace=k8s_namespace,
@@ -144,6 +143,7 @@ async def test_update_cluster_update(k8s_namespace: str) -> None:
     spec.server.size = "20Mi"
     spec.data.size = "22Mi"
 
+    await asyncio.sleep(5)
     await update_cluster(name="ark", namespace=k8s_namespace, spec=spec)
 
     pvc = await get_pvc(name="ark-server-a", namespace=k8s_namespace)
