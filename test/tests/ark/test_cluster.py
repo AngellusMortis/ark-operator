@@ -1,5 +1,6 @@
 """Test ARK Cluster."""
 
+import asyncio
 from collections.abc import Generator
 from unittest.mock import patch
 
@@ -37,6 +38,7 @@ async def _ark_cluster(k8s_namespace: str) -> None:
         spec=TEST_SPEC.model_copy(),
         allow_existing=False,
     )
+    await asyncio.sleep(5)
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -46,6 +48,7 @@ async def _ark_data_pvc(k8s_namespace: str) -> None:
         namespace=k8s_namespace,
         spec=TEST_SPEC.data.model_copy(),
     )
+    await asyncio.sleep(5)
 
 
 @pytest.mark.asyncio(loop_scope="session")

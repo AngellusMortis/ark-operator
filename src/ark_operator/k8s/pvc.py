@@ -1,6 +1,5 @@
 """K8s resource creators for PVCs."""
 
-import asyncio
 import logging
 
 import kopf
@@ -127,14 +126,6 @@ async def create_pvc(  # noqa: PLR0913
         )
     except Exception as ex:
         raise kopf.PermanentError(ERROR_PVC) from ex
-
-    logger.info("Waticing for PVC to be ready")
-    ready = False
-    while not ready:  # pragma: no branch
-        pvc = await get_pvc(name=name, namespace=namespace)
-        if pvc.status.phase == "Bound":
-            break
-        await asyncio.sleep(1)
 
     logger.info("Created PVC: %s", obj)
     return True
