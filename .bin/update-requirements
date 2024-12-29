@@ -17,10 +17,6 @@ fi
 
 pushd "$ROOT_PATH" 2>&1 >/dev/null
 
-if [[ $IN_DEVCONTAINER == "true" ]]; then
-    sudo rm -rf /workspaces/databricks-oidc/databricks_oidc.egg-info
-fi
-
 DEV_ARGS=""
 SYNC_ARGS="dev-requirements.txt"
 if [[ "$DEV_ONLY" != "true" ]]; then
