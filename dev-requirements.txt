@@ -58,6 +58,10 @@ click==8.1.8
     #   hatch
     #   kopf
     #   userpath
+colorama==0.4.6
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 coverage==7.6.10
     # via
     #   ark-operator (pyproject.toml)

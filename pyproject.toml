@@ -26,6 +26,7 @@ classifiers = [
 ]
 dependencies = [
     "asyncer",
+    "colorama",
     "cyclopts",
     "gamercon-async",
     "jinja2",

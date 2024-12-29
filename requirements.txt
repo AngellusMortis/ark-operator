@@ -31,6 +31,8 @@ charset-normalizer==3.4.1
     # via requests
 click==8.1.8
     # via kopf
+colorama==0.4.6
+    # via ark-operator (pyproject.toml)
 cyclopts==3.1.2
     # via ark-operator (pyproject.toml)
 docstring-parser==0.16
