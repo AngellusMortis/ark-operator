@@ -13,10 +13,12 @@ import vdf
 from aiofiles import open as aopen
 from aiofiles import os as aos
 from asyncer import asyncify
-from pysteamcmdwrapper import SteamCMD_command
+
+from ark_operator.steam import steamcmd_run
 
 if TYPE_CHECKING:
     from pathlib import Path
+    from subprocess import CompletedProcess
 
     from ark_operator.data import Steam
 
@@ -34,17 +36,23 @@ MAP_NAME_LOOKUP = {
 CAMEL_RE = re.compile(r"((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))")
 
 
-def install_ark_sync(steam: Steam, *, ark_dir: Path, validate: bool = True) -> None:
+async def install_ark(
+    ark_dir: Path, *, steam_dir: Path, validate: bool = True
+) -> CompletedProcess[str]:
     """Install ARK server."""
 
-    cmd = SteamCMD_command()
-    cmd.custom("+@sSteamCmdForcePlatformType windows")
-    cmd.force_install_dir(ark_dir)
-    cmd.app_update(ARK_SERVER_APP_ID, validate=validate)
-    steam.cmd.execute(cmd, n_tries=3)
-
-
-install_ark = asyncify(install_ark_sync)
+    cmd = [
+        "+@ShutdownOnFailedCommand 1",
+        "+@NoPromptForPassword 1",
+        "+@sSteamCmdForcePlatformType windows",
+        f"+force_install_dir {ark_dir}",
+        "+login anonymous",
+        f"+app_update {ARK_SERVER_APP_ID}",
+    ]
+    if validate:
+        cmd.append("validate")
+    cmd.append("+quit")
+    return await steamcmd_run(" ".join(cmd), install_dir=steam_dir, retries=3)
 
 
 async def get_ark_buildid(src: Path) -> int | None:

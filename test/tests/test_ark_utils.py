@@ -18,15 +18,18 @@ from tests.conftest import BASE_DIR
 TEST_ARK = BASE_DIR / "test" / "ark"
 
 
+@patch("ark_operator.ark_utils.steamcmd_run")
 @pytest.mark.asyncio
-async def test_install_ark() -> None:
+async def test_install_ark(mock_steam: AsyncMock) -> None:
     """Test install_ark."""
 
-    steam = Mock()
+    await install_ark(Path("/test"), steam_dir=Path("/test2"))
 
-    await install_ark(steam, ark_dir=Path("/test"))
-
-    steam.cmd.execute.assert_called_once()
+    mock_steam.assert_awaited_once_with(
+        "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 validate +quit",
+        install_dir=Path("/test2"),
+        retries=3,
+    )
 
 
 @pytest.mark.asyncio

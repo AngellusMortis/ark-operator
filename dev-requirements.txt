@@ -126,15 +126,22 @@ greenlet==3.1.1
     #   -c requirements.txt
     #   gevent
 h11==0.14.0
-    # via httpcore
+    # via
+    #   -c requirements.txt
+    #   httpcore
 hatch==1.14.0
     # via ark-operator (pyproject.toml)
 hatchling==1.27.0
     # via hatch
 httpcore==1.0.7
-    # via httpx
+    # via
+    #   -c requirements.txt
+    #   httpx
 httpx==0.28.1
-    # via hatch
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
+    #   hatch
 hyperlink==21.0.0
     # via hatch
 idna==3.10
@@ -249,10 +256,6 @@ psutil==6.1.1
     # via pytest-xdist
 ptyprocess==0.7.0
     # via pexpect
-py-steamcmd-wrapper==1.1.1
-    # via
-    #   -c requirements.txt
-    #   ark-operator (pyproject.toml)
 pyasn1==0.6.1
     # via
     #   -c requirements.txt
@@ -339,7 +342,6 @@ requests==2.32.3
     # via
     #   -c requirements.txt
     #   kubernetes
-    #   py-steamcmd-wrapper
     #   pykube-ng
     #   requests-oauthlib
     #   requests-toolbelt

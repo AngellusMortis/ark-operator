@@ -2,14 +2,18 @@
 
 from __future__ import annotations
 
+import logging
 import warnings
 from dataclasses import dataclass
 from pathlib import Path  # required for Pydantic # noqa: TC003
+from typing import TYPE_CHECKING
 
+from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
-from pysteamcmdwrapper import SteamCMD
 
 from ark_operator.ark_utils import copy_ark, get_map_name, install_ark
+from ark_operator.steam import steamcmd_run
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
@@ -20,11 +24,8 @@ with warnings.catch_warnings():
     from steam.client import SteamClient
     from steam.client.cdn import CDNClient
 
-
-import logging
-
-from pydantic import BaseModel, ConfigDict, computed_field
-from pydantic.alias_generators import to_camel
+if TYPE_CHECKING:
+    from subprocess import CompletedProcess
 
 ALL_CANONICAL = ["TheIsland_WP", "ScorchedEarth_WP", "Aberration_WP", "Extinction_WP"]
 ALL_OFFICIAL = [
@@ -65,7 +66,7 @@ class Config(BaseSettings):
 class Steam:
     """Steam wrapper."""
 
-    cmd: SteamCMD
+    install_dir: Path
 
     _api: SteamClient | None = None
     _cdn: CDNClient | None = None
@@ -89,16 +90,19 @@ class Steam:
 
         return self._cdn
 
-    @classmethod
-    def create(cls, *, install_dir: Path) -> Steam:
-        """Create Steam obj."""
+    async def cmd(self, cmd: str) -> CompletedProcess[str]:
+        """Run steamcmd."""
 
-        return Steam(cmd=SteamCMD(install_dir))
+        return await steamcmd_run(cmd, install_dir=self.install_dir, retries=3)
 
-    async def install_ark(self, ark_dir: Path, *, validate: bool = True) -> None:
+    async def install_ark(
+        self, ark_dir: Path, *, validate: bool = True
+    ) -> CompletedProcess[str]:
         """Install ARK server."""
 
-        await install_ark(self, ark_dir=ark_dir, validate=validate)
+        return await install_ark(
+            ark_dir=ark_dir, steam_dir=self.install_dir, validate=validate
+        )
 
     async def copy_ark(self, src_dir: Path, dest_dir: Path) -> None:
         """Copy ARK server install."""

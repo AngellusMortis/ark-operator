@@ -48,7 +48,7 @@ def meta(
         ServerContext(
             install_dir=install_dir,
             steam_dir=steam_dir,
-            steam=Steam.create(install_dir=steam_dir),
+            steam=Steam(install_dir=steam_dir),
             ip=ip,
             rcon_port=rcon_port,
             rcon_password=rcon_password,
