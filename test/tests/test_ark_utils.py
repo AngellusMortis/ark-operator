@@ -1,7 +1,7 @@
 """Placeholder tests."""
 
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -78,7 +78,7 @@ async def test_has_newer_version_missing_src() -> None:
         (16828472, 16828482, False, 2),
     ],
 )
-@patch("ark_operator.ark_utils.get_ark_buildid_sync")
+@patch("ark_operator.ark_utils.get_ark_buildid")
 @pytest.mark.asyncio
 async def test_is_ark_newer(
     mock_buildid: Mock, src_buildid: int, dest_buildid: int, expected: bool, calls: int
@@ -91,43 +91,49 @@ async def test_is_ark_newer(
     assert mock_buildid.call_count == calls
 
 
-@patch("ark_operator.ark_utils.shutil")
+@patch("ark_operator.ark_utils.aioshutil")
 @patch("ark_operator.ark_utils.is_ark_newer")
 @pytest.mark.asyncio
 async def test_copy_ark_not_newer(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark is ARK is not newer."""
 
+    mock_shutil.rmtree = AsyncMock()
+    mock_shutil.copytree = AsyncMock()
     mock_is_new.return_value = False
 
     await copy_ark(Path("/test"), TEST_ARK)
 
-    mock_shutil.rmtree.assert_not_called()
-    mock_shutil.copytree.assert_not_called()
+    mock_shutil.rmtree.assert_not_awaited()
+    mock_shutil.copytree.assert_not_awaited()
 
 
-@patch("ark_operator.ark_utils.shutil")
-@patch("ark_operator.ark_utils.is_ark_newer_sync")
+@patch("ark_operator.ark_utils.aioshutil")
+@patch("ark_operator.ark_utils.is_ark_newer")
 @pytest.mark.asyncio
 async def test_copy_ark_dest_exists(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark if dest ARK exists."""
 
+    mock_shutil.rmtree = AsyncMock()
+    mock_shutil.copytree = AsyncMock()
     mock_is_new.return_value = True
 
     await copy_ark(Path("/test"), TEST_ARK)
 
-    mock_shutil.rmtree.assert_called_once()
-    mock_shutil.copytree.assert_called_once()
+    mock_shutil.rmtree.assert_awaited_once()
+    mock_shutil.copytree.assert_awaited_once()
 
 
-@patch("ark_operator.ark_utils.shutil")
-@patch("ark_operator.ark_utils.is_ark_newer_sync")
+@patch("ark_operator.ark_utils.aioshutil")
+@patch("ark_operator.ark_utils.is_ark_newer")
 @pytest.mark.asyncio
 async def test_copy_ark_no_dest(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark if dest ARK does not exist."""
 
+    mock_shutil.rmtree = AsyncMock()
+    mock_shutil.copytree = AsyncMock()
     mock_is_new.return_value = True
 
     await copy_ark(Path("/test"), Path("/notarealpath"))
 
-    mock_shutil.rmtree.assert_not_called()
-    mock_shutil.copytree.assert_called_once()
+    mock_shutil.rmtree.assert_not_awaited()
+    mock_shutil.copytree.assert_awaited_once()

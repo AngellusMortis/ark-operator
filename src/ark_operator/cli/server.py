@@ -59,16 +59,16 @@ def meta(
 
 
 @server.command
-def install(*, validate: bool = True, copy_from: OPTION_COPY_DIR = None) -> None:
+async def install(*, validate: bool = True, copy_from: OPTION_COPY_DIR = None) -> None:
     """Install ARK: Survival Ascended Server."""
 
     context = _get_context()
     if copy_from:
         _LOGGER.info("Copy ARK from %s to ARK at %s", copy_from, context.install_dir)
-        context.steam.copy_ark(copy_from, context.install_dir)
+        await context.steam.copy_ark(copy_from, context.install_dir)
 
     _LOGGER.info("Installing ARK at %s", context.install_dir)
-    context.steam.install_ark(context.install_dir, validate=validate)
+    await context.steam.install_ark(context.install_dir, validate=validate)
 
 
 @server.command

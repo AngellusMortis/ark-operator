@@ -9,7 +9,7 @@ from pathlib import Path  # required for Pydantic # noqa: TC003
 from pydantic_settings import BaseSettings
 from pysteamcmdwrapper import SteamCMD
 
-from ark_operator.ark_utils import copy_ark_sync, get_map_name, install_ark_sync
+from ark_operator.ark_utils import copy_ark, get_map_name, install_ark
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
@@ -95,15 +95,15 @@ class Steam:
 
         return Steam(cmd=SteamCMD(install_dir))
 
-    def install_ark(self, ark_dir: Path, *, validate: bool = True) -> None:
+    async def install_ark(self, ark_dir: Path, *, validate: bool = True) -> None:
         """Install ARK server."""
 
-        install_ark_sync(self, ark_dir=ark_dir, validate=validate)
+        await install_ark(self, ark_dir=ark_dir, validate=validate)
 
-    def copy_ark(self, src_dir: Path, dest_dir: Path) -> None:
+    async def copy_ark(self, src_dir: Path, dest_dir: Path) -> None:
         """Copy ARK server install."""
 
-        copy_ark_sync(src_dir, dest_dir)
+        await copy_ark(src_dir, dest_dir)
 
 
 @dataclass

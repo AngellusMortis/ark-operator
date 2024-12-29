@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import logging
 import re
-import shutil
 from functools import lru_cache
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import aioshutil
 import vdf
+from aiofiles import open as aopen
+from aiofiles import os as aos
 from asyncer import asyncify
 from pysteamcmdwrapper import SteamCMD_command
 
@@ -45,52 +47,50 @@ def install_ark_sync(steam: Steam, *, ark_dir: Path, validate: bool = True) -> N
 install_ark = asyncify(install_ark_sync)
 
 
-def get_ark_buildid_sync(src: Path) -> int | None:
+async def get_ark_buildid(src: Path) -> int | None:
     """Get buildid for ARK install."""
 
     _LOGGER.debug("get buildid: %s", src)
     src_manifest_file = src / "steamapps" / f"appmanifest_{ARK_SERVER_APP_ID}.acf"
-    if not src_manifest_file.exists():
+    if not await aos.path.exists(src_manifest_file):
         _LOGGER.debug("src manifest does not exist")
         return None
 
-    with src_manifest_file.open() as f:
-        src_manifest = vdf.load(f)
+    async with aopen(src_manifest_file) as f:
+        data = await f.read()
+        src_manifest = vdf.loads(data)
 
     return int(src_manifest["AppState"]["buildid"])
 
 
-get_ark_buildid = asyncify(get_ark_buildid_sync)
+@asyncify
+def _get_steam_build_id(steam: Steam, app_id: int) -> int:
+    return int(steam.cdn.get_app_depot_info(app_id)["branches"]["public"]["buildid"])
 
 
-def has_newer_version_sync(steam: Steam, src: Path) -> bool:
+async def has_newer_version(steam: Steam, src: Path) -> bool:
     """Check if src ARK install has a newer version."""
 
     _LOGGER.debug("check update: %s", src)
-    src_buildid = get_ark_buildid_sync(src)
+    src_buildid = await get_ark_buildid(src)
     if not src_buildid:
         return True
 
-    latest_buildid = int(
-        steam.cdn.get_app_depot_info(ARK_SERVER_APP_ID)["branches"]["public"]["buildid"]
-    )
+    latest_buildid = await _get_steam_build_id(steam, ARK_SERVER_APP_ID)
 
     _LOGGER.debug("latest: %s, src: %s", latest_buildid, src_buildid)
     return latest_buildid > src_buildid
 
 
-has_newer_version = asyncify(has_newer_version_sync)
-
-
-def is_ark_newer_sync(src: Path, dest: Path) -> bool:
+async def is_ark_newer(src: Path, dest: Path) -> bool:
     """Check if src ARK install is newer then dest."""
 
     _LOGGER.debug("src: %s, dest: %s", src, dest)
-    src_buildid = get_ark_buildid_sync(src)
+    src_buildid = await get_ark_buildid(src)
     if not src_buildid:
         return False
 
-    dest_buildid = get_ark_buildid_sync(dest)
+    dest_buildid = await get_ark_buildid(dest)
     if not dest_buildid:
         return True
 
@@ -98,27 +98,21 @@ def is_ark_newer_sync(src: Path, dest: Path) -> bool:
     return src_buildid > dest_buildid
 
 
-is_ark_newer = asyncify(is_ark_newer_sync)
-
-
-def copy_ark_sync(src: Path, dest: Path) -> None:
+async def copy_ark(src: Path, dest: Path) -> None:
     """Copy ARK install to another."""
 
     _LOGGER.info("Checking if can copy src ARK (%s) to dest ARK (%s)", src, dest)
 
-    if not is_ark_newer_sync(src, dest):
+    if not await is_ark_newer(src, dest):
         _LOGGER.info("src ARK is not newer")
         return
 
     if dest.exists():
         _LOGGER.info("Removing dest ARK")
-        shutil.rmtree(dest)
+        await aioshutil.rmtree(dest)
 
     _LOGGER.info("Copying src ARK to dest ARK")
-    shutil.copytree(src, dest)
-
-
-copy_ark = asyncify(copy_ark_sync)
+    await aioshutil.copytree(src, dest)
 
 
 @lru_cache(maxsize=20)
