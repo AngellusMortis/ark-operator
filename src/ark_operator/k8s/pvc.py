@@ -130,7 +130,7 @@ async def create_pvc(  # noqa: PLR0913
 
     logger.info("Waticing for PVC to be ready")
     ready = False
-    while not ready:
+    while not ready:  # pragma: no branch
         pvc = await get_pvc(name=name, namespace=namespace)
         if pvc.status.phase == "Bound":
             break

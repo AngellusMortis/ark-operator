@@ -63,7 +63,7 @@ dev = [
     "kubetest @ git+https://github.com/elapfra/kubetest",
     "lxml", # for mypy html report
     "mypy",
-    "pytest-asyncio",
+    "pytest-asyncio < 0.23",
     "pytest-cov",
     "pytest-env",
     "pytest-timeout",
@@ -185,4 +185,3 @@ testpaths = ["test"]
 timeout_func_only = false
 log_level = "DEBUG"
 asyncio_mode = "strict"
-asyncio_default_fixture_loop_scope = "function"
