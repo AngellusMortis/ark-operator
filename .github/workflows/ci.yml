@@ -232,8 +232,6 @@ jobs:
         run: |
           source ./.venv/bin/activate
           ./.bin/test-code
-        env:
-          KUBE_CONFIG: ~/.kube/config
 
       - name: 📡 Upload Code Coverage
         if: ${{ matrix.python-version == env.DEFAULT_PYTHON && always() }}

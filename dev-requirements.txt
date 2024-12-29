@@ -79,6 +79,10 @@ docutils==0.21.2
     #   -c requirements.txt
     #   readme-renderer
     #   rich-rst
+durationpy==0.9
+    # via
+    #   -c requirements.txt
+    #   kubernetes
 execnet==2.1.1
     # via pytest-xdist
 filelock==3.16.1
@@ -157,18 +161,14 @@ kopf==1.37.4
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
-kubernetes==30.1.0
+kubernetes==31.0.0
     # via
     #   -c requirements.txt
-    #   ark-operator (pyproject.toml)
     #   kopf
-    #   kubetest
-kubernetes-asyncio==30.3.1
+kubernetes-asyncio==32.0.0
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
-kubetest @ git+https://github.com/elapfra/kubetest@4feee42814a29ac8d7552fa7ee8e25e0d5443f36
-    # via ark-operator (pyproject.toml)
 lxml==5.3.0
     # via ark-operator (pyproject.toml)
 markdown-it-py==3.0.0
@@ -283,13 +283,12 @@ pyproject-hooks==1.2.0
 pytest==8.3.4
     # via
     #   ark-operator (pyproject.toml)
-    #   kubetest
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-env
     #   pytest-timeout
     #   pytest-xdist
-pytest-asyncio==0.21.2
+pytest-asyncio==0.25.0
     # via ark-operator (pyproject.toml)
 pytest-cov==6.0.0
     # via ark-operator (pyproject.toml)
@@ -320,7 +319,6 @@ pyyaml==6.0.2
     #   kopf
     #   kubernetes
     #   kubernetes-asyncio
-    #   kubetest
     #   pykube-ng
 readme-renderer==44.0
     # via twine

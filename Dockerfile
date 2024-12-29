@@ -78,6 +78,5 @@ RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing
 
 ENV PYTHONPATH=/workspaces/ark-operator/src/:/workspaces/ark-operator/test/
 ENV PATH=$PATH:/workspaces/ark-operator/.bin
-ENV KUBE_CONFIG=/home/app/.kube/config
 USER app
 WORKDIR /workspaces/ark-operator/

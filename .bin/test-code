@@ -18,9 +18,7 @@ extraArgs=""
 if [[ ! -z "${CI+x}" ]]; then
     extraArgs="--cov-report html --cov-report json --cov-report xml -n=0"
 fi
-if [[ ! -z "${KUBE_CONFIG+x}" ]]; then
-    extraArgs="$extraArgs --kube-config=$KUBE_CONFIG"
-fi
+
 pytest --color=yes $extraArgs
 if [[ ! -z "${CI+x}" && "$PY_VERSION" == "$DEFAULT_PYTHON" ]]; then
     zip -r coverage-html.zip htmlcov
