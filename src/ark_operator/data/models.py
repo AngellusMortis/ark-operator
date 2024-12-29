@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path  # required for Pydantic # noqa: TC003
 
 from pydantic_settings import BaseSettings
-from pysteamcmdwrapper import SteamCMD, SteamCMD_command
+from pysteamcmdwrapper import SteamCMD
 
 from ark_operator.ark_utils import copy_ark_sync, get_map_name, install_ark_sync
 
@@ -94,11 +94,6 @@ class Steam:
         """Create Steam obj."""
 
         return Steam(cmd=SteamCMD(install_dir))
-
-    def execute(self, cmd: SteamCMD_command, n_tries: int = 1) -> None:
-        """Execute steamcmd."""
-
-        self.cmd.execute(cmd, n_tries=n_tries)
 
     def install_ark(self, ark_dir: Path, *, validate: bool = True) -> None:
         """Install ARK server."""

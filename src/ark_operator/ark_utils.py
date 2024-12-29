@@ -39,7 +39,7 @@ def install_ark_sync(steam: Steam, *, ark_dir: Path, validate: bool = True) -> N
     cmd.custom("+@sSteamCmdForcePlatformType windows")
     cmd.force_install_dir(ark_dir)
     cmd.app_update(ARK_SERVER_APP_ID, validate=validate)
-    steam.execute(cmd, n_tries=3)
+    steam.cmd.execute(cmd, n_tries=3)
 
 
 install_ark = asyncify(install_ark_sync)
