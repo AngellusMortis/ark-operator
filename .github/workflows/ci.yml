@@ -18,6 +18,7 @@ concurrency:
 
 env:
   DEFAULT_PYTHON: "3.12"
+  PYTHONDEVMODE: "1"
 
 
 permissions:
@@ -136,7 +137,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.11", "3.12"]
         experimental: [ false ]
         include:
           - python-version: "3.13"
@@ -203,7 +204,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        python-version: ["3.12"]
+        python-version: ["3.11", "3.12"]
         experimental: [ false ]
         include:
           - python-version: "3.13"

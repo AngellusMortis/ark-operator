@@ -121,7 +121,7 @@ async def copy_ark(src: Path, dest: Path) -> None:
 
     if dest.exists():
         _LOGGER.info("Removing dest ARK")
-        await aioshutil.rmtree(dest)  # type: ignore[call-arg]
+        await aioshutil.rmtree(dest)
 
     _LOGGER.info("Copying src ARK to dest ARK")
     await aioshutil.copytree(src, dest)
