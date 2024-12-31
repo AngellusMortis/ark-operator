@@ -181,7 +181,7 @@ async def test_send_cmd_all_exception_return(mock_rcon: Mock) -> None:
 
     mock_client = Mock()
     mock_client.__aenter__ = AsyncMock()
-    mock_client.send = AsyncMock(side_effect=Exception("test"))
+    mock_client.send = AsyncMock(side_effect=[Exception("test"), "test"])
     mock_client.__aexit__ = AsyncMock()
     mock_rcon.return_value = mock_client
 
