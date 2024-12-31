@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "ark-operator"
 description = "K8s operator for managing ARK server clusters"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 classifiers = [
     "Development Status :: 2 - Pre-Alpha",
     "Framework :: AsyncIO",
@@ -17,7 +17,6 @@ classifiers = [
     "License :: Free for non-commercial use",
     "License :: Other/Proprietary License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
@@ -99,7 +98,7 @@ allow-direct-references = true
 [tool.ruff]
 exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv"]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 
 
 [tool.ruff.lint]
@@ -124,7 +123,7 @@ max-complexity = 10
 "test/tests/**/*.py" = ["FBT", "D", "SLF001", "PLR2004", "RUF029", "S", "E501"]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_unused_configs = true
 disable_error_code = "no-redef"
 exclude = ["dist", "/usr/local/lib", "codeql"]
