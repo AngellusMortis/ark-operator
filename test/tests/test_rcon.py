@@ -1,0 +1,212 @@
+"""Test ARK Operator RCON."""
+
+from unittest.mock import AsyncMock, Mock, call, patch
+
+import pytest
+
+from ark_operator.data import ArkServerSpec
+from ark_operator.rcon import send_cmd, send_cmd_all
+
+SPEC = ArkServerSpec(
+    maps=["BobsMissions_WP", "TheIsland_WP"],
+)
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd(mock_rcon: Mock) -> None:
+    """Test send_cmd."""
+
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock()
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    await send_cmd("testCMD", host="test", port=123, password="password")
+
+    mock_rcon.assert_called_once_with("test", 123, "password", timeout=3)
+    mock_client.__aenter__.assert_awaited_once()
+    mock_client.send.assert_awaited_once_with("testCMD")
+    mock_client.__aexit__.assert_awaited_once()
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd_client_reused(mock_rcon: Mock) -> None:
+    """Test send_cmd."""
+
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock()
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    await send_cmd("testCMD", host="test", port=123, password="password", close=False)
+    await send_cmd("testCMD2", host="test", port=123, password="password")
+
+    mock_rcon.assert_called_once_with("test", 123, "password", timeout=3)
+    mock_client.__aenter__.assert_awaited_once()
+    mock_client.send.assert_has_awaits([call("testCMD"), call("testCMD2")])
+    mock_client.__aexit__.assert_awaited_once()
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd_no_close(mock_rcon: Mock) -> None:
+    """Test send_cmd."""
+
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock()
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    await send_cmd("testCMD", host="test", port=123, password="password", close=False)
+
+    mock_rcon.assert_called_once_with("test", 123, "password", timeout=3)
+    mock_client.__aenter__.assert_awaited_once()
+    mock_client.send.assert_awaited_once_with("testCMD")
+    mock_client.__aexit__.assert_not_awaited()
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd_error(mock_rcon: Mock) -> None:
+    """Test send_cmd."""
+
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock(side_effect=Exception("test"))
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    with pytest.raises(Exception):  # noqa: B017,PT011
+        await send_cmd("testCMD", host="test", port=123, password="password")
+
+    mock_rcon.assert_called_once_with("test", 123, "password", timeout=3)
+    mock_client.__aenter__.assert_awaited_once()
+    mock_client.send.assert_awaited_once_with("testCMD")
+    mock_client.__aexit__.assert_awaited_once()
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd_all(mock_rcon: Mock) -> None:
+    """Test send_cmd_all."""
+
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock()
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    await send_cmd_all(
+        "testCMD", spec=SPEC.model_copy(deep=True), host="test", password="password"
+    )
+
+    assert call("test", 27020, "password", timeout=3) in mock_rcon.call_args_list
+    assert call("test", 27021, "password", timeout=3) in mock_rcon.call_args_list
+    assert mock_client.__aenter__.await_count == 2
+    mock_client.send.assert_has_awaits(
+        [
+            call("testCMD"),
+            call("testCMD"),
+        ]
+    )
+    assert mock_client.__aexit__.await_count == 2
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd_all_no_close(mock_rcon: Mock) -> None:
+    """Test send_cmd_all."""
+
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock()
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    await send_cmd_all(
+        "testCMD",
+        spec=SPEC.model_copy(deep=True),
+        host="test",
+        password="password",
+        close=False,
+    )
+
+    assert call("test", 27020, "password", timeout=3) in mock_rcon.call_args_list
+    assert call("test", 27021, "password", timeout=3) in mock_rcon.call_args_list
+    assert mock_client.__aenter__.await_count == 2
+    mock_client.send.assert_has_awaits(
+        [
+            call("testCMD"),
+            call("testCMD"),
+        ]
+    )
+    mock_client.__aexit__.assert_not_awaited()
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd_all_exception(mock_rcon: Mock) -> None:
+    """Test send_cmd_all."""
+
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock(side_effect=Exception("test"))
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    with pytest.raises(Exception):  # noqa: B017,PT011
+        await send_cmd_all(
+            "testCMD", spec=SPEC.model_copy(deep=True), host="test", password="password"
+        )
+
+    assert call("test", 27020, "password", timeout=3) in mock_rcon.call_args_list
+    assert call("test", 27021, "password", timeout=3) in mock_rcon.call_args_list
+    assert mock_client.__aenter__.await_count == 2
+    # mock_client.send.assert_has_awaits(
+    #     [
+    #         call("testCMD"),
+    #         call("testCMD"),
+    #     ]
+    # )
+    assert mock_client.__aexit__.await_count == 2
+
+
+@patch("ark_operator.rcon.GameRCON")
+@pytest.mark.asyncio
+async def test_send_cmd_all_exception_return(mock_rcon: Mock) -> None:
+    """Test send_cmd_all."""
+
+    exception = Exception("test")
+    mock_client = Mock()
+    mock_client.__aenter__ = AsyncMock()
+    mock_client.send = AsyncMock(side_effect=[exception, "test"])
+    mock_client.__aexit__ = AsyncMock()
+    mock_rcon.return_value = mock_client
+
+    responses = await send_cmd_all(
+        "testCMD",
+        spec=SPEC.model_copy(deep=True),
+        host="test",
+        password="password",
+        raise_exceptions=False,
+    )
+
+    assert call("test", 27020, "password", timeout=3) in mock_rcon.call_args_list
+    assert call("test", 27021, "password", timeout=3) in mock_rcon.call_args_list
+    assert mock_client.__aenter__.await_count == 2
+    mock_client.send.assert_has_awaits(
+        [
+            call("testCMD"),
+            call("testCMD"),
+        ]
+    )
+    assert mock_client.__aexit__.await_count == 2
+    assert responses == {
+        "BobsMissions_WP": exception,
+        "TheIsland_WP": "test",
+    }

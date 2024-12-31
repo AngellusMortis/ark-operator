@@ -5,9 +5,13 @@ from typing import Annotated, cast
 from cyclopts import App, Parameter
 
 from ark_operator.cli.context import CoreContext, get_all_context, set_context
-from ark_operator.cli.options import OPTION_LOG_FORMAT, OPTION_LOG_LEVEL
+from ark_operator.cli.options import (
+    OPTION_LOG_CONFIG,
+    OPTION_LOG_FORMAT,
+    OPTION_LOG_LEVEL,
+)
 from ark_operator.cli.server import server
-from ark_operator.log import init_logging
+from ark_operator.log import DEFAULT_LOG_CONFIG, init_logging
 
 app = App(
     help="""
@@ -29,11 +33,12 @@ def meta(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     logging_format: OPTION_LOG_FORMAT = "auto",
     logging_level: OPTION_LOG_LEVEL = "NOTSET",
+    logging_config: OPTION_LOG_CONFIG = DEFAULT_LOG_CONFIG,
 ) -> None:
     """ARK Operator."""
 
     set_context(
         "core", CoreContext(logging_format=logging_format, logging_level=logging_level)
     )
-    init_logging(logging_format, logging_level)
+    init_logging(logging_format, logging_level, config=logging_config)
     app(tokens)

@@ -1,7 +1,9 @@
 """ARK Operator CLI options."""
 
+from __future__ import annotations
+
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 from cyclopts import Parameter
 
@@ -9,6 +11,7 @@ from ark_operator.log import LoggingFormat, LoggingLevel
 
 OPTION_LOG_FORMAT = Annotated[LoggingFormat, Parameter(env_var="ARK_OP_LOG_FORMAT")]
 OPTION_LOG_LEVEL = Annotated[LoggingLevel, Parameter(env_var="ARK_OP_LOG_LEVEL")]
+OPTION_LOG_CONFIG = Annotated[dict[str, Any], Parameter(env_var="ARK_OP_LOG_CONFIG")]
 
 OPTION_INSTALL_DIR = Annotated[
     Path,
