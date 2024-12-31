@@ -80,7 +80,7 @@ async def install_steamcmd(install_dir: Path, *, force: bool = False) -> Path:
 
     if await aos.path.exists(exe_path):
         _LOGGER.debug("Redowloading steamcmd")
-        await aioshutil.rmtree(install_dir)
+        await aioshutil.rmtree(install_dir)  # type: ignore[call-arg]
 
     await aos.makedirs(install_dir, exist_ok=True)
     async with httpx.AsyncClient() as client:
