@@ -11,3 +11,7 @@ class AsynchronousOnlyOperationError(RuntimeError):
 
 class SteamCMDError(RuntimeError):
     """Except running steamcmd."""
+
+
+class RCONError(RuntimeError):
+    """Exception running RCON command."""

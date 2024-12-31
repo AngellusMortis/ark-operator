@@ -16,7 +16,7 @@ rm -rf .coverage*
 echo -e "Running pytest..."
 extraArgs=""
 if [[ ! -z "${CI+x}" ]]; then
-    extraArgs="--cov-report html --cov-report json --cov-report xml -n=0"
+    extraArgs="--cov-report html --cov-report json --cov-report xml"
 fi
 
 pytest --color=yes $extraArgs
