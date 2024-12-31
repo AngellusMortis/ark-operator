@@ -11,6 +11,7 @@ from ark_operator.rcon import send_cmd, send_cmd_all
 SPEC = ArkServerSpec(
     maps=["BobsMissions_WP", "TheIsland_WP"],
 )
+PYTEST_BUG = "pytest bug not able to detect exception when ran with other tests"
 
 
 @patch("ark_operator.rcon.GameRCON")
@@ -72,7 +73,7 @@ async def test_send_cmd_no_close(mock_rcon: Mock) -> None:
 
 
 @patch("ark_operator.rcon.GameRCON")
-@pytest.mark.xfail(reason="test fails if ran with other test")
+@pytest.mark.xfail(reason=PYTEST_BUG)
 @pytest.mark.asyncio
 async def test_send_cmd_error(mock_rcon: Mock) -> None:
     """Test send_cmd."""
@@ -151,7 +152,7 @@ async def test_send_cmd_all_no_close(mock_rcon: Mock) -> None:
 
 
 @patch("ark_operator.rcon.GameRCON")
-@pytest.mark.xfail(reason="test fails if ran with other test")
+@pytest.mark.xfail(reason=PYTEST_BUG)
 @pytest.mark.asyncio
 async def test_send_cmd_all_exception(mock_rcon: Mock) -> None:
     """Test send_cmd_all."""
