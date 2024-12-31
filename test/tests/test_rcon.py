@@ -167,12 +167,6 @@ async def test_send_cmd_all_exception(mock_rcon: Mock) -> None:
     assert call("test", 27020, "password", timeout=3) in mock_rcon.call_args_list
     assert call("test", 27021, "password", timeout=3) in mock_rcon.call_args_list
     assert mock_client.__aenter__.await_count == 2
-    # mock_client.send.assert_has_awaits(
-    #     [
-    #         call("testCMD"),
-    #         call("testCMD"),
-    #     ]
-    # )
     assert mock_client.__aexit__.await_count == 2
 
 
