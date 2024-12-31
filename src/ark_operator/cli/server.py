@@ -43,6 +43,8 @@ def meta(
 ) -> None:
     """ARK Operator."""
 
+    install_dir = install_dir.absolute()
+    steam_dir = steam_dir.absolute()
     set_context(
         "server",
         ServerContext(
@@ -64,11 +66,22 @@ async def install(*, validate: bool = True, copy_from: OPTION_COPY_DIR = None) -
 
     context = _get_context()
     if copy_from:
+        copy_from = copy_from.absolute()
         _LOGGER.info("Copy ARK from %s to ARK at %s", copy_from, context.install_dir)
         await context.steam.copy_ark(copy_from, context.install_dir)
 
-    _LOGGER.info("Installing ARK at %s", context.install_dir)
-    await context.steam.install_ark(context.install_dir, validate=validate)
+    has_newer = await context.steam.has_newer_version(context.install_dir)
+    _LOGGER.info(
+        "ARK has newer version: %s",
+        has_newer,
+    )
+    if not has_newer and not validate:
+        _LOGGER.info(
+            "Skipping install since there is no new version and validate is disabled"
+        )
+    else:
+        _LOGGER.info("Installing ARK at %s", context.install_dir)
+        await context.steam.install_ark(context.install_dir, validate=validate)
 
 
 @server.command

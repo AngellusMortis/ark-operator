@@ -32,6 +32,20 @@ async def test_install_ark(mock_steam: AsyncMock) -> None:
     )
 
 
+@patch("ark_operator.ark_utils.steamcmd_run")
+@pytest.mark.asyncio
+async def test_install_ark_no_validate(mock_steam: AsyncMock) -> None:
+    """Test install_ark."""
+
+    await install_ark(Path("/test"), steam_dir=Path("/test2"), validate=False)
+
+    mock_steam.assert_awaited_once_with(
+        "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 +quit",
+        install_dir=Path("/test2"),
+        retries=3,
+    )
+
+
 @pytest.mark.asyncio
 async def test_get_ark_buildid() -> None:
     """Test get_ark_buildid."""
@@ -92,6 +106,22 @@ async def test_is_ark_newer(
 
     assert await is_ark_newer(Path("/test"), Path("/test2")) is expected
     assert mock_buildid.call_count == calls
+
+
+@patch("ark_operator.ark_utils.aioshutil")
+@patch("ark_operator.ark_utils.is_ark_newer")
+@pytest.mark.asyncio
+async def test_copy_ark_same(mock_is_new: Mock, mock_shutil: Mock) -> None:
+    """Test copy_ark is ARK is not newer."""
+
+    mock_shutil.rmtree = AsyncMock()
+    mock_shutil.copytree = AsyncMock()
+    mock_is_new.return_value = False
+
+    await copy_ark(Path("/test"), Path("/test"))
+
+    mock_shutil.rmtree.assert_not_awaited()
+    mock_shutil.copytree.assert_not_awaited()
 
 
 @patch("ark_operator.ark_utils.aioshutil")

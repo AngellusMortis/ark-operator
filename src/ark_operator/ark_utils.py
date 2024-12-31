@@ -111,6 +111,10 @@ async def copy_ark(src: Path, dest: Path) -> None:
 
     _LOGGER.info("Checking if can copy src ARK (%s) to dest ARK (%s)", src, dest)
 
+    if src == dest:
+        _LOGGER.info("src ARK is same as dest ARK")
+        return
+
     if not await is_ark_newer(src, dest):
         _LOGGER.info("src ARK is not newer")
         return

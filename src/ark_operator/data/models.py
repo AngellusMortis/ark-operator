@@ -12,7 +12,12 @@ from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
 
-from ark_operator.ark_utils import copy_ark, get_map_name, install_ark
+from ark_operator.ark_utils import (
+    copy_ark,
+    get_map_name,
+    has_newer_version,
+    install_ark,
+)
 from ark_operator.steam import steamcmd_run
 
 with warnings.catch_warnings():
@@ -108,6 +113,11 @@ class Steam:
         """Copy ARK server install."""
 
         await copy_ark(src_dir, dest_dir)
+
+    async def has_newer_version(self, ark_dir: Path) -> bool:
+        """Check if ARK has newer version."""
+
+        return await has_newer_version(self, ark_dir)
 
 
 @dataclass
