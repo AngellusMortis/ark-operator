@@ -204,3 +204,4 @@ async def test_send_cmd_all_exception_return(mock_rcon: Mock) -> None:
     )
     assert mock_client.__aexit__.await_count == 2
     assert isinstance(responses["BobsMissions_WP"], RCONError)
+    assert responses["TheIsland_WP"] == "test"

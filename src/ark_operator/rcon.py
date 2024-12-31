@@ -64,7 +64,7 @@ async def send_cmd(
         if close:
             await close_client(host=host, port=port)
 
-    return cast(str, response[0])
+    return cast(str, response)
 
 
 async def send_cmd_all(  # noqa: PLR0913
