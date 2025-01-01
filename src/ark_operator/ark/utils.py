@@ -14,13 +14,10 @@ from aiofiles import open as aopen
 from aiofiles import os as aos
 from asyncer import asyncify
 
-from ark_operator.steam import steamcmd_run
-
 if TYPE_CHECKING:
     from pathlib import Path
-    from subprocess import CompletedProcess
 
-    from ark_operator.data import Steam
+    from ark_operator.steam import Steam
 
 ARK_SERVER_APP_ID = 2430930
 _LOGGER = logging.getLogger(__name__)
@@ -34,25 +31,6 @@ MAP_NAME_LOOKUP = {
 }
 
 CAMEL_RE = re.compile(r"((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))")
-
-
-async def install_ark(
-    ark_dir: Path, *, steam_dir: Path, validate: bool = True
-) -> CompletedProcess[str]:
-    """Install ARK server."""
-
-    cmd = [
-        "+@ShutdownOnFailedCommand 1",
-        "+@NoPromptForPassword 1",
-        "+@sSteamCmdForcePlatformType windows",
-        f"+force_install_dir {ark_dir}",
-        "+login anonymous",
-        f"+app_update {ARK_SERVER_APP_ID}",
-    ]
-    if validate:
-        cmd.append("validate")
-    cmd.append("+quit")
-    return await steamcmd_run(" ".join(cmd), install_dir=steam_dir, retries=3)
 
 
 async def get_ark_buildid(src: Path) -> int | None:

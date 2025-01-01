@@ -14,8 +14,8 @@ from ark_operator.cli.options import (
     OPTION_RCON_PORT,
     OPTION_STEAM_DIR,
 )
-from ark_operator.data import Steam
 from ark_operator.rcon import send_cmd
+from ark_operator.steam import Steam
 
 server = App(
     help="""

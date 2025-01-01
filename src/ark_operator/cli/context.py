@@ -4,8 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from ark_operator.data import Steam
 from ark_operator.log import LoggingFormat, LoggingLevel
+from ark_operator.steam import Steam
 
 _CONTEXT: dict[str, Any] = {}
 

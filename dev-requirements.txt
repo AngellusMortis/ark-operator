@@ -142,6 +142,7 @@ httpx==0.28.1
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
     #   hatch
+    #   pytest-httpx
 hyperlink==21.0.0
     # via hatch
 idna==3.10
@@ -301,6 +302,7 @@ pytest==8.3.4
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-env
+    #   pytest-httpx
     #   pytest-timeout
     #   pytest-xdist
 pytest-asyncio==0.25.0
@@ -308,6 +310,8 @@ pytest-asyncio==0.25.0
 pytest-cov==6.0.0
     # via ark-operator (pyproject.toml)
 pytest-env==1.1.5
+    # via ark-operator (pyproject.toml)
+pytest-httpx==0.35.0
     # via ark-operator (pyproject.toml)
 pytest-timeout==2.3.1
     # via ark-operator (pyproject.toml)

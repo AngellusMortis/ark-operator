@@ -6,7 +6,6 @@ from ark_operator.data.models import (
     ArkServerSpec,
     Config,
     GameServer,
-    Steam,
 )
 from ark_operator.data.types import (
     ActivityEvent,
@@ -21,5 +20,4 @@ __all__ = [
     "ChangeEvent",
     "Config",
     "GameServer",
-    "Steam",
 ]

@@ -5,45 +5,16 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from ark_operator.ark_utils import (
+from ark_operator.ark.utils import (
     ARK_SERVER_APP_ID,
     copy_ark,
     get_ark_buildid,
     has_newer_version,
-    install_ark,
     is_ark_newer,
 )
 from tests.conftest import BASE_DIR
 
 TEST_ARK = BASE_DIR / "test" / "ark"
-
-
-@patch("ark_operator.ark_utils.steamcmd_run")
-@pytest.mark.asyncio
-async def test_install_ark(mock_steam: AsyncMock) -> None:
-    """Test install_ark."""
-
-    await install_ark(Path("/test"), steam_dir=Path("/test2"))
-
-    mock_steam.assert_awaited_once_with(
-        "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 validate +quit",
-        install_dir=Path("/test2"),
-        retries=3,
-    )
-
-
-@patch("ark_operator.ark_utils.steamcmd_run")
-@pytest.mark.asyncio
-async def test_install_ark_no_validate(mock_steam: AsyncMock) -> None:
-    """Test install_ark."""
-
-    await install_ark(Path("/test"), steam_dir=Path("/test2"), validate=False)
-
-    mock_steam.assert_awaited_once_with(
-        "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 +quit",
-        install_dir=Path("/test2"),
-        retries=3,
-    )
 
 
 @pytest.mark.asyncio
@@ -95,7 +66,7 @@ async def test_has_newer_version_missing_src() -> None:
         (16828472, 16828482, False, 2),
     ],
 )
-@patch("ark_operator.ark_utils.get_ark_buildid")
+@patch("ark_operator.ark.utils.get_ark_buildid")
 @pytest.mark.asyncio
 async def test_is_ark_newer(
     mock_buildid: Mock, src_buildid: int, dest_buildid: int, expected: bool, calls: int
@@ -108,8 +79,8 @@ async def test_is_ark_newer(
     assert mock_buildid.call_count == calls
 
 
-@patch("ark_operator.ark_utils.aioshutil")
-@patch("ark_operator.ark_utils.is_ark_newer")
+@patch("ark_operator.ark.utils.aioshutil")
+@patch("ark_operator.ark.utils.is_ark_newer")
 @pytest.mark.asyncio
 async def test_copy_ark_same(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark is ARK is not newer."""
@@ -124,8 +95,8 @@ async def test_copy_ark_same(mock_is_new: Mock, mock_shutil: Mock) -> None:
     mock_shutil.copytree.assert_not_awaited()
 
 
-@patch("ark_operator.ark_utils.aioshutil")
-@patch("ark_operator.ark_utils.is_ark_newer")
+@patch("ark_operator.ark.utils.aioshutil")
+@patch("ark_operator.ark.utils.is_ark_newer")
 @pytest.mark.asyncio
 async def test_copy_ark_not_newer(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark is ARK is not newer."""
@@ -140,8 +111,8 @@ async def test_copy_ark_not_newer(mock_is_new: Mock, mock_shutil: Mock) -> None:
     mock_shutil.copytree.assert_not_awaited()
 
 
-@patch("ark_operator.ark_utils.aioshutil")
-@patch("ark_operator.ark_utils.is_ark_newer")
+@patch("ark_operator.ark.utils.aioshutil")
+@patch("ark_operator.ark.utils.is_ark_newer")
 @pytest.mark.asyncio
 async def test_copy_ark_dest_exists(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark if dest ARK exists."""
@@ -156,8 +127,8 @@ async def test_copy_ark_dest_exists(mock_is_new: Mock, mock_shutil: Mock) -> Non
     mock_shutil.copytree.assert_awaited_once()
 
 
-@patch("ark_operator.ark_utils.aioshutil")
-@patch("ark_operator.ark_utils.is_ark_newer")
+@patch("ark_operator.ark.utils.aioshutil")
+@patch("ark_operator.ark.utils.is_ark_newer")
 @pytest.mark.asyncio
 async def test_copy_ark_no_dest(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark if dest ARK does not exist."""

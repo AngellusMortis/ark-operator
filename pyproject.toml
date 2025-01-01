@@ -68,6 +68,7 @@ dev = [
     "pytest-asyncio",
     "pytest-cov",
     "pytest-env",
+    "pytest-httpx",
     "pytest-timeout",
     "pytest-xdist[psutil]",
     "pytest",

@@ -68,7 +68,7 @@ COPY ./.docker/bashrc /home/app/.bashrc
 RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     apt-get update -qq \
-    && apt-get install -yqq git curl vim procps curl jq yq sudo \
+    && apt-get install -yqq git curl vim procps curl jq yq sudo zip \
     && echo 'app ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
     && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
     && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \

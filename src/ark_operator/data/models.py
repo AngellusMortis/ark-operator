@@ -2,23 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 import warnings
 from dataclasses import dataclass
 from pathlib import Path  # required for Pydantic # noqa: TC003
-from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
-
-from ark_operator.ark_utils import (
-    copy_ark,
-    get_map_name,
-    has_newer_version,
-    install_ark,
-)
-from ark_operator.steam import steamcmd_run
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
@@ -26,11 +16,6 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\d'")
     warnings.filterwarnings("ignore", category=DeprecationWarning)
 
-    from steam.client import SteamClient
-    from steam.client.cdn import CDNClient
-
-if TYPE_CHECKING:
-    from subprocess import CompletedProcess
 
 ALL_CANONICAL = ["TheIsland_WP", "ScorchedEarth_WP", "Aberration_WP", "Extinction_WP"]
 ALL_OFFICIAL = [
@@ -46,7 +31,6 @@ MAP_LOOPUP_MAP = {
     "official": ["BobsMissions_WP", *ALL_OFFICIAL],
     "officialNoClub": ALL_OFFICIAL,
 }
-_LOGGER = logging.getLogger(__name__)
 
 
 class BaseK8sModel(BaseModel):
@@ -68,59 +52,6 @@ class Config(BaseSettings):
 
 
 @dataclass
-class Steam:
-    """Steam wrapper."""
-
-    install_dir: Path
-
-    _api: SteamClient | None = None
-    _cdn: CDNClient | None = None
-
-    @property
-    def api(self) -> SteamClient:
-        """Get SteamClient."""
-
-        if self._api is None:
-            self._api = SteamClient()
-            self._api.anonymous_login()
-
-        return self._api
-
-    @property
-    def cdn(self) -> CDNClient:
-        """Get CDNClient."""
-
-        if self._cdn is None:
-            self._cdn = CDNClient(self.api)
-
-        return self._cdn
-
-    async def cmd(self, cmd: str) -> CompletedProcess[str]:
-        """Run steamcmd."""
-
-        return await steamcmd_run(cmd, install_dir=self.install_dir, retries=3)
-
-    async def install_ark(
-        self, ark_dir: Path, *, validate: bool = True
-    ) -> CompletedProcess[str]:
-        """Install ARK server."""
-
-        return await install_ark(
-            ark_dir=ark_dir, steam_dir=self.install_dir, validate=validate
-        )
-
-    async def copy_ark(self, src_dir: Path, dest_dir: Path) -> None:
-        """Copy ARK server install."""
-
-        await copy_ark(src_dir, dest_dir)
-
-    async def has_newer_version(self, ark_dir: Path) -> bool:
-        """Check if ARK has newer version."""
-
-        return await has_newer_version(self, ark_dir)
-
-
-@dataclass
 class GameServer:
     """Wrapper for game server representation."""
 
@@ -131,6 +62,8 @@ class GameServer:
     @property
     def map_name(self) -> str:
         """Get user friendly name for map."""
+
+        from ark_operator.ark import get_map_name
 
         return get_map_name(self.map_id)
 
