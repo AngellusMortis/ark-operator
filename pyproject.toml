@@ -29,6 +29,7 @@ dependencies = [
     "asyncer",
     "colorama",
     "cyclopts",
+    "environs",
     "gamercon-async",
     "httpx",
     "jinja2",
@@ -155,6 +156,7 @@ module = [
     "gamercon_async",
     "kubernetes_asyncio.client.api_client",
     "kubernetes_asyncio.client.models",
+    "kubernetes_asyncio.client",
     "kubernetes_asyncio",
     "kubetest.client",
     "rcon.source",
@@ -191,3 +193,6 @@ timeout_func_only = false
 log_level = "DEBUG"
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "session"
+
+[tool.pytest_env]
+ARK_OP_MIN_SERVER_SIZE = "1Mi"

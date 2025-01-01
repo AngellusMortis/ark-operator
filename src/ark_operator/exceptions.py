@@ -15,3 +15,7 @@ class SteamCMDError(RuntimeError):
 
 class RCONError(RuntimeError):
     """Exception running RCON command."""
+
+
+class CommandError(RuntimeError):
+    """Exception running a command."""

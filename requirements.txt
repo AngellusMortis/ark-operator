@@ -49,6 +49,8 @@ docutils==0.21.2
     # via rich-rst
 durationpy==0.9
     # via kubernetes
+environs==11.2.1
+    # via ark-operator (pyproject.toml)
 frozenlist==1.5.0
     # via
     #   aiohttp
@@ -91,6 +93,8 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via jinja2
+marshmallow==3.23.2
+    # via environs
 mdurl==0.1.2
     # via markdown-it-py
 multidict==6.1.0
@@ -101,6 +105,8 @@ oauthlib==3.2.2
     # via
     #   kubernetes
     #   requests-oauthlib
+packaging==24.2
+    # via marshmallow
 propcache==0.2.1
     # via
     #   aiohttp
@@ -132,7 +138,9 @@ python-dateutil==2.9.0.post0
     #   kubernetes
     #   kubernetes-asyncio
 python-dotenv==1.0.1
-    # via pydantic-settings
+    # via
+    #   environs
+    #   pydantic-settings
 python-json-logger==3.2.1
     # via
     #   ark-operator (pyproject.toml)

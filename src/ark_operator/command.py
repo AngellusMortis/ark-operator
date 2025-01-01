@@ -9,6 +9,7 @@ import re
 import sys
 from asyncio.subprocess import PIPE
 from collections.abc import Callable
+from contextlib import suppress
 from functools import partial
 from shlex import split
 from subprocess import CalledProcessError, CompletedProcess
@@ -16,12 +17,14 @@ from subprocess import run as subprocess_run
 from typing import TYPE_CHECKING, Any, Literal, overload
 
 from ark_operator.decorators import sync_only
+from ark_operator.exceptions import CommandError
 from ark_operator.log import LoggingLevel
 
 if TYPE_CHECKING:
     from asyncio.streams import StreamReader
 
 _LOGGER = logging.getLogger(__name__)
+ERROR_PROCESSING = "Error processing output from command."
 
 StreamCallback = Callable[[bytes], None]
 UserCallback = Callable[
@@ -221,23 +224,28 @@ def run_sync(  # noqa: PLR0913
 
     """
 
-    return asyncio.run(
-        _run(
-            command,
-            decode=decode,
-            echo=echo,
-            output_level=output_level,
-            capture=capture,
-            shell=shell,  # nosec
-            raw_output=raw_output,
-            env=env,
-            dry_run=dry_run,
-            check=check,
-            callback=callback,
-            allow_sync=True,
-            **kwargs,
-        ),
-    )
+    loop = asyncio.new_event_loop()
+    try:
+        response = loop.run_until_complete(
+            _run(
+                command,
+                decode=decode,
+                echo=echo,
+                output_level=output_level,
+                capture=capture,
+                shell=shell,  # nosec
+                raw_output=raw_output,
+                env=env,
+                dry_run=dry_run,
+                check=check,
+                callback=callback,
+                allow_sync=True,
+                **kwargs,
+            ),
+        )
+    finally:
+        loop.close()
+    return response
 
 
 @overload
@@ -618,24 +626,21 @@ async def _run_command(
     # read child's stdout/stderr concurrently (capture and display)
     try:
         stdout, stderr = await asyncio.gather(
-            asyncio.create_task(
-                _process_output(
-                    process.stdout,
-                    callback=stdout_callback,
-                    capture=capture,
-                ),
+            _process_output(
+                process.stdout,
+                callback=stdout_callback,
+                capture=capture,
             ),
-            asyncio.create_task(
-                _process_output(
-                    process.stderr,
-                    callback=stderr_callback,
-                    capture=capture,
-                ),
+            _process_output(
+                process.stderr,
+                callback=stderr_callback,
+                capture=capture,
             ),
         )
-    except Exception:
-        process.kill()
-        raise
+    except Exception as ex:
+        with suppress(Exception):
+            process.kill()
+        raise CommandError(ERROR_PROCESSING) from ex
     finally:
         # wait for the process to exit
         return_code = await process.wait()

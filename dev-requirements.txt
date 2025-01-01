@@ -95,6 +95,10 @@ durationpy==0.9
     # via
     #   -c requirements.txt
     #   kubernetes
+environs==11.2.1
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 execnet==2.1.1
     # via pytest-xdist
 filelock==3.16.1
@@ -199,6 +203,10 @@ markupsafe==3.0.2
     # via
     #   -c requirements.txt
     #   jinja2
+marshmallow==3.23.2
+    # via
+    #   -c requirements.txt
+    #   environs
 mdurl==0.1.2
     # via
     #   -c requirements.txt
@@ -225,9 +233,11 @@ oauthlib==3.2.2
     #   requests-oauthlib
 packaging==24.2
     # via
+    #   -c requirements.txt
     #   build
     #   hatch
     #   hatchling
+    #   marshmallow
     #   pytest
     #   twine
 pathspec==0.12.1
@@ -326,6 +336,7 @@ python-dotenv==1.0.1
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
+    #   environs
     #   pydantic-settings
 python-json-logger==3.2.1
     # via

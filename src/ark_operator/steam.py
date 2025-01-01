@@ -64,7 +64,7 @@ def _extract_zip(path: Path, extract_path: Path) -> None:
 @asyncify
 def _extract_tar(path: Path, extract_path: Path) -> None:
     with tarfile.open(path, "r:gz") as f:
-        f.extractall(extract_path)  # noqa: S202
+        f.extractall(extract_path, filter="data")
 
 
 async def _extract_archive(install_dir: Path, platform: str, data: bytes) -> None:

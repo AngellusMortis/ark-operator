@@ -4,11 +4,13 @@ import asyncio
 import logging
 
 import kopf
+from environs import Env
 
 from ark_operator.data import ArkDataSpec, ArkServerSpec
 from ark_operator.k8s import check_pvc_exists, create_pvc
 
-MIN_SIZE_SERVER = "50Gi"
+_ENV = Env()
+MIN_SIZE_SERVER = _ENV("ARK_OP_MIN_SERVER_SIZE", "50Gi")
 
 ERROR_PVC_ALREADY_EXISTS = "Failed to create PVC because it already exists."
 _LOGGER = logging.getLogger(__name__)

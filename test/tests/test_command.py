@@ -6,11 +6,12 @@ import asyncio
 import logging
 import os
 from subprocess import CalledProcessError
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import Mock, patch
 
 import pytest
 
 from ark_operator.command import run_async, run_sync
+from ark_operator.exceptions import CommandError
 
 
 def _assert_logs(
@@ -280,18 +281,14 @@ def test_no_decode() -> None:
         assert result.stderr == b""
 
 
-@patch("ark_operator.command.asyncio")
-def test_error(mock_asyncio: Mock) -> None:
+@patch("ark_operator.command._process_output")
+def test_error(mock_process: Mock) -> None:
     """Test exceptions are still raised."""
 
-    mock_asyncio.create_subprocess_shell = asyncio.create_subprocess_shell
-    mock_asyncio.create_subprocess_exec = asyncio.create_subprocess_exec
-    mock_asyncio.run = asyncio.run
-    mock_asyncio.create_task = asyncio.create_task
-    mock_asyncio.gather = AsyncMock(side_effect=RuntimeError("test"))
+    mock_process.side_effect = RuntimeError("test")
 
     for i in range(2):
-        with pytest.raises(RuntimeError):  # noqa: PT012
+        with pytest.raises(CommandError):  # noqa: PT012
             if i == 0:
                 run_sync("echo foo")
             else:

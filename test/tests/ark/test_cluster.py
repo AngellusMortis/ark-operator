@@ -1,7 +1,6 @@
 """Test ARK Cluster."""
 
 import asyncio
-from collections.abc import Generator
 from unittest.mock import ANY, call, patch
 
 import kopf
@@ -22,12 +21,6 @@ TEST_SPEC = ArkClusterSpec(
         "persist": True,
     },
 )
-
-
-@pytest.fixture(autouse=True)
-def _min_size() -> Generator[None, None, None]:
-    with patch("ark_operator.ark.pvc.MIN_SIZE_SERVER", "1Ki"):
-        yield
 
 
 @pytest_asyncio.fixture(scope="function")
@@ -180,7 +173,9 @@ async def test_update_cluster_update(k8s_namespace: str) -> None:
 async def test_delete_cluster(k8s_namespace: str) -> None:
     """Test delete_cluster."""
 
-    await delete_cluster(name="ark", namespace=k8s_namespace, persist=True)
+    await delete_cluster(
+        name="ark", namespace=k8s_namespace, server_persist=False, data_persist=True
+    )
 
     await asyncio.sleep(3)
     assert await check_pvc_exists(name="ark-server-a", namespace=k8s_namespace) is False
@@ -190,12 +185,29 @@ async def test_delete_cluster(k8s_namespace: str) -> None:
 
 @pytest.mark.usefixtures("_ark_cluster")
 @pytest.mark.asyncio(loop_scope="session")
-async def test_delete_cluster_no_persis(k8s_namespace: str) -> None:
+async def test_delete_cluster_no_data_persist(k8s_namespace: str) -> None:
     """Test delete_cluster."""
 
-    await delete_cluster(name="ark", namespace=k8s_namespace, persist=False)
+    await delete_cluster(
+        name="ark", namespace=k8s_namespace, server_persist=False, data_persist=False
+    )
 
     await asyncio.sleep(3)
     assert await check_pvc_exists(name="ark-server-a", namespace=k8s_namespace) is False
     assert await check_pvc_exists(name="ark-server-a", namespace=k8s_namespace) is False
+    assert await check_pvc_exists(name="ark-data", namespace=k8s_namespace) is False
+
+
+@pytest.mark.usefixtures("_ark_cluster")
+@pytest.mark.asyncio(loop_scope="session")
+async def test_delete_cluster_server_persist(k8s_namespace: str) -> None:
+    """Test delete_cluster."""
+
+    await delete_cluster(
+        name="ark", namespace=k8s_namespace, server_persist=True, data_persist=False
+    )
+
+    await asyncio.sleep(3)
+    assert await check_pvc_exists(name="ark-server-a", namespace=k8s_namespace) is True
+    assert await check_pvc_exists(name="ark-server-a", namespace=k8s_namespace) is True
     assert await check_pvc_exists(name="ark-data", namespace=k8s_namespace) is False

@@ -42,22 +42,28 @@ async def update_cluster(
 
 
 async def delete_cluster(
-    *, name: str, namespace: str, persist: bool, logger: kopf.Logger | None = None
+    *,
+    name: str,
+    namespace: str,
+    server_persist: bool,
+    data_persist: bool,
+    logger: kopf.Logger | None = None,
 ) -> None:
     """Delete ARK cluster."""
 
     logger = logger or _LOGGER
-    await delete_pvc(
-        name=f"{name}-server-a",
-        namespace=namespace,
-        logger=logger,
-    )
-    await delete_pvc(
-        name=f"{name}-server-b",
-        namespace=namespace,
-        logger=logger,
-    )
-    if not persist:
+    if not server_persist:
+        await delete_pvc(
+            name=f"{name}-server-a",
+            namespace=namespace,
+            logger=logger,
+        )
+        await delete_pvc(
+            name=f"{name}-server-b",
+            namespace=namespace,
+            logger=logger,
+        )
+    if not data_persist:
         await delete_pvc(
             name=f"{name}-data",
             namespace=namespace,

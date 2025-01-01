@@ -64,5 +64,9 @@ async def on_delete(**kwargs: Unpack[ChangeEvent]) -> None:
     spec = ArkClusterSpec(**kwargs["spec"])
 
     await delete_cluster(
-        name=name, namespace=namespace, persist=spec.data.persist, logger=logger
+        name=name,
+        namespace=namespace,
+        server_persist=spec.server.persist,
+        data_persist=spec.data.persist,
+        logger=logger,
     )

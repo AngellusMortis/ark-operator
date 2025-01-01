@@ -7,15 +7,21 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import kopf
 import pytest
+import pytest_asyncio
 
-from ark_operator.k8s import check_pvc_exists, create_pvc, delete_pvc, resize_pvc
+from ark_operator.k8s import (
+    check_pvc_exists,
+    create_pvc,
+    delete_pvc,
+    resize_pvc,
+)
 
 if TYPE_CHECKING:
-    from collections.abc import Generator
+    from collections.abc import AsyncGenerator
 
 
-@pytest.fixture(name="k8s_client")
-def k8s_client_fixture() -> Generator[Mock, None, None]:
+@pytest_asyncio.fixture(name="k8s_client")
+async def k8s_client_fixture() -> AsyncGenerator[Mock]:
     """k8s client fixture."""
 
     with (
@@ -25,13 +31,14 @@ def k8s_client_fixture() -> Generator[Mock, None, None]:
         mock_config.load_kube_config = AsyncMock()
 
         mock_client = Mock()
+        mock_client.close = AsyncMock()
         mock_klass.return_value = mock_client
 
         yield mock_client
 
 
-@pytest.fixture(name="k8s_v1_client")
-def k8s_v1_client_fixture(k8s_client: Mock) -> Generator[Mock, None, None]:  # noqa: ARG001
+@pytest_asyncio.fixture(name="k8s_v1_client")
+async def k8s_v1_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # noqa: ARG001
     """k8s client fixture."""
 
     with (
@@ -48,7 +55,7 @@ def k8s_v1_client_fixture(k8s_client: Mock) -> Generator[Mock, None, None]:  # n
         yield mock_v1_client
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_resize_pvc(k8s_v1_client: Mock) -> None:
     """Test resizing a PVC."""
 
@@ -66,7 +73,7 @@ async def test_resize_pvc(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_resize_pvc_too_small(k8s_v1_client: Mock) -> None:
     """Test resizing a PVC."""
 
@@ -78,7 +85,7 @@ async def test_resize_pvc_too_small(k8s_v1_client: Mock) -> None:
     k8s_v1_client.patch_namespaced_persistent_volume_claim.assert_not_awaited()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_resize_pvc_same_size(k8s_v1_client: Mock) -> None:
     """Test resizing a PVC."""
 
@@ -92,7 +99,7 @@ async def test_resize_pvc_same_size(k8s_v1_client: Mock) -> None:
     k8s_v1_client.patch_namespaced_persistent_volume_claim.assert_not_awaited()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_resize_pvc_error(k8s_v1_client: Mock) -> None:
     """Test resizing a PVC."""
 
@@ -112,7 +119,7 @@ async def test_resize_pvc_error(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_check_pvc_exists(k8s_v1_client: Mock) -> None:
     """Test checking if PVC exist."""
 
@@ -123,7 +130,7 @@ async def test_check_pvc_exists(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_check_pvc_exists_resize(k8s_v1_client: Mock) -> None:
     """Test checking if PVC exist."""
 
@@ -151,7 +158,7 @@ async def test_check_pvc_exists_resize(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_check_pvc_exists_not_found(k8s_v1_client: Mock) -> None:
     """Test checking if PVC exist."""
 
@@ -171,7 +178,7 @@ async def test_check_pvc_exists_not_found(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_delete_pvc(k8s_v1_client: Mock) -> None:
     """Test deleting a PVC."""
 
@@ -185,7 +192,7 @@ async def test_delete_pvc(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_delete_pvc_error(k8s_v1_client: Mock) -> None:
     """Test deleting a PVC."""
 
@@ -203,7 +210,7 @@ async def test_delete_pvc_error(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_create_pvc(k8s_v1_client: Mock) -> None:
     """Test creating a PVC."""
 
@@ -233,7 +240,7 @@ async def test_create_pvc(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_create_pvc_storage_class(k8s_v1_client: Mock) -> None:
     """Test creating a PVC."""
 
@@ -272,7 +279,7 @@ async def test_create_pvc_storage_class(k8s_v1_client: Mock) -> None:
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_create_pvc_too_small(k8s_v1_client: Mock) -> None:
     """Test creating a PVC."""
 
@@ -290,7 +297,7 @@ async def test_create_pvc_too_small(k8s_v1_client: Mock) -> None:
     k8s_v1_client.create_namespaced_persistent_volume_claim.assert_not_awaited()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="function")
 async def test_create_pvc_error(k8s_v1_client: Mock) -> None:
     """Test creating a PVC."""
 

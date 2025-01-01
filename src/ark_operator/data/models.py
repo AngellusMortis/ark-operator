@@ -74,6 +74,7 @@ class ArkServerSpec(BaseK8sModel):
     storage_class: str | None = None
     size: int | str = "50Gi"
     maps: list[str] = ["canonical"]
+    persist: bool = False
     game_port_start: int = 7777
     rcon_port_start: int = 27020
 

@@ -38,6 +38,10 @@ spec:
                       minimum size is 50Gi.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[MGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
+                  persist:
+                    type: boolean
+                    description: |-
+                      Keep the data PVC after the cluster is deleted. Default to false.
                   maps:
                     type: array
                     items:
