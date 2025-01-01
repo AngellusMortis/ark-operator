@@ -18,6 +18,7 @@ concurrency:
 
 env:
   DEFAULT_PYTHON: "3.12"
+  DEFAULT_K8S: "1.31.4"
   PYTHONDEVMODE: "1"
 
 
@@ -205,9 +206,11 @@ jobs:
       fail-fast: true
       matrix:
         python-version: ["3.11", "3.12"]
+        k8s-version: ["1.29.12", "1.30.8", "1.31.4"]
         experimental: [ false ]
         include:
           - python-version: "3.13"
+            k8s-version: "1.32.0"
             experimental: true
 
     steps:
@@ -216,6 +219,9 @@ jobs:
 
       - name: Create k8s Kind Cluster
         uses: helm/kind-action@v1
+        with:
+          node_image: kindest/node:v${{ matrix.k8s-version }}
+          kubectl_version: v${{ matrix.k8s-version }}
 
       - name: 🐍 Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -235,7 +241,7 @@ jobs:
           ./.bin/test-code
 
       - name: 📡 Upload Code Coverage
-        if: ${{ matrix.python-version == env.DEFAULT_PYTHON && always() }}
+        if: ${{ matrix.python-version == env.DEFAULT_PYTHON && matrix.k8s-version == env.DEFAULT_K8S && always() }}
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
