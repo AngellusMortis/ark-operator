@@ -7,7 +7,6 @@ from typing import Any
 
 import pytest
 import yaml
-from environs import Env
 from kopf.testing import KopfRunner
 
 from ark_operator.command import run_sync
@@ -16,7 +15,6 @@ from tests.conftest import BASE_DIR, remove_cluster_finalizers
 
 GHA_FAIL = "Will fail in Github Actions until pods are created"
 
-_ENV = Env()
 CRDS = BASE_DIR / "crd_chart" / "crds" / "crds.yml"
 CLUSTER_SPEC: dict[str, Any] = {
     "apiVersion": "mort.is/v1beta1",
@@ -31,10 +29,6 @@ CLUSTER_SPEC: dict[str, Any] = {
         "data": {"size": "2Mi"},
     },
 }
-
-if klass := _ENV("ARK_OP_TEST_STORAGE_CLASS", None):
-    CLUSTER_SPEC["spec"]["server"]["storageClassName"] = klass
-    CLUSTER_SPEC["spec"]["data"]["storageClassName"] = klass
 
 
 def _assert_output(result: CompletedProcess[str], expected: list[str]) -> None:

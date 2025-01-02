@@ -240,8 +240,6 @@ jobs:
           kubectl get storageclass
           source ./.venv/bin/activate
           ./.bin/test-code
-        env:
-          ARK_OP_TEST_STORAGE_CLASS: standard
 
       - name: 📡 Upload Code Coverage
         if: ${{ matrix.python-version == env.DEFAULT_PYTHON && matrix.k8s-version == env.DEFAULT_K8S && always() }}
