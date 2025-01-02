@@ -1,0 +1,10 @@
+apiVersion: mort.is/v1beta1
+kind: ArkCluster
+metadata:
+  name: ark
+spec:
+  server:
+    size: 55Gi
+    maps:
+      - canonical
+  data:
