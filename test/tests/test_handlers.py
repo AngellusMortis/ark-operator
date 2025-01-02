@@ -249,6 +249,22 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
             result, ["ark-server-a   2Mi", "ark-server-b   2Mi", "ark-data       2Mi"]
         )
 
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
+        )
+
         spec["spec"]["server"]["size"] = "3Mi"  # type: ignore[index]
         spec["spec"]["data"]["size"] = "3Mi"  # type: ignore[index]
         _run(
@@ -300,6 +316,16 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
         )
         _assert_output(
             result, ["ark-server-a   2Mi", "ark-server-b   2Mi", "ark-data       2Mi"]
+        )
+
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
         )
 
         spec["spec"]["server"]["size"] = "1Mi"  # type: ignore[index]
