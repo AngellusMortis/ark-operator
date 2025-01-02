@@ -104,9 +104,6 @@ def test_handler_too_small(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=create arkcluster/ark --timeout=30s"
-        )
-        _run(
             f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.state}}'='Error: PVC is too small. Min size is 1Mi' arkcluster/ark --timeout=30s"
         )
 
