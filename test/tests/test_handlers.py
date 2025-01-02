@@ -14,6 +14,8 @@ from ark_operator.command import run_sync
 from ark_operator.k8s import get_v1_ext_client
 from tests.conftest import BASE_DIR, remove_cluster_finalizers
 
+GHA_FAIL = "Will fail in Github Actions until pods are created"
+
 _ENV = Env()
 CRDS = BASE_DIR / "crd_chart" / "crds" / "crds.yml"
 CLUSTER_SPEC: dict[str, Any] = {
@@ -227,6 +229,7 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.xfail(reason=GHA_FAIL)
 def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
 
@@ -296,6 +299,7 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.xfail(reason=GHA_FAIL)
 def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
 
