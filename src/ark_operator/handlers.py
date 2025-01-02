@@ -45,7 +45,7 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     status = kwargs["status"]
     patch = kwargs["patch"]
 
-    if not status.get("state"):
+    if not status.get("state"):  # pragma: no branch
         patch.status.update(**ArkClusterStatus(**status).model_dump())
 
 

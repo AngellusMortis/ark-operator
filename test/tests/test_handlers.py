@@ -3,17 +3,20 @@
 from collections.abc import Generator
 from copy import deepcopy
 from subprocess import CompletedProcess
+from typing import Any
 
 import pytest
 import yaml
+from environs import Env
 from kopf.testing import KopfRunner
 
 from ark_operator.command import run_sync
 from ark_operator.k8s import get_v1_ext_client
 from tests.conftest import BASE_DIR, remove_cluster_finalizers
 
+_ENV = Env()
 CRDS = BASE_DIR / "crd_chart" / "crds" / "crds.yml"
-CLUSTER_SPEC = {
+CLUSTER_SPEC: dict[str, Any] = {
     "apiVersion": "mort.is/v1beta1",
     "kind": "ArkCluster",
     "metadata": {
@@ -26,6 +29,10 @@ CLUSTER_SPEC = {
         "data": {"size": "2Mi"},
     },
 }
+
+if klass := _ENV("ARK_OP_TEST_STORAGE_CLASS", None):
+    CLUSTER_SPEC["spec"]["server"]["storageClassName"] = klass
+    CLUSTER_SPEC["spec"]["data"]["storageClassName"] = klass
 
 
 def _assert_output(result: CompletedProcess[str], expected: list[str]) -> None:
@@ -94,7 +101,7 @@ def test_handler_too_small(k8s_namespace: str) -> None:
     ]
     with KopfRunner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
-        spec["spec"]["server"]["size"] = "1Ki"  # type: ignore[index]
+        spec["spec"]["server"]["size"] = "1Ki"
 
         _run(
             f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
@@ -178,8 +185,8 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
     ]
     with KopfRunner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
-        spec["spec"]["server"]["persist"] = True  # type: ignore[index]
-        spec["spec"]["data"]["persist"] = False  # type: ignore[index]
+        spec["spec"]["server"]["persist"] = True
+        spec["spec"]["data"]["persist"] = False
 
         _run(
             f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
@@ -265,8 +272,8 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
             f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
         )
 
-        spec["spec"]["server"]["size"] = "3Mi"  # type: ignore[index]
-        spec["spec"]["data"]["size"] = "3Mi"  # type: ignore[index]
+        spec["spec"]["server"]["size"] = "3Mi"
+        spec["spec"]["data"]["size"] = "3Mi"
         _run(
             f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
@@ -328,8 +335,8 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
             f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
         )
 
-        spec["spec"]["server"]["size"] = "1Mi"  # type: ignore[index]
-        spec["spec"]["data"]["size"] = "1Mi"  # type: ignore[index]
+        spec["spec"]["server"]["size"] = "1Mi"
+        spec["spec"]["data"]["size"] = "1Mi"
         _run(
             f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
