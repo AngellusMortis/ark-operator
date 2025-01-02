@@ -22,7 +22,6 @@ async def update_server_pvc(
     namespace: str,
     spec: ArkServerSpec,
     logger: kopf.Logger | None = None,
-    allow_existing: bool = True,
 ) -> None:
     """Create or update ARK server PVCs."""
 
@@ -32,12 +31,11 @@ async def update_server_pvc(
         f"{name}-server-b",
     ]
     tasks = []
-    new_size = spec.size if allow_existing else None
     for pvc_name in pvcs:
         if not await check_pvc_exists(
-            name=pvc_name, namespace=namespace, logger=logger, new_size=new_size
+            name=pvc_name, namespace=namespace, logger=logger, new_size=spec.size
         ):
-            tasks.append(
+            tasks.append(  # noqa: PERF401
                 create_pvc(
                     name=pvc_name,
                     namespace=namespace,
@@ -48,14 +46,8 @@ async def update_server_pvc(
                 )
             )
 
-            # TODO: Initial ARK server PVCs
-        elif not allow_existing:
-            raise kopf.PermanentError(ERROR_PVC_ALREADY_EXISTS)
-
     if tasks:
         await asyncio.gather(*tasks)
-
-        # TODO: handle additional updates from server PVC
 
 
 async def update_data_pvc(
@@ -81,9 +73,5 @@ async def update_data_pvc(
             size=spec.size,
             logger=logger,
         )
-
-        # TODO: Initial ARK data PVC
     elif warn_existing:
-        logger.warning("Failed to delete PVC because it already exists: %s", name)
-
-    # TODO: handle additional updates from data PVC
+        logger.warning("Failed to create PVC because it already exists: %s", name)

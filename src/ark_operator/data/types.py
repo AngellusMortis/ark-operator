@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any, TypedDict
 
 if TYPE_CHECKING:
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
         Body,
         BodyEssence,
         Diff,
+        Headers,
         Labels,
         Logger,
         Meta,
@@ -19,8 +21,17 @@ if TYPE_CHECKING:
         Patch,
         Resource,
         Spec,
+        SSLPeer,
         Status,
+        UserInfo,
     )
+
+
+class ClusterStage(StrEnum):
+    """Cluster status stage."""
+
+    SERVER_PVC = "server_pvc"
+    DATA_PVC = "data_pvc"
 
 
 class ActivityEvent(TypedDict):
@@ -56,6 +67,31 @@ class ChangeEvent(TypedDict):
     diff: Diff
     old: BodyEssence | None | Any
     new: BodyEssence | None | Any
+    logger: Logger
+    memo: Any
+    param: Any
+
+
+class WebhookEvent(TypedDict):
+    """Kopf webhook event."""
+
+    dryrun: bool
+    warnings: list[str]
+    subresource: str | None
+    userinfo: UserInfo
+    sslpeer: SSLPeer
+    headers: Headers
+    labels: Labels
+    annotations: Annotations
+    body: Body
+    meta: Meta
+    spec: Spec
+    status: Status
+    resource: Resource
+    uid: str | None
+    name: str | None
+    namespace: str | None
+    patch: Patch
     logger: Logger
     memo: Any
     param: Any

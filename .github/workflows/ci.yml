@@ -206,7 +206,7 @@ jobs:
       fail-fast: true
       matrix:
         python-version: ["3.11", "3.12"]
-        k8s-version: ["1.29.12", "1.30.8", "1.31.4"]
+        k8s-version: ["1.30.8", "1.31.4"]
         experimental: [ false ]
         include:
           - python-version: "3.13"

@@ -127,7 +127,7 @@ async def create_pvc(  # noqa: PLR0913
     except Exception as ex:
         raise kopf.PermanentError(ERROR_PVC) from ex
 
-    logger.info("Created PVC: %s", obj)
+    logger.info("Created PVC: %s", obj.metadata.name)
     return True
 
 

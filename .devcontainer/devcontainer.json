@@ -12,10 +12,11 @@
     "containerUser": "app",
     // use both envs for HOME and USERPROFILE so it works on Linux, MacOS and Windows all at once. Missing envs will just be empty strings
     "mounts": [
-        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.kube,target=/home/app/.kube,type=bind"
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.kube,target=/home/app/.kube,type=bind",
+        "source=${localEnv:HOME}${localEnv:USERPROFILE}/.config,target=/home/app/.config,type=bind"
     ],
     "initializeCommand": {
-        "mkdir-posix": "mkdir -p $HOME/.kube $HOME/.kube $HOME/.kube || true"
+        "mkdir-posix": "mkdir -p $HOME/.kube $HOME/.config || true"
     },
     "onCreateCommand": [
         "/bin/bash",

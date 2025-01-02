@@ -20,6 +20,30 @@
             "type": "shell",
             "command": "${workspaceFolder}/.bin/update-requirements",
             "problemMatcher": []
+        },
+        {
+            "label": "Apply CRDs",
+            "type": "shell",
+            "command": "kubectl apply -f ${workspaceFolder}/crd_chart/crds/crds.yml",
+            "problemMatcher": []
+        },
+        {
+            "label": "Delete CRDs",
+            "type": "shell",
+            "command": "kubectl delete -f ${workspaceFolder}/crd_chart/crds/crds.yml",
+            "problemMatcher": []
+        },
+        {
+            "label": "Apply Cluster",
+            "type": "shell",
+            "command": "kubectl apply -n ark-dev -f ${workspaceFolder}/test/manifests/cluster.yml",
+            "problemMatcher": []
+        },
+        {
+            "label": "Delete Cluster",
+            "type": "shell",
+            "command": "kubectl delete -n ark-dev -f ${workspaceFolder}/test/manifests/cluster.yml",
+            "problemMatcher": []
         }
     ]
 }

@@ -1,12 +1,15 @@
 """Tests conftest."""
 
-from collections.abc import Generator
+import os
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
 from uuid import uuid4
 
 import pytest
+import pytest_asyncio
 
 from ark_operator.command import run_sync
+from ark_operator.k8s import close_k8s_client
 
 BASE_DIR = Path(__file__).parent.parent.parent
 CLUSTER_CRD = BASE_DIR / "crd_chart" / "crds" / "ArkCluster.yml"
@@ -49,7 +52,17 @@ def k8s_namespace() -> Generator[str, None, None]:
         run_sync(f"kubectl delete namespace {namespace}")
 
 
+@pytest_asyncio.fixture(autouse=True)
+async def cleanup_client() -> AsyncGenerator[None]:
+    """Cleanup k8s client."""
+
+    yield
+
+    await close_k8s_client()
+
+
 def pytest_sessionfinish() -> None:
     """On pytest session creation."""
 
-    remove_test_namespaces()
+    if os.environ.get("PYTEST_XDIST_WORKER") is None:
+        remove_test_namespaces()

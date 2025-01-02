@@ -13,6 +13,21 @@ spec:
   - name: v1beta1
     served: true
     storage: true
+    additionalPrinterColumns:
+      - name: Age
+        type: date
+        jsonPath: .metadata.creationTimestamp
+        priority: 0
+      - name: Ready
+        type: boolean
+        description: Is cluster running and accessible?
+        jsonPath: .status.ready
+        priority: 0
+      - name: Status
+        type: string
+        description: What operator is currently doing
+        jsonPath: .status.state
+        priority: 0
     schema:
       openAPIV3Schema:
         type: object
@@ -86,3 +101,16 @@ spec:
                     type: boolean
                     description: |-
                       Keep the data PVC after the cluster is deleted. Default to true.
+          status:
+            type: object
+            properties:
+              ready:
+                type: boolean
+                description: Is cluster running and accessible?
+              state:
+                type: string
+                description: What operator is currently doing
+              stages:
+                x-kubernetes-preserve-unknown-fields: true
+                type: object
+                description: Internal field for tracking state/progress

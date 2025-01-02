@@ -2,7 +2,6 @@
 
 from ark_operator.k8s.client import (
     close_k8s_client,
-    get_crd_client,
     get_k8s_client,
     get_v1_client,
     get_v1_ext_client,
@@ -22,7 +21,6 @@ __all__ = [
     "convert_k8s_size",
     "create_pvc",
     "delete_pvc",
-    "get_crd_client",
     "get_k8s_client",
     "get_pvc",
     "get_v1_client",

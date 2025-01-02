@@ -30,6 +30,11 @@ anyio==4.7.0
     #   -c requirements.txt
     #   asyncer
     #   httpx
+asn1crypto==1.5.1
+    # via
+    #   certbuilder
+    #   certvalidator
+    #   oscrypto
 asyncer==0.0.8
     # via
     #   -c requirements.txt
@@ -46,6 +51,8 @@ cachetools==5.5.0
     #   -c requirements.txt
     #   google-auth
     #   steam
+certbuilder==0.14.2
+    # via kopf
 certifi==2024.12.14
     # via
     #   -c requirements.txt
@@ -54,6 +61,8 @@ certifi==2024.12.14
     #   kubernetes
     #   kubernetes-asyncio
     #   requests
+certvalidator==0.11.1
+    # via kopf
 cffi==1.17.1
     # via cryptography
 charset-normalizer==3.4.1
@@ -231,6 +240,12 @@ oauthlib==3.2.2
     #   -c requirements.txt
     #   kubernetes
     #   requests-oauthlib
+oscrypto @ git+https://github.com/wbond/oscrypto.git@1547f535001ba568b239b8797465536759c742a3
+    # via
+    #   ark-operator (pyproject.toml)
+    #   certbuilder
+    #   certvalidator
+    #   kopf
 packaging==24.2
     # via
     #   -c requirements.txt
@@ -304,6 +319,8 @@ pykube-ng==23.6.0
     # via
     #   -c requirements.txt
     #   kopf
+pyngrok==7.2.2
+    # via kopf
 pyproject-hooks==1.2.0
     # via build
 pytest==8.3.4
@@ -351,6 +368,7 @@ pyyaml==6.0.2
     #   kubernetes
     #   kubernetes-asyncio
     #   pykube-ng
+    #   pyngrok
 readme-renderer==44.0
     # via twine
 requests==2.32.3

@@ -5,10 +5,13 @@ from __future__ import annotations
 import warnings
 from dataclasses import dataclass
 from pathlib import Path  # required for Pydantic # noqa: TC003
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
+
+from ark_operator.data.types import ClusterStage  # required for Pydantic # noqa: TC001
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
@@ -31,6 +34,10 @@ MAP_LOOPUP_MAP = {
     "official": ["BobsMissions_WP", *ALL_OFFICIAL],
     "officialNoClub": ALL_OFFICIAL,
 }
+
+States = Literal[
+    "Initializing", "Creating PVCs", "Updating PVCs", "Deleting PVCs", "Running"
+]
 
 
 class BaseK8sModel(BaseModel):
@@ -135,3 +142,30 @@ class ArkClusterSpec(BaseK8sModel):
 
     server: ArkServerSpec = ArkServerSpec()
     data: ArkDataSpec = ArkDataSpec()
+
+
+class ArkClusterStatus(BaseK8sModel):
+    """ArkCluster.status CRD spec."""
+
+    ready: bool = False
+    state: States | str = "Initializing"
+    stages: dict[ClusterStage, bool] | None = None
+
+    @property
+    def is_error(self) -> bool:
+        """Check if state is currently an error."""
+
+        return self.state.startswith("Error: ")
+
+    def is_stage_completed(self, stage: ClusterStage) -> bool:
+        """Check if stage is completed."""
+
+        self.stages = self.stages or {}
+        return self.stages.get(stage, False)
+
+    def mark_stage_complete(self, stage: ClusterStage) -> dict[str, bool]:
+        """Mark stage complete."""
+
+        self.stages = self.stages or {}
+        self.stages[stage] = True
+        return {stage.value: True}

@@ -64,6 +64,7 @@ dev = [
     "build",
     "coverage[toml]",
     "hatch",
+    "kopf[dev]",
     "lxml", # for mypy html report
     "mypy",
     "pytest-asyncio",
@@ -78,6 +79,8 @@ dev = [
     "twine",
     "types-aiofiles",
     "types-pyyaml",
+    # https://github.com/wbond/oscrypto/issues/78
+    "oscrypto @ git+https://github.com/wbond/oscrypto.git@1547f535001ba568b239b8797465536759c742a3",
 ]
 
 [project.scripts]
