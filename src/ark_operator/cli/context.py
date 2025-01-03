@@ -1,9 +1,11 @@
 """ARK Operator CLI contexts."""
 
 from dataclasses import dataclass
+from ipaddress import IPv4Address, IPv6Address
 from pathlib import Path
 from typing import Any
 
+from ark_operator.data import ArkClusterSpec
 from ark_operator.log import LoggingFormat, LoggingLevel
 from ark_operator.steam import Steam
 
@@ -32,13 +34,25 @@ class CoreContext:
 
 @dataclass
 class ServerContext:
-    """Core commands context object."""
+    """Server commands context object."""
 
     install_dir: Path
     steam_dir: Path
     steam: Steam
-    ip: str
+    ip: IPv4Address | IPv6Address
     rcon_port: int
+    rcon_password: str
+
+    parent: CoreContext
+
+
+@dataclass
+class ClusterContext:
+    """Cluster commands context object."""
+
+    spec: ArkClusterSpec
+    map_selector: list[str]
+    ip: IPv4Address | IPv6Address
     rcon_password: str
 
     parent: CoreContext

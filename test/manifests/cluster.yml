@@ -6,5 +6,5 @@ spec:
   server:
     size: 55Gi
     maps:
-      - canonical
+      - @canonical
   data:

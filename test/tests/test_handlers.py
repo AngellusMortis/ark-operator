@@ -142,6 +142,12 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
         _run(
             f"kubectl -n {k8s_namespace} wait --for=delete arkcluster/ark --timeout=30s"
         )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=delete pvc/ark-server-a --timeout=30s"
+        )
+        _run(
+            f"kubectl -n {k8s_namespace} wait --for=delete pvc/ark-server-b --timeout=30s"
+        )
 
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'",
@@ -198,6 +204,7 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
         _run(
             f"kubectl -n {k8s_namespace} wait --for=delete arkcluster/ark --timeout=30s"
         )
+        _run(f"kubectl -n {k8s_namespace} wait --for=delete pvc/ark-data --timeout=30s")
 
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'",

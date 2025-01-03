@@ -84,7 +84,7 @@ dev = [
 ]
 
 [project.scripts]
-ark-operator = "ark_operator.__main__:_main"
+arkctl = "ark_operator.__main__:_main"
 
 ## build backend metadata
 [tool.hatch.version]
@@ -123,8 +123,8 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 "**/*.py" = []
-"cli/*.py" = ["T"] # CLI allows print
-"__main__.py" = ["T"] # CLI allows print
+"**/cli/*.py" = ["T", "TC001"] # CLI allows print
+"__main__.py" = ["T", "TC001"] # CLI allows print
 "test/tests/**/*.py" = ["FBT", "D", "SLF001", "PLR2004", "RUF029", "S", "E501"]
 
 [tool.mypy]

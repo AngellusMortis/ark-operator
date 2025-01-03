@@ -8,6 +8,7 @@ from ark_operator.ark.pvc import (
 from ark_operator.ark.utils import (
     ARK_SERVER_APP_ID,
     copy_ark,
+    expand_maps,
     get_ark_buildid,
     get_map_name,
     has_newer_version,
@@ -18,6 +19,7 @@ __all__ = [
     "ARK_SERVER_APP_ID",
     "MIN_SIZE_SERVER",
     "copy_ark",
+    "expand_maps",
     "get_ark_buildid",
     "get_map_name",
     "has_newer_version",

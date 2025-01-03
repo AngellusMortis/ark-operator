@@ -29,6 +29,22 @@ MAP_NAME_LOOKUP = {
     "TheCenter_WP": "The Center",
     "TheIsland_WP": "The Island",
 }
+ALL_CANONICAL = ["TheIsland_WP", "ScorchedEarth_WP", "Aberration_WP", "Extinction_WP"]
+ALL_OFFICIAL = [
+    "TheIsland_WP",
+    "TheCenter_WP",
+    "ScorchedEarth_WP",
+    "Aberration_WP",
+    "Extinction_WP",
+]
+MAP_SHORTHAND_LOOKUP = {
+    "@canonical": ["BobsMissions_WP", *ALL_CANONICAL],
+    "@canonicalNoClub": ALL_CANONICAL,
+    "@official": ["BobsMissions_WP", *ALL_OFFICIAL],
+    "@officialNoClub": ALL_OFFICIAL,
+}
+
+ERROR_NO_ALL = "@all can only be used if a list of all maps is passed in."
 
 CAMEL_RE = re.compile(r"((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))")
 
@@ -122,3 +138,32 @@ def get_map_name(map_id: str) -> str:
         map_name = CAMEL_RE.sub(r" \1", map_name)
 
     return map_name.replace("_", "").title()
+
+
+def expand_maps(maps: list[str], *, all_maps: list[str] | None = None) -> list[str]:
+    """Expand map shorthands into list of maps."""
+
+    _expanded = set()
+    remove_maps = set()
+    for map_id in maps:
+        if map_id == "@all":
+            if all_maps is None:
+                raise ValueError(ERROR_NO_ALL)
+            _expanded |= set(all_maps)
+        elif map_id.startswith("-"):
+            remove_maps.add(map_id[1:])
+        elif expanded_maps := MAP_SHORTHAND_LOOKUP.get(map_id):
+            _expanded |= set(expanded_maps)
+        else:
+            _expanded.add(map_id)
+
+    _expanded -= remove_maps
+    ordered_maps = []
+    map_order = MAP_SHORTHAND_LOOKUP["@official"]
+    for map_id in map_order:
+        if map_id in _expanded:
+            ordered_maps.append(map_id)
+            _expanded.remove(map_id)
+    ordered_maps += list(_expanded)
+
+    return ordered_maps

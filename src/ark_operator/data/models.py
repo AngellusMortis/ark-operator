@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
+from ipaddress import IPv4Address, IPv6Address  # required for Pydantic # noqa: TC003
 from pathlib import Path  # required for Pydantic # noqa: TC003
 from typing import Literal
 
@@ -29,10 +30,10 @@ ALL_OFFICIAL = [
     "Extinction_WP",
 ]
 MAP_LOOPUP_MAP = {
-    "canonical": ["BobsMissions_WP", *ALL_CANONICAL],
-    "canonicalNoClub": ALL_CANONICAL,
-    "official": ["BobsMissions_WP", *ALL_OFFICIAL],
-    "officialNoClub": ALL_OFFICIAL,
+    "@canonical": ["BobsMissions_WP", *ALL_CANONICAL],
+    "@canonicalNoClub": ALL_CANONICAL,
+    "@official": ["BobsMissions_WP", *ALL_OFFICIAL],
+    "@officialNoClub": ALL_OFFICIAL,
 }
 
 States = Literal[
@@ -78,9 +79,10 @@ class GameServer:
 class ArkServerSpec(BaseK8sModel):
     """ArkCluster.spec.server CRD spec."""
 
+    load_balancer_ip: IPv4Address | IPv6Address | None = None
     storage_class: str | None = None
     size: int | str = "50Gi"
-    maps: list[str] = ["canonical"]
+    maps: list[str] = ["@canonical"]
     persist: bool = False
     game_port_start: int = 7777
     rcon_port_start: int = 27020
@@ -90,38 +92,23 @@ class ArkServerSpec(BaseK8sModel):
     def all_maps(self) -> list[str]:
         """Expand maps into list of full maps."""
 
-        maps = set()
-        for map_id in self.maps:
-            if expanded_maps := MAP_LOOPUP_MAP.get(map_id):
-                maps |= set(expanded_maps)
-            else:
-                maps.add(map_id)
+        from ark_operator.ark.utils import expand_maps
 
-        ordered_maps = []
-        map_order = MAP_LOOPUP_MAP["official"]
-        for map_id in map_order:
-            if map_id in maps:
-                ordered_maps.append(map_id)
-                maps.remove(map_id)
-        ordered_maps += list(maps)
-
-        return ordered_maps
+        return expand_maps(self.maps)
 
     @computed_field  # type: ignore[prop-decorator]
     @property
-    def all_servers(self) -> list[GameServer]:
+    def all_servers(self) -> dict[str, GameServer]:
         """Return list of all servers."""
 
         game_port = self.game_port_start
         rcon_port = self.rcon_port_start
-        servers = []
+        servers = {}
         for map_id in self.all_maps:
-            servers.append(
-                GameServer(
-                    map_id=map_id,
-                    port=game_port,
-                    rcon_port=rcon_port,
-                )
+            servers[map_id] = GameServer(
+                map_id=map_id,
+                port=game_port,
+                rcon_port=rcon_port,
             )
             game_port += 1
             rcon_port += 1

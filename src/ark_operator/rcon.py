@@ -9,9 +9,12 @@ from typing import TYPE_CHECKING, cast
 
 from gamercon_async import GameRCON
 
+from ark_operator.ark import expand_maps
 from ark_operator.exceptions import RCONError
 
 if TYPE_CHECKING:
+    from ipaddress import IPv4Address, IPv6Address
+
     from ark_operator.data import ArkServerSpec
 
 _LOGGER = logging.getLogger(__name__)
@@ -19,20 +22,22 @@ _CONNECTIONS: dict[str, GameRCON] = {}
 ERROR_RCON = "Exception running RCON command"
 
 
-async def get_client(*, host: str, port: int, password: str) -> GameRCON:
+async def get_client(
+    *, host: str | IPv4Address | IPv6Address, port: int, password: str
+) -> GameRCON:
     """Get connection for RCON server."""
 
-    name = f"{host}:{port}"
+    name = f"{host!s}:{port}"
     client = _CONNECTIONS.get(name)
     if client is None:
-        client = GameRCON(host, port, password, timeout=3)
+        client = GameRCON(str(host), port, password, timeout=3)
         await client.__aenter__()
         _CONNECTIONS[name] = client
 
     return client
 
 
-async def close_client(*, host: str, port: int) -> None:
+async def close_client(*, host: str | IPv4Address | IPv6Address, port: int) -> None:
     """Close open client."""
 
     client = _CONNECTIONS.pop(f"{host}:{port}", None)
@@ -51,7 +56,12 @@ async def close_clients() -> None:
 
 
 async def send_cmd(
-    cmd: str, *, host: str, port: int, password: str, close: bool = True
+    cmd: str,
+    *,
+    host: str | IPv4Address | IPv6Address,
+    port: int,
+    password: str,
+    close: bool = True,
 ) -> str:
     """Run rcon command againt server."""
 
@@ -70,15 +80,17 @@ async def send_cmd(
 async def send_cmd_all(  # noqa: PLR0913
     cmd: str,
     *,
-    host: str,
+    host: str | IPv4Address | IPv6Address,
     password: str,
     spec: ArkServerSpec,
     close: bool = True,
     raise_exceptions: bool = True,
+    servers: list[str] | None = None,
 ) -> dict[str, str | BaseException]:
     """Run rcon command against all servers."""
 
-    servers = spec.all_servers
+    servers = servers or ["@all"]
+    objs = [spec.all_servers[s] for s in expand_maps(servers, all_maps=spec.all_maps)]
     tasks = [
         send_cmd(
             cmd,
@@ -87,7 +99,7 @@ async def send_cmd_all(  # noqa: PLR0913
             password=password,
             close=False,
         )
-        for s in servers
+        for s in objs
     ]
 
     try:
@@ -98,17 +110,17 @@ async def send_cmd_all(  # noqa: PLR0913
 
     return_responses: dict[str, str | BaseException] = {}
     for index, response in enumerate(responses):
-        return_responses[servers[index].map_id] = response
+        return_responses[objs[index].map_id] = response
         if isinstance(response, Exception):
             _LOGGER.exception(
                 "Error while sending command %s to server %s",
                 cmd,
-                servers[index].map_name,
+                objs[index].map_name,
                 exc_info=response,
             )
             continue
 
-        _LOGGER.info("%s - %s", servers[index].map_name, cmd)
+        _LOGGER.info("%s - %s", objs[index].map_name, cmd)
         _LOGGER.info(response)
 
     return return_responses

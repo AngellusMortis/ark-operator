@@ -332,7 +332,7 @@ pytest==8.3.4
     #   pytest-httpx
     #   pytest-timeout
     #   pytest-xdist
-pytest-asyncio==0.25.0
+pytest-asyncio==0.25.1
     # via ark-operator (pyproject.toml)
 pytest-cov==6.0.0
     # via ark-operator (pyproject.toml)
@@ -404,7 +404,7 @@ rsa==4.9
     # via
     #   -c requirements.txt
     #   google-auth
-ruff==0.8.4
+ruff==0.8.5
     # via ark-operator (pyproject.toml)
 secretstorage==3.3.3
     # via keyring
@@ -462,14 +462,14 @@ urllib3==1.26.20
     #   twine
 userpath==1.9.2
     # via hatch
-uv==0.5.13
+uv==0.5.14
     # via hatch
 vdf==3.4
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
     #   steam
-virtualenv==20.28.0
+virtualenv==20.28.1
     # via hatch
 websocket-client==1.8.0
     # via

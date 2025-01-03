@@ -11,7 +11,7 @@ from ark_operator.data.models import ArkServerSpec, GameServer
     ("input_maps", "expected_maps"),
     [
         (
-            ["canonical"],
+            ["@canonical"],
             [
                 "BobsMissions_WP",
                 "TheIsland_WP",
@@ -21,7 +21,7 @@ from ark_operator.data.models import ArkServerSpec, GameServer
             ],
         ),
         (
-            ["canonicalNoClub"],
+            ["@canonicalNoClub"],
             [
                 "TheIsland_WP",
                 "ScorchedEarth_WP",
@@ -30,7 +30,7 @@ from ark_operator.data.models import ArkServerSpec, GameServer
             ],
         ),
         (
-            ["official"],
+            ["@official"],
             [
                 "BobsMissions_WP",
                 "TheIsland_WP",
@@ -41,7 +41,7 @@ from ark_operator.data.models import ArkServerSpec, GameServer
             ],
         ),
         (
-            ["officialNoClub"],
+            ["@officialNoClub"],
             [
                 "TheIsland_WP",
                 "TheCenter_WP",
@@ -51,7 +51,7 @@ from ark_operator.data.models import ArkServerSpec, GameServer
             ],
         ),
         (
-            ["Astraeos_WP", "canonicalNoClub", "official"],
+            ["Astraeos_WP", "@canonicalNoClub", "@official"],
             [
                 "BobsMissions_WP",
                 "TheIsland_WP",
@@ -60,6 +60,14 @@ from ark_operator.data.models import ArkServerSpec, GameServer
                 "Aberration_WP",
                 "Extinction_WP",
                 "Astraeos_WP",
+            ],
+        ),
+        (
+            ["@canonicalNoClub", "-Aberration_WP"],
+            [
+                "TheIsland_WP",
+                "ScorchedEarth_WP",
+                "Extinction_WP",
             ],
         ),
     ],
@@ -75,16 +83,20 @@ def test_map_expansion(input_maps: list[str], expected_maps: list[str]) -> None:
 def test_all_servers() -> None:
     """Test all_servers server spec."""
 
-    spec = ArkServerSpec(maps=["Astraeos_WP", "canonical"])
+    spec = ArkServerSpec(maps=["Astraeos_WP", "@canonical"])
 
-    assert spec.all_servers == [
-        GameServer(map_id="BobsMissions_WP", port=7777, rcon_port=27020),
-        GameServer(map_id="TheIsland_WP", port=7778, rcon_port=27021),
-        GameServer(map_id="ScorchedEarth_WP", port=7779, rcon_port=27022),
-        GameServer(map_id="Aberration_WP", port=7780, rcon_port=27023),
-        GameServer(map_id="Extinction_WP", port=7781, rcon_port=27024),
-        GameServer(map_id="Astraeos_WP", port=7782, rcon_port=27025),
-    ]
+    assert spec.all_servers == {
+        "BobsMissions_WP": GameServer(
+            map_id="BobsMissions_WP", port=7777, rcon_port=27020
+        ),
+        "TheIsland_WP": GameServer(map_id="TheIsland_WP", port=7778, rcon_port=27021),
+        "ScorchedEarth_WP": GameServer(
+            map_id="ScorchedEarth_WP", port=7779, rcon_port=27022
+        ),
+        "Aberration_WP": GameServer(map_id="Aberration_WP", port=7780, rcon_port=27023),
+        "Extinction_WP": GameServer(map_id="Extinction_WP", port=7781, rcon_port=27024),
+        "Astraeos_WP": GameServer(map_id="Astraeos_WP", port=7782, rcon_port=27025),
+    }
 
 
 @pytest.mark.parametrize(

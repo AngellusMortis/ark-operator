@@ -38,6 +38,10 @@ spec:
               server:
                 type: object
                 properties:
+                  loadBalancerIP:
+                    type: string
+                    description: |-
+                      IP to use for load balancer.
                   storageClass:
                     type: string
                     description: |-
@@ -61,14 +65,16 @@ spec:
                     type: array
                     items:
                       type: string
-                      pattern: ^(((canonical|official)(NoClub)?)|[A-Z][a-zA-Z0-9_\-]+_WP)$
+                      pattern: ^(((@canonical|@official)(NoClub)?)|[A-Z][a-zA-Z0-9_\-]+_WP)$
                     description: |-
                       Maps to run. Each map means one server. Can be a list of maps or a string of the
-                      value `canonical` or `official`. `canonical` will run all canonical maps (The
-                      Island, SE, Aberation, Extinction) + Club Ark. `official` runs all Wildcard
+                      value `@canonical` or `@official`. `@canonical` will run all canonical maps (The
+                      Island, SE, Aberation, Extinction) + Club Ark. `@official` runs all Wildcard
                       released maps (The Island, The Center, SE, Aberration, Extinction) + Club Ark.
-                      You can also append `NoClub` to either to not run Club Ark (`canonicalNoClub` or
-                      `officialNoClub`). Defaults to `canonical`
+                      You can also append `NoClub` to either to not run Club Ark (`@canonicalNoClub` or
+                      `@officialNoClub`). Defaults to `@canonical`. Can also prefix map name with `-`
+                      to remove it. So `[@canonical, -Aberration_WP] will run all of the canonical maps
+                      except for Aberration.
                   gamePortStart:
                     type: integer
                     description: |-

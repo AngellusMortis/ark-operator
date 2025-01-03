@@ -1,9 +1,12 @@
 """ARK Operator CLI."""
 
+from __future__ import annotations
+
 from typing import Annotated, cast
 
 from cyclopts import App, Parameter
 
+from ark_operator.cli.cluster import cluster
 from ark_operator.cli.context import CoreContext, get_all_context, set_context
 from ark_operator.cli.options import (
     OPTION_LOG_CONFIG,
@@ -22,6 +25,7 @@ app = App(
 """
 )
 app.command(server.meta, name="server")
+app.command(cluster.meta, name="cluster")
 
 
 def _get_context() -> CoreContext:
