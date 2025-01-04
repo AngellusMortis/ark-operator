@@ -89,6 +89,21 @@ async def test_install_ark(mock_steamcmd: AsyncMock, steam: Steam) -> None:
 
 @patch("ark_operator.steam.steamcmd_run")
 @pytest.mark.asyncio
+async def test_install_ark_dry_run(mock_steamcmd: AsyncMock, steam: Steam) -> None:
+    """Test install_ark."""
+
+    await steam.install_ark(Path("/test"), dry_run=True)
+
+    mock_steamcmd.assert_awaited_once_with(
+        "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 validate +quit",
+        install_dir=Path("/test/steam"),
+        retries=3,
+        dry_run=True,
+    )
+
+
+@patch("ark_operator.steam.steamcmd_run")
+@pytest.mark.asyncio
 async def test_install_ark_no_validate(mock_steamcmd: AsyncMock, steam: Steam) -> None:
     """Test install_ark."""
 
@@ -110,6 +125,16 @@ async def test_copy_ark(mock_copy: AsyncMock, steam: Steam) -> None:
     await steam.copy_ark(Path("/test"), Path("/test2"))
 
     mock_copy.assert_awaited_once_with(Path("/test"), Path("/test2"), dry_run=False)
+
+
+@patch("ark_operator.steam.copy_ark")
+@pytest.mark.asyncio
+async def test_copy_ark_dry_run(mock_copy: AsyncMock, steam: Steam) -> None:
+    """Test Steam.copy_ark calls ark.utils."""
+
+    await steam.copy_ark(Path("/test"), Path("/test2"), dry_run=True)
+
+    mock_copy.assert_awaited_once_with(Path("/test"), Path("/test2"), dry_run=True)
 
 
 @patch("ark_operator.steam.has_newer_version")
@@ -142,6 +167,29 @@ async def test_steamcmd_run(
         check=True,
         output_level=logging.INFO,
         dry_run=False,
+    )
+
+
+@patch("ark_operator.steam.run_async")
+@patch("ark_operator.steam.install_steamcmd")
+@pytest.mark.asyncio
+async def test_steamcmd_run_dry_run(
+    mock_install: AsyncMock, mock_run: AsyncMock, steam: Steam
+) -> None:
+    """Test steamcmd_run."""
+
+    mock_install.return_value = Path("/test/steamcmd")
+
+    await steam.cmd("test", dry_run=True)
+
+    mock_install.assert_awaited_once_with(
+        Path("/test/steam"), force=False, dry_run=True
+    )
+    mock_run.assert_awaited_once_with(
+        "/test/steamcmd test",
+        check=True,
+        output_level=logging.INFO,
+        dry_run=True,
     )
 
 
@@ -327,3 +375,23 @@ async def test_install_steamcmd_reinstall(
     path = await install_steamcmd(steamcmd_installed, force=True)
     assert path == steamcmd_installed / f"steamcmd.{ext}"
     assert len(httpx_mock.get_requests()) == 1
+
+
+@patch("ark_operator.steam.aioshutil")
+@patch("ark_operator.steam.platform")
+@pytest.mark.asyncio
+async def test_install_steamcmd_reinstall_dry_run(
+    mock_platform: AsyncMock,
+    mock_shutil: Mock,
+    httpx_mock: HTTPXMock,
+    steamcmd_installed: Path,
+) -> None:
+    """Test install_steamcmd."""
+
+    mock_shutil.rmtree = AsyncMock()
+    mock_platform.system.return_value = "Linux"
+
+    path = await install_steamcmd(steamcmd_installed, force=True, dry_run=True)
+    assert path == steamcmd_installed / "steamcmd.sh"
+    assert len(httpx_mock.get_requests()) == 0
+    mock_shutil.rmtree.assert_not_awaited()

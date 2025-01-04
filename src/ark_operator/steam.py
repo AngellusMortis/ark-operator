@@ -104,7 +104,8 @@ async def install_steamcmd(
         if not dry_run:
             await aioshutil.rmtree(install_dir)
 
-    await aos.makedirs(install_dir, exist_ok=True)
+    if not dry_run:
+        await aos.makedirs(install_dir, exist_ok=True)
     async with httpx.AsyncClient() as client:
         _LOGGER.debug("Downloading steamcmd from %s", url)
         if not dry_run:
@@ -133,7 +134,7 @@ async def steamcmd_run(
     force_download: bool = False,
     retries: int = 0,
     dry_run: Literal[False] = False,
-) -> CompletedProcess[str]: ...
+) -> CompletedProcess[str]: ...  # pragma: no cover
 
 
 @overload
@@ -144,7 +145,7 @@ async def steamcmd_run(
     force_download: bool = False,
     retries: int = 0,
     dry_run: Literal[True],
-) -> CompletedProcess[None]: ...
+) -> CompletedProcess[None]: ...  # pragma: no cover
 
 
 @overload
@@ -155,7 +156,7 @@ async def steamcmd_run(
     force_download: bool = False,
     retries: int = 0,
     dry_run: bool,
-) -> CompletedProcess[str] | CompletedProcess[None]: ...
+) -> CompletedProcess[str] | CompletedProcess[None]: ...  # pragma: no cover
 
 
 async def steamcmd_run(  # type: ignore[return]
@@ -225,7 +226,7 @@ class Steam:
         force_download: bool = False,
         retries: int = 3,
         dry_run: Literal[False] = False,
-    ) -> CompletedProcess[str]: ...
+    ) -> CompletedProcess[str]: ...  # pragma: no cover
 
     @overload
     async def cmd(
@@ -235,7 +236,7 @@ class Steam:
         force_download: bool = False,
         retries: int = 3,
         dry_run: Literal[True],
-    ) -> CompletedProcess[None]: ...
+    ) -> CompletedProcess[None]: ...  # pragma: no cover
 
     @overload
     async def cmd(
@@ -245,7 +246,7 @@ class Steam:
         force_download: bool = False,
         retries: int = 3,
         dry_run: bool,
-    ) -> CompletedProcess[str] | CompletedProcess[None]: ...
+    ) -> CompletedProcess[str] | CompletedProcess[None]: ...  # pragma: no cover
 
     async def cmd(
         self,
@@ -272,7 +273,7 @@ class Steam:
         *,
         validate: bool = True,
         dry_run: Literal[False] = False,
-    ) -> CompletedProcess[str]: ...
+    ) -> CompletedProcess[str]: ...  # pragma: no cover
 
     @overload
     async def install_ark(
@@ -281,7 +282,7 @@ class Steam:
         *,
         validate: bool = True,
         dry_run: Literal[True],
-    ) -> CompletedProcess[None]: ...
+    ) -> CompletedProcess[None]: ...  # pragma: no cover
 
     @overload
     async def install_ark(
@@ -290,7 +291,7 @@ class Steam:
         *,
         validate: bool = True,
         dry_run: bool,
-    ) -> CompletedProcess[str] | CompletedProcess[None]: ...
+    ) -> CompletedProcess[str] | CompletedProcess[None]: ...  # pragma: no cover
 
     async def install_ark(
         self, ark_dir: Path, *, validate: bool = True, dry_run: bool = False
