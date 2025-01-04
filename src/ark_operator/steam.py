@@ -10,6 +10,7 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
+from typing import Literal, overload
 
 import aioshutil
 import httpx
@@ -80,7 +81,9 @@ async def _extract_archive(install_dir: Path, platform: str, data: bytes) -> Non
         await _extract_tar(path, install_dir)
 
 
-async def install_steamcmd(install_dir: Path, *, force: bool = False) -> Path:
+async def install_steamcmd(
+    install_dir: Path, *, force: bool = False, dry_run: bool = False
+) -> Path:
     """Install steamcmd."""
 
     if (plat := platform.system()) not in ["Windows", "Linux"]:
@@ -98,37 +101,83 @@ async def install_steamcmd(install_dir: Path, *, force: bool = False) -> Path:
 
     if exists:
         _LOGGER.debug("Redowloading steamcmd")
-        await aioshutil.rmtree(install_dir)
+        if not dry_run:
+            await aioshutil.rmtree(install_dir)
 
     await aos.makedirs(install_dir, exist_ok=True)
     async with httpx.AsyncClient() as client:
         _LOGGER.debug("Downloading steamcmd from %s", url)
-        try:
-            response = await client.get(url)
-            response.raise_for_status()
-            data = await response.aread()
-        except Exception as ex:
-            raise SteamCMDError(ERROR_DOWNLOAD_FAILED) from ex
+        if not dry_run:
+            try:
+                response = await client.get(url)
+                response.raise_for_status()
+                data = await response.aread()
+            except Exception as ex:
+                raise SteamCMDError(ERROR_DOWNLOAD_FAILED) from ex
 
         _LOGGER.debug("Extracting steamcmd %s", install_dir)
-        await _extract_archive(install_dir, plat, data)
+        if not dry_run:
+            await _extract_archive(install_dir, plat, data)
 
-    if not await aos.path.exists(exe_path):
+    if not dry_run and not await aos.path.exists(exe_path):
         raise SteamCMDError(ERROR_FAILED_INSTALL)
 
     return exe_path
 
 
+@overload
+async def steamcmd_run(
+    cmd: str,
+    *,
+    install_dir: Path,
+    force_download: bool = False,
+    retries: int = 0,
+    dry_run: Literal[False] = False,
+) -> CompletedProcess[str]: ...
+
+
+@overload
+async def steamcmd_run(
+    cmd: str,
+    *,
+    install_dir: Path,
+    force_download: bool = False,
+    retries: int = 0,
+    dry_run: Literal[True],
+) -> CompletedProcess[None]: ...
+
+
+@overload
+async def steamcmd_run(
+    cmd: str,
+    *,
+    install_dir: Path,
+    force_download: bool = False,
+    retries: int = 0,
+    dry_run: bool,
+) -> CompletedProcess[str] | CompletedProcess[None]: ...
+
+
 async def steamcmd_run(  # type: ignore[return]
-    cmd: str, *, install_dir: Path, force_download: bool = False, retries: int = 0
-) -> CompletedProcess[str]:
+    cmd: str,
+    *,
+    install_dir: Path,
+    force_download: bool = False,
+    retries: int = 0,
+    dry_run: bool = False,
+) -> CompletedProcess[str] | CompletedProcess[None]:
     """Run steamcmd."""
 
-    steamcmd = await install_steamcmd(install_dir, force=force_download)
+    steamcmd = await install_steamcmd(
+        install_dir, force=force_download, dry_run=dry_run
+    )
     while retries >= 0:  # noqa: RET503  # pragma: no branch
         try:
             return await run_async(
-                f"{steamcmd} {cmd}", check=True, output_level=logging.INFO
+                f"{steamcmd} {cmd}",
+                check=True,
+                output_level=logging.INFO,
+                dry_run=dry_run,
             )
         except CalledProcessError as ex:
             if retries > 0:
@@ -168,9 +217,44 @@ class Steam:
 
         return self._cdn
 
+    @overload
     async def cmd(
-        self, cmd: str, *, force_download: bool = False, retries: int = 3
-    ) -> CompletedProcess[str]:
+        self,
+        cmd: str,
+        *,
+        force_download: bool = False,
+        retries: int = 3,
+        dry_run: Literal[False] = False,
+    ) -> CompletedProcess[str]: ...
+
+    @overload
+    async def cmd(
+        self,
+        cmd: str,
+        *,
+        force_download: bool = False,
+        retries: int = 3,
+        dry_run: Literal[True],
+    ) -> CompletedProcess[None]: ...
+
+    @overload
+    async def cmd(
+        self,
+        cmd: str,
+        *,
+        force_download: bool = False,
+        retries: int = 3,
+        dry_run: bool,
+    ) -> CompletedProcess[str] | CompletedProcess[None]: ...
+
+    async def cmd(
+        self,
+        cmd: str,
+        *,
+        force_download: bool = False,
+        retries: int = 3,
+        dry_run: bool = False,
+    ) -> CompletedProcess[str] | CompletedProcess[None]:
         """Run steamcmd."""
 
         return await steamcmd_run(
@@ -178,11 +262,39 @@ class Steam:
             install_dir=self.install_dir,
             retries=retries,
             force_download=force_download,
+            dry_run=dry_run,
         )
 
+    @overload
     async def install_ark(
-        self, ark_dir: Path, *, validate: bool = True
-    ) -> CompletedProcess[str]:
+        self,
+        ark_dir: Path,
+        *,
+        validate: bool = True,
+        dry_run: Literal[False] = False,
+    ) -> CompletedProcess[str]: ...
+
+    @overload
+    async def install_ark(
+        self,
+        ark_dir: Path,
+        *,
+        validate: bool = True,
+        dry_run: Literal[True],
+    ) -> CompletedProcess[None]: ...
+
+    @overload
+    async def install_ark(
+        self,
+        ark_dir: Path,
+        *,
+        validate: bool = True,
+        dry_run: bool,
+    ) -> CompletedProcess[str] | CompletedProcess[None]: ...
+
+    async def install_ark(
+        self, ark_dir: Path, *, validate: bool = True, dry_run: bool = False
+    ) -> CompletedProcess[str] | CompletedProcess[None]:
         """Install ARK server."""
 
         cmd = [
@@ -197,13 +309,18 @@ class Steam:
             cmd.append("validate")
         cmd.append("+quit")
         return await steamcmd_run(
-            " ".join(cmd), install_dir=self.install_dir, retries=3
+            " ".join(cmd),
+            install_dir=self.install_dir,
+            retries=3,
+            dry_run=dry_run,
         )
 
-    async def copy_ark(self, src_dir: Path, dest_dir: Path) -> None:
+    async def copy_ark(
+        self, src_dir: Path, dest_dir: Path, *, dry_run: bool = False
+    ) -> None:
         """Copy ARK server install."""
 
-        await copy_ark(src_dir, dest_dir)
+        await copy_ark(src_dir, dest_dir, dry_run=dry_run)
 
     async def has_newer_version(self, ark_dir: Path) -> bool:
         """Check if ARK has newer version."""

@@ -107,6 +107,14 @@ spec:
                     type: boolean
                     description: |-
                       Keep the data PVC after the cluster is deleted. Default to true.
+              runAsUser:
+                type: integer
+                description: |-
+                  UID to run containers as. Affects UID of ownership of files. Defaults to 65535
+              runAsGroup:
+                type: integer
+                description: |-
+                  GID to run containers as. Affects GID of ownership of files. Defaults to 65535
           status:
             type: object
             properties:

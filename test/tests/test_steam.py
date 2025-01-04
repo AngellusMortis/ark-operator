@@ -83,6 +83,7 @@ async def test_install_ark(mock_steamcmd: AsyncMock, steam: Steam) -> None:
         "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 validate +quit",
         install_dir=Path("/test/steam"),
         retries=3,
+        dry_run=False,
     )
 
 
@@ -97,6 +98,7 @@ async def test_install_ark_no_validate(mock_steamcmd: AsyncMock, steam: Steam) -
         "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 +quit",
         install_dir=Path("/test/steam"),
         retries=3,
+        dry_run=False,
     )
 
 
@@ -107,7 +109,7 @@ async def test_copy_ark(mock_copy: AsyncMock, steam: Steam) -> None:
 
     await steam.copy_ark(Path("/test"), Path("/test2"))
 
-    mock_copy.assert_awaited_once_with(Path("/test"), Path("/test2"))
+    mock_copy.assert_awaited_once_with(Path("/test"), Path("/test2"), dry_run=False)
 
 
 @patch("ark_operator.steam.has_newer_version")
@@ -132,9 +134,14 @@ async def test_steamcmd_run(
 
     await steam.cmd("test")
 
-    mock_install.assert_awaited_once_with(Path("/test/steam"), force=False)
+    mock_install.assert_awaited_once_with(
+        Path("/test/steam"), force=False, dry_run=False
+    )
     mock_run.assert_awaited_once_with(
-        "/test/steamcmd test", check=True, output_level=logging.INFO
+        "/test/steamcmd test",
+        check=True,
+        output_level=logging.INFO,
+        dry_run=False,
     )
 
 
@@ -154,11 +161,23 @@ async def test_steamcmd_run_retry(
 
     await steam.cmd("test", force_download=True)
 
-    mock_install.assert_awaited_once_with(Path("/test/steam"), force=True)
+    mock_install.assert_awaited_once_with(
+        Path("/test/steam"), force=True, dry_run=False
+    )
     mock_run.assert_has_awaits(
         [
-            call("/test/steamcmd test", check=True, output_level=logging.INFO),
-            call("/test/steamcmd test", check=True, output_level=logging.INFO),
+            call(
+                "/test/steamcmd test",
+                check=True,
+                output_level=logging.INFO,
+                dry_run=False,
+            ),
+            call(
+                "/test/steamcmd test",
+                check=True,
+                output_level=logging.INFO,
+                dry_run=False,
+            ),
         ]
     )
 
@@ -177,9 +196,11 @@ async def test_steamcmd_run_error(
     with pytest.raises(SteamCMDError):
         await steam.cmd("test", retries=0)
 
-    mock_install.assert_awaited_once_with(Path("/test/steam"), force=False)
+    mock_install.assert_awaited_once_with(
+        Path("/test/steam"), force=False, dry_run=False
+    )
     mock_run.assert_awaited_once_with(
-        "/test/steamcmd test", check=True, output_level=logging.INFO
+        "/test/steamcmd test", check=True, output_level=logging.INFO, dry_run=False
     )
 
 

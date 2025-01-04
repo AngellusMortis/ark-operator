@@ -1,4 +1,4 @@
-"""ARK Operator CLI."""
+"""ARK Server CLI."""
 
 from __future__ import annotations
 
@@ -10,8 +10,9 @@ from cyclopts import App, Parameter
 from ark_operator.cli.context import ServerContext, get_all_context, set_context
 from ark_operator.cli.options import (
     OPTION_COPY_DIR,
+    OPTION_DRY_RUN,
+    OPTION_HOST,
     OPTION_INSTALL_DIR,
-    OPTION_IP,
     OPTION_RCON_PASSWORD,
     OPTION_RCON_PORT,
     OPTION_STEAM_DIR,
@@ -39,11 +40,15 @@ def meta(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     install_dir: OPTION_INSTALL_DIR,
     steam_dir: OPTION_STEAM_DIR,
-    ip: OPTION_IP,
+    host: OPTION_HOST,
     rcon_port: OPTION_RCON_PORT,
     rcon_password: OPTION_RCON_PASSWORD,
-) -> None:
-    """ARK Operator."""
+) -> int | None:
+    """
+    ARK Server CLI.
+
+    Helpful commands for managing an ARK: Survival Ascended server.
+    """
 
     install_dir = install_dir.absolute()
     steam_dir = steam_dir.absolute()
@@ -53,24 +58,29 @@ def meta(
             install_dir=install_dir,
             steam_dir=steam_dir,
             steam=Steam(install_dir=steam_dir),
-            ip=ip,
+            host=host,
             rcon_port=rcon_port,
             rcon_password=rcon_password,
             parent=get_all_context("core"),  # type: ignore[arg-type]
         ),
     )
-    server(tokens)
+    return server(tokens)  # type: ignore[no-any-return]
 
 
 @server.command
-async def install(*, validate: bool = True, copy_from: OPTION_COPY_DIR = None) -> None:
+async def install(
+    *,
+    validate: bool = True,
+    copy_from: OPTION_COPY_DIR = None,
+    dry_run: OPTION_DRY_RUN = False,
+) -> None:
     """Install ARK: Survival Ascended Server."""
 
     context = _get_context()
     if copy_from:
         copy_from = copy_from.absolute()
         _LOGGER.info("Copy ARK from %s to ARK at %s", copy_from, context.install_dir)
-        await context.steam.copy_ark(copy_from, context.install_dir)
+        await context.steam.copy_ark(copy_from, context.install_dir, dry_run=dry_run)
 
     has_newer = await context.steam.has_newer_version(context.install_dir)
     _LOGGER.info(
@@ -83,16 +93,18 @@ async def install(*, validate: bool = True, copy_from: OPTION_COPY_DIR = None) -
         )
     else:
         _LOGGER.info("Installing ARK at %s", context.install_dir)
-        await context.steam.install_ark(context.install_dir, validate=validate)
+        await context.steam.install_ark(
+            context.install_dir, validate=validate, dry_run=dry_run
+        )
 
 
 async def _run_command(cmd: str, *, close: bool = True) -> None:
     context = _get_context()
 
-    _LOGGER.info("%s:%s - %s", context.ip, context.rcon_port, cmd)
+    _LOGGER.info("%s:%s - %s", context.host, context.rcon_port, cmd)
     response = await send_cmd(
         cmd,
-        host=context.ip,
+        host=context.host,
         port=context.rcon_port,
         password=context.rcon_password,
         close=close,

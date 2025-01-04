@@ -130,6 +130,22 @@ async def test_copy_ark_dest_exists(mock_is_new: Mock, mock_shutil: Mock) -> Non
 @patch("ark_operator.ark.utils.aioshutil")
 @patch("ark_operator.ark.utils.is_ark_newer")
 @pytest.mark.asyncio
+async def test_copy_ark_dry_run(mock_is_new: Mock, mock_shutil: Mock) -> None:
+    """Test copy_ark if dest ARK exists."""
+
+    mock_shutil.rmtree = AsyncMock()
+    mock_shutil.copytree = AsyncMock()
+    mock_is_new.return_value = True
+
+    await copy_ark(Path("/test"), TEST_ARK, dry_run=True)
+
+    mock_shutil.rmtree.assert_not_awaited()
+    mock_shutil.copytree.assert_not_awaited()
+
+
+@patch("ark_operator.ark.utils.aioshutil")
+@patch("ark_operator.ark.utils.is_ark_newer")
+@pytest.mark.asyncio
 async def test_copy_ark_no_dest(mock_is_new: Mock, mock_shutil: Mock) -> None:
     """Test copy_ark if dest ARK does not exist."""
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+from ark_operator.ark.utils import ERROR_NO_ALL
 from ark_operator.data.models import ArkServerSpec, GameServer
 
 
@@ -78,6 +79,13 @@ def test_map_expansion(input_maps: list[str], expected_maps: list[str]) -> None:
     spec = ArkServerSpec(maps=input_maps)
 
     assert spec.all_maps == expected_maps
+
+
+def test_map_expansion_all() -> None:
+    """Test @all expansion shortcuts cannot be used in spec."""
+
+    with pytest.raises(ValueError, match=ERROR_NO_ALL):
+        ArkServerSpec(maps=["@all"]).all_maps  # noqa: B018
 
 
 def test_all_servers() -> None:

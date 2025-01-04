@@ -100,7 +100,7 @@ async def is_ark_newer(src: Path, dest: Path) -> bool:
     return src_buildid > dest_buildid
 
 
-async def copy_ark(src: Path, dest: Path) -> None:
+async def copy_ark(src: Path, dest: Path, *, dry_run: bool = False) -> None:
     """Copy ARK install to another."""
 
     _LOGGER.info("Checking if can copy src ARK (%s) to dest ARK (%s)", src, dest)
@@ -115,10 +115,12 @@ async def copy_ark(src: Path, dest: Path) -> None:
 
     if dest.exists():
         _LOGGER.info("Removing dest ARK")
-        await aioshutil.rmtree(dest)
+        if not dry_run:
+            await aioshutil.rmtree(dest)
 
     _LOGGER.info("Copying src ARK to dest ARK")
-    await aioshutil.copytree(src, dest)
+    if not dry_run:
+        await aioshutil.copytree(src, dest)
 
 
 @lru_cache(maxsize=20)

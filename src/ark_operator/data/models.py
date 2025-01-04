@@ -129,6 +129,8 @@ class ArkClusterSpec(BaseK8sModel):
 
     server: ArkServerSpec = ArkServerSpec()
     data: ArkDataSpec = ArkDataSpec()
+    run_as_user: int = 65535
+    run_as_group: int = 65535
 
 
 class ArkClusterStatus(BaseK8sModel):

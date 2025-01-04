@@ -39,7 +39,7 @@ class ServerContext:
     install_dir: Path
     steam_dir: Path
     steam: Steam
-    ip: IPv4Address | IPv6Address
+    host: IPv4Address | IPv6Address | str
     rcon_port: int
     rcon_password: str
 
@@ -51,8 +51,8 @@ class ClusterContext:
     """Cluster commands context object."""
 
     spec: ArkClusterSpec
-    map_selector: list[str]
-    ip: IPv4Address | IPv6Address
+    selected_maps: list[str]
+    host: IPv4Address | IPv6Address | str
     rcon_password: str
 
     parent: CoreContext

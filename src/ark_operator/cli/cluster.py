@@ -1,4 +1,4 @@
-"""ARK Operator CLI."""
+"""ARK k8s Cluster CLI."""
 
 from __future__ import annotations
 
@@ -12,63 +12,102 @@ from ark_operator.cli.context import ClusterContext, get_all_context, set_contex
 from ark_operator.cli.options import (
     OPTION_ARK_SELECTOR,
     OPTION_ARK_SPEC,
-    OPTION_OPTIONAL_IP,
+    OPTION_OPTIONAL_HOST,
     OPTION_RCON_PASSWORD,
 )
+from ark_operator.data import ArkClusterSpec
+from ark_operator.k8s import are_crds_installed, close_k8s_client
+from ark_operator.k8s import install_crds as install_crds_api
+from ark_operator.k8s import uninstall_crds as uninstall_crds_api
 from ark_operator.rcon import send_cmd_all
 
 if TYPE_CHECKING:
     from ipaddress import IPv4Address, IPv6Address
 
-    from ark_operator.data import ArkClusterSpec
-
 
 cluster = App(
     help="""
-    ARK Cluster CLI.
+    ARK k8s Cluster CLI.
 
     Helpful commands for managing an ARK: Survival Ascended k8s server cluster.
 """
 )
 
 _LOGGER = logging.getLogger(__name__)
-ERROR_IP_REQUIRED = "IP is required from the option or from loadBalancerIP on spec."
+ERROR_HOST_REQUIRED = "Host is required from the option or from loadBalancerIP on spec."
 
 
 def _get_context() -> ClusterContext:
     return cast(ClusterContext, get_all_context("cluster"))
 
 
+def _require_host(spec: ArkClusterSpec | None) -> IPv4Address | IPv6Address:
+    if not spec or not spec.server.load_balancer_ip:
+        raise CycloptsError(msg=ERROR_HOST_REQUIRED)
+
+    return spec.server.load_balancer_ip
+
+
 @cluster.meta.default
 def meta(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     spec: OPTION_ARK_SPEC,
-    selector: OPTION_ARK_SELECTOR = ["@all"],  # noqa: B006
-    ip: OPTION_OPTIONAL_IP = None,
+    selector: OPTION_ARK_SELECTOR = ["@all"],  # noqa: B006\
+    host: OPTION_OPTIONAL_HOST = None,
     rcon_password: OPTION_RCON_PASSWORD,
-) -> None:
-    """ARK Operator."""
+) -> int | None:
+    """
+    ARK k8s Cluster CLI.
 
-    maps = expand_maps(selector.copy(), all_maps=spec.server.all_maps)
-    print(maps, spec.server.all_maps)
+    Helpful commands for managing an ARK: Survival Ascended k8s server cluster.
+    """
+
+    print(spec.server.load_balancer_ip)
+    selected_maps = expand_maps(selector.copy(), all_maps=spec.server.all_maps)
     set_context(
         "cluster",
         ClusterContext(
             spec=spec,
-            map_selector=maps,
-            ip=ip or _require_ip(spec),
+            selected_maps=selected_maps,
+            host=host or _require_host(spec),
             rcon_password=rcon_password,
             parent=get_all_context("core"),  # type: ignore[arg-type]
         ),
     )
-    cluster(tokens)
+    return cluster(tokens)  # type: ignore[no-any-return]
 
 
-def _require_ip(spec: ArkClusterSpec) -> IPv4Address | IPv6Address:
-    if not spec.server.load_balancer_ip:
-        raise CycloptsError(msg=ERROR_IP_REQUIRED)
+@cluster.command
+async def install_crds(*, force: bool = False) -> None:
+    """Install ArkCluster CRDs."""
 
-    return spec.server.load_balancer_ip
+    try:
+        await install_crds_api(force=force)
+    finally:
+        await close_k8s_client()
+
+
+@cluster.command
+async def uninstall_crds() -> None:
+    """Uninstall ArkCluster CRDs."""
+
+    try:
+        await uninstall_crds_api()
+    finally:
+        await close_k8s_client()
+
+
+@cluster.command
+async def check_crds() -> int:
+    """Check if CRDs are installed."""
+
+    try:
+        if not await are_crds_installed():
+            return 1
+    finally:
+        await close_k8s_client()
+
+    return 0
 
 
 @cluster.command
@@ -78,10 +117,10 @@ async def rcon(*cmd: str) -> None:
     context = _get_context()
     await send_cmd_all(
         " ".join(cmd),
-        host=context.ip,
+        host=context.host,
         password=context.rcon_password,
         spec=context.spec.server,
-        servers=context.map_selector,
+        servers=context.selected_maps,
     )
 
 
@@ -92,10 +131,10 @@ async def save() -> None:
     context = _get_context()
     await send_cmd_all(
         "SaveWorld",
-        host=context.ip,
+        host=context.host,
         password=context.rcon_password,
         spec=context.spec.server,
-        servers=context.map_selector,
+        servers=context.selected_maps,
     )
 
 
@@ -106,10 +145,10 @@ async def broadcast(*message: str) -> None:
     context = _get_context()
     await send_cmd_all(
         f"ServerChat {" ".join(message)}",
-        host=context.ip,
+        host=context.host,
         password=context.rcon_password,
         spec=context.spec.server,
-        servers=context.map_selector,
+        servers=context.selected_maps,
     )
 
 
@@ -120,16 +159,16 @@ async def shutdown() -> None:
     context = _get_context()
     await send_cmd_all(
         "SaveWorld",
-        host=context.ip,
+        host=context.host,
         password=context.rcon_password,
         spec=context.spec.server,
-        servers=context.map_selector,
+        servers=context.selected_maps,
         close=False,
     )
     await send_cmd_all(
         "DoExit",
-        host=context.ip,
+        host=context.host,
         password=context.rcon_password,
         spec=context.spec.server,
-        servers=context.map_selector,
+        servers=context.selected_maps,
     )

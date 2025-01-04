@@ -38,11 +38,12 @@ def meta(
     logging_format: OPTION_LOG_FORMAT = "auto",
     logging_level: OPTION_LOG_LEVEL = "NOTSET",
     logging_config: OPTION_LOG_CONFIG = DEFAULT_LOG_CONFIG,
-) -> None:
+) -> int | None:
     """ARK Operator."""
 
     set_context(
         "core", CoreContext(logging_format=logging_format, logging_level=logging_level)
     )
     init_logging(logging_format, logging_level, config=logging_config)
-    app(tokens)
+
+    return app(tokens)  # type: ignore[no-any-return]

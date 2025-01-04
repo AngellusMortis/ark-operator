@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
 from ark_operator.cli import app
@@ -12,7 +13,7 @@ except ImportError:
     load_dotenv = None  # type: ignore[assignment]
 
 
-def _main() -> None:
+def _main() -> int:
     """Run application."""
 
     if load_dotenv is not None:
@@ -22,8 +23,11 @@ def _main() -> None:
         else:
             load_dotenv()
 
-    app.meta()
+    return_code = app.meta()
+    if return_code is None:
+        return_code = 0
+    return return_code  # type: ignore[no-any-return]
 
 
 if __name__ == "__main__":
-    _main()
+    sys.exit(_main())

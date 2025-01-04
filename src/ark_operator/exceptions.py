@@ -19,3 +19,7 @@ class RCONError(RuntimeError):
 
 class CommandError(RuntimeError):
     """Exception running a command."""
+
+
+class K8sError(RuntimeError):
+    """Unable to complete k8s action."""

@@ -29,3 +29,5 @@ function prompt_command {
     export PS1
 }
 export PROMPT_COMMAND=prompt_command
+
+ln -s /workspaces/ark-operator/crd_chart/crds/crds.yml /workspaces/ark-operator/src/ark_operator/resources/crds.yml

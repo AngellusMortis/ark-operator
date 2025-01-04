@@ -91,10 +91,10 @@ arkctl = "ark_operator.__main__:_main"
 source = "vcs"
 
 [tool.hatch.build.targets.sdist]
-only-include = ["src/ark_operator"]
+only-include = ["src/ark_operator", "src/ark_operator/resources/crds.yml"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/ark_operator"]
+packages = ["src/ark_operator", "src/ark_operator/resources/crds.yml"]
 
 [tool.hatch.metadata]
 allow-direct-references = true

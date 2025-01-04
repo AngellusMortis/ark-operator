@@ -1,3 +1,4 @@
+src/ark_operator/resources/crds.yml
 test/steam_install
 coverage.json
 steam
