@@ -55,7 +55,8 @@ RUN --mount=source=./,target=/tmp/ark-operator,type=bind \
     && apt-get update -qq \
     && apt-get install -yqq git \
     && pip install . \
-    && apt-get remove -yqq git
+    && apt-get remove -yqq git \
+    && apt-get autoremove -yqq
 USER app
 WORKDIR /
 
