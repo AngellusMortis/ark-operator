@@ -77,7 +77,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
 
     init_done = status.is_stage_completed(ClusterStage.INIT_PVC)
     if server_done and data_done and not init_done:
-        status.state = "Initialing PVCs"
+        status.state = "Initializing PVCs"
         patch = kwargs["patch"]
         patch.status.update(**status.model_dump(include={"state", "ready"}))
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)

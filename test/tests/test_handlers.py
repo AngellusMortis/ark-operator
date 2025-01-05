@@ -31,6 +31,10 @@ CLUSTER_SPEC: dict[str, Any] = {
 }
 
 
+def _dump_yaml(data: Any) -> str:  # noqa: ANN401
+    return yaml.dump(data).replace('"', '\\"')
+
+
 def _assert_output(result: CompletedProcess[str], expected: list[str]) -> None:
     items = list(filter(len, result.stdout.strip().split("\n")))
     assert sorted(items) == sorted(expected)
@@ -38,6 +42,49 @@ def _assert_output(result: CompletedProcess[str], expected: list[str]) -> None:
 
 def _run(cmd: str, shell: bool = False, check: bool = True) -> CompletedProcess[str]:
     return run_sync(cmd, check=check, shell=shell, echo=True)
+
+
+def _verify_startup(namespace: str) -> None:
+    # PVC setup
+    _run(
+        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.state}}'='Initializing PVCs' arkcluster/ark --timeout=30s",
+    )
+    result = _run(
+        f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
+    )
+    _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
+    _run(
+        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=600s",
+    )
+
+    _run(
+        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
+    )
+    _run(
+        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
+    )
+    _run(
+        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
+    )
+
+
+def _delete_cluster(
+    namespace: str,
+    delete_pvcs: list[str] | None = None,
+    persist_pvcs: list[str] | None = None,
+) -> None:
+    _run(f"kubectl -n {namespace} delete ArkCluster ark")
+    _run(f"kubectl -n {namespace} wait --for=delete arkcluster/ark --timeout=30s")
+
+    delete_pvcs = delete_pvcs or ["server-a", "server-b"]
+    for pvc in delete_pvcs:
+        _run(f"kubectl -n {namespace} wait --for=delete pvc/ark-{pvc} --timeout=30s")
+
+    persist_pvcs = persist_pvcs or ["data"]
+    result = _run(
+        f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'",
+    )
+    _assert_output(result, [f"ark-{p}" for p in persist_pvcs])
 
 
 @pytest.fixture(autouse=True)
@@ -100,7 +147,7 @@ def test_handler_too_small(k8s_namespace: str) -> None:
         spec["spec"]["server"]["size"] = "1Ki"
 
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
         _run(
@@ -126,45 +173,17 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
     with KopfRunner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
-
-        result = _run(
-            f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
-        )
-        _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
-
-        _run(f"kubectl -n {k8s_namespace} delete ArkCluster ark")
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=delete arkcluster/ark --timeout=30s"
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=delete pvc/ark-server-a --timeout=30s"
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=delete pvc/ark-server-b --timeout=30s"
-        )
-
-        result = _run(
-            f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'",
-        )
-        _assert_output(result, ["ark-data"])
+        _verify_startup(k8s_namespace)
+        _delete_cluster(k8s_namespace)
 
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
-        result = _run(
-            f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
-        )
-        _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
+        _verify_startup(k8s_namespace)
 
     assert runner.exit_code == 0
     assert runner.exception is None
@@ -188,40 +207,17 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
         spec["spec"]["data"]["persist"] = False
 
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
-
-        result = _run(
-            f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
-        )
-        _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
-
-        _run(f"kubectl -n {k8s_namespace} delete ArkCluster ark")
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=delete arkcluster/ark --timeout=30s"
-        )
-        _run(f"kubectl -n {k8s_namespace} wait --for=delete pvc/ark-data --timeout=30s")
-
-        result = _run(
-            f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'",
-        )
-        _assert_output(result, ["ark-server-a", "ark-server-b"])
+        _verify_startup(k8s_namespace)
+        _delete_cluster(k8s_namespace, ["data"], ["server-a", "server-b"])
 
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
-        result = _run(
-            f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
-        )
-        _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
+        _verify_startup(k8s_namespace)
 
     assert runner.exit_code == 0
     assert runner.exception is None
@@ -243,12 +239,10 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     with KopfRunner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
+        _verify_startup(k8s_namespace)
 
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name,:spec.resources.requests.storage'"
@@ -257,31 +251,13 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
             result, ["ark-server-a   2Mi", "ark-server-b   2Mi", "ark-data       2Mi"]
         )
 
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
-        )
-
         spec["spec"]["server"]["size"] = "3Mi"
         spec["spec"]["data"]["size"] = "3Mi"
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=false arkcluster/ark --timeout=30s",
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
+        _verify_startup(k8s_namespace)
 
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name,:spec.resources.requests.storage'"
@@ -310,12 +286,10 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
     with KopfRunner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
-        )
+        _verify_startup(k8s_namespace)
 
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name,:spec.resources.requests.storage'"
@@ -324,20 +298,10 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
             result, ["ark-server-a   2Mi", "ark-server-b   2Mi", "ark-data       2Mi"]
         )
 
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
-        )
-
         spec["spec"]["server"]["size"] = "1Mi"
         spec["spec"]["data"]["size"] = "1Mi"
         _run(
-            f'echo "{yaml.dump(spec)}" | kubectl -n {k8s_namespace} apply -f -',
+            f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
         _run(

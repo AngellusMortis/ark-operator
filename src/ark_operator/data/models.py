@@ -39,7 +39,7 @@ MAP_LOOPUP_MAP = {
 States = Literal[
     "Initializing",
     "Creating PVCs",
-    "Initialing PVCs",
+    "Initializing PVCs",
     "Updating PVCs",
     "Deleting PVCs",
     "Running",
