@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 from http import HTTPStatus
-from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-import pytest_asyncio
 import yaml
 from aiofiles import open as aopen
 from kubernetes_asyncio.client import ApiException
@@ -20,45 +18,8 @@ from ark_operator.k8s.crds import (
     uninstall_crds,
 )
 
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
 
-
-@pytest_asyncio.fixture(name="k8s_client")
-async def k8s_client_fixture() -> AsyncGenerator[Mock]:
-    """k8s client fixture."""
-
-    with (
-        patch("ark_operator.k8s.client.config") as mock_config,
-        patch("ark_operator.k8s.client.ApiClient") as mock_klass,
-    ):
-        mock_config.load_kube_config = AsyncMock()
-
-        mock_client = Mock()
-        mock_client.close = AsyncMock()
-        mock_klass.return_value = mock_client
-
-        yield mock_client
-
-
-@pytest_asyncio.fixture(name="k8s_v1_client")
-async def k8s_v1_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # noqa: ARG001
-    """k8s client fixture."""
-
-    with (
-        patch("ark_operator.k8s.client.client") as mock_v1_klass,
-    ):
-        mock_v1_client = Mock()
-        mock_v1_client.read_custom_resource_definition = AsyncMock()
-        mock_v1_client.delete_custom_resource_definition = AsyncMock()
-        mock_v1_client.create_custom_resource_definition = AsyncMock()
-
-        mock_v1_klass.ApiextensionsV1Api.return_value = mock_v1_client
-
-        yield mock_v1_client
-
-
-@pytest.mark.usefixtures("k8s_v1_client")
+@pytest.mark.usefixtures("k8s_v1_ext_client")
 @pytest.mark.asyncio
 async def test_are_crds_installed() -> None:
     """Test are_crds_installed."""
@@ -67,10 +28,10 @@ async def test_are_crds_installed() -> None:
 
 
 @pytest.mark.asyncio
-async def test_are_crds_installed_not_found(k8s_v1_client: Mock) -> None:
+async def test_are_crds_installed_not_found(k8s_v1_ext_client: Mock) -> None:
     """Test are_crds_installed."""
 
-    k8s_v1_client.read_custom_resource_definition = AsyncMock(
+    k8s_v1_ext_client.read_custom_resource_definition = AsyncMock(
         side_effect=ApiException(status=HTTPStatus.NOT_FOUND)
     )
 
@@ -78,10 +39,10 @@ async def test_are_crds_installed_not_found(k8s_v1_client: Mock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_are_crds_installed_error(k8s_v1_client: Mock) -> None:
+async def test_are_crds_installed_error(k8s_v1_ext_client: Mock) -> None:
     """Test are_crds_installed."""
 
-    k8s_v1_client.read_custom_resource_definition = AsyncMock(
+    k8s_v1_ext_client.read_custom_resource_definition = AsyncMock(
         side_effect=ApiException(status=HTTPStatus.BAD_REQUEST)
     )
 
@@ -90,35 +51,35 @@ async def test_are_crds_installed_error(k8s_v1_client: Mock) -> None:
 
 
 @pytest.mark.asyncio
-async def test_uninstall_crds(k8s_v1_client: Mock) -> None:
+async def test_uninstall_crds(k8s_v1_ext_client: Mock) -> None:
     """Test uninstall_crds."""
 
     await uninstall_crds()
 
-    k8s_v1_client.delete_custom_resource_definition.assert_awaited_once_with(
+    k8s_v1_ext_client.delete_custom_resource_definition.assert_awaited_once_with(
         "arkclusters.mort.is"
     )
 
 
 @pytest.mark.asyncio
-async def test_uninstall_crds_not_installed(k8s_v1_client: Mock) -> None:
+async def test_uninstall_crds_not_installed(k8s_v1_ext_client: Mock) -> None:
     """Test uninstall_crds."""
 
-    k8s_v1_client.read_custom_resource_definition = AsyncMock(
+    k8s_v1_ext_client.read_custom_resource_definition = AsyncMock(
         side_effect=ApiException(status=HTTPStatus.NOT_FOUND)
     )
 
     with pytest.raises(K8sError):
         await uninstall_crds()
 
-    k8s_v1_client.delete_custom_resource_definition.assert_not_awaited()
+    k8s_v1_ext_client.delete_custom_resource_definition.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_install_crds(k8s_v1_client: Mock) -> None:
+async def test_install_crds(k8s_v1_ext_client: Mock) -> None:
     """Test install_crds."""
 
-    k8s_v1_client.read_custom_resource_definition = AsyncMock(
+    k8s_v1_ext_client.read_custom_resource_definition = AsyncMock(
         side_effect=ApiException(status=HTTPStatus.NOT_FOUND)
     )
 
@@ -127,21 +88,23 @@ async def test_install_crds(k8s_v1_client: Mock) -> None:
 
     await install_crds()
 
-    k8s_v1_client.create_custom_resource_definition.assert_awaited_once_with(body=crds)
+    k8s_v1_ext_client.create_custom_resource_definition.assert_awaited_once_with(
+        body=crds
+    )
 
 
 @pytest.mark.asyncio
-async def test_install_crds_installed(k8s_v1_client: Mock) -> None:
+async def test_install_crds_installed(k8s_v1_ext_client: Mock) -> None:
     """Test install_crds."""
 
     with pytest.raises(K8sError):
         await install_crds()
 
-    k8s_v1_client.create_custom_resource_definition.assert_not_awaited()
+    k8s_v1_ext_client.create_custom_resource_definition.assert_not_awaited()
 
 
 @pytest.mark.asyncio
-async def test_install_crds_force(k8s_v1_client: Mock) -> None:
+async def test_install_crds_force(k8s_v1_ext_client: Mock) -> None:
     """Test install_crds."""
 
     async with aopen(CRD_FILE) as f:
@@ -149,7 +112,9 @@ async def test_install_crds_force(k8s_v1_client: Mock) -> None:
 
     await install_crds(force=True)
 
-    k8s_v1_client.delete_custom_resource_definition.assert_awaited_once_with(
+    k8s_v1_ext_client.delete_custom_resource_definition.assert_awaited_once_with(
         "arkclusters.mort.is"
     )
-    k8s_v1_client.create_custom_resource_definition.assert_awaited_once_with(body=crds)
+    k8s_v1_ext_client.create_custom_resource_definition.assert_awaited_once_with(
+        body=crds
+    )

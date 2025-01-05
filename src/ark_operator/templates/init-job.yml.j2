@@ -28,8 +28,15 @@ spec:
             - name: ARK_OP_DRY_RUN
               value: "True"
           {% endif %}
+            # Steam requires a writable home directory
+            - name: HOME
+              value: /mnt/server-a/steam
             - name: ARK_CLUSTER_SPEC
               value: '{{ spec }}'
+            - name: ARK_SERVER_HOST
+              value: "127.0.0.1"
+            - name: ARK_SERVER_RCON_PASSWORD
+              value: "notactuallythepassword"
           securityContext:
             runAsUser: {{ uid }}
             runAsGroup: {{ gid }}

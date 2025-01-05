@@ -157,6 +157,11 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     if status.is_stage_completed(ClusterStage.INIT_PVC):
         return
 
+    if not status.is_stage_completed(
+        ClusterStage.SERVER_PVC
+    ) or not status.is_stage_completed(ClusterStage.DATA_PVC):
+        raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=1)
+
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE

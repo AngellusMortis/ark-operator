@@ -130,7 +130,7 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
 
         result = _run(
@@ -159,7 +159,7 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
@@ -192,7 +192,7 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
 
         result = _run(
@@ -216,7 +216,7 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
@@ -247,7 +247,7 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
 
         result = _run(
@@ -258,10 +258,7 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
         )
 
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
-        )
-        _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
         _run(
             f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
@@ -283,7 +280,7 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
             f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=false arkcluster/ark --timeout=30s",
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
 
         result = _run(
@@ -317,7 +314,7 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=30s",
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=300s",
         )
 
         result = _run(

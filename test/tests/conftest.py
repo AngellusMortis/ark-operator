@@ -3,6 +3,7 @@
 import os
 from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -59,6 +60,75 @@ async def cleanup_client() -> AsyncGenerator[None]:
     yield
 
     await close_k8s_client()
+
+
+@pytest_asyncio.fixture(name="k8s_client")
+async def k8s_client_fixture() -> AsyncGenerator[Mock]:
+    """k8s client fixture."""
+
+    with (
+        patch("ark_operator.k8s.client.config") as mock_config,
+        patch("ark_operator.k8s.client.ApiClient") as mock_klass,
+    ):
+        mock_config.load_kube_config = AsyncMock()
+
+        mock_client = Mock()
+        mock_client.close = AsyncMock()
+        mock_klass.return_value = mock_client
+
+        yield mock_client
+
+
+@pytest_asyncio.fixture(name="k8s_v1_client")
+async def k8s_v1_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # noqa: ARG001
+    """k8s client fixture."""
+
+    with (
+        patch("ark_operator.k8s.client.client") as mock_v1_klass,
+    ):
+        mock_v1_client = Mock()
+        mock_v1_client.create_namespaced_persistent_volume_claim = AsyncMock()
+        mock_v1_client.delete_namespaced_persistent_volume_claim = AsyncMock()
+        mock_v1_client.patch_namespaced_persistent_volume_claim = AsyncMock()
+        mock_v1_client.read_namespaced_persistent_volume_claim = AsyncMock()
+
+        mock_v1_klass.CoreV1Api.return_value = mock_v1_client
+
+        yield mock_v1_client
+
+
+@pytest_asyncio.fixture(name="k8s_v1_ext_client")
+async def k8s_v1_ext_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # noqa: ARG001
+    """k8s client fixture."""
+
+    with (
+        patch("ark_operator.k8s.client.client") as mock_v1_klass,
+    ):
+        mock_v1_client = Mock()
+        mock_v1_client.read_custom_resource_definition = AsyncMock()
+        mock_v1_client.delete_custom_resource_definition = AsyncMock()
+        mock_v1_client.create_custom_resource_definition = AsyncMock()
+
+        mock_v1_klass.ApiextensionsV1Api.return_value = mock_v1_client
+
+        yield mock_v1_client
+
+
+@pytest_asyncio.fixture(name="k8s_v1_batch_client")
+async def k8s_v1_batch_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # noqa: ARG001
+    """k8s client fixture."""
+
+    with (
+        patch("ark_operator.k8s.client.client") as mock_v1_klass,
+    ):
+        mock_v1_client = Mock()
+        mock_v1_client.create_namespaced_job = AsyncMock()
+        mock_v1_client.read_namespaced_job = AsyncMock()
+        mock_v1_client.delete_namespaced_job = AsyncMock()
+
+        mock_v1_klass.BatchV1Api.return_value = mock_v1_client
+
+        yield mock_v1_client
 
 
 def pytest_sessionfinish() -> None:

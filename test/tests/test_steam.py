@@ -9,9 +9,11 @@ from unittest.mock import AsyncMock, Mock, call, patch
 import pytest
 import pytest_asyncio
 from aiofiles import open as aopen
+from aiofiles import os as aos
 from aiofiles.tempfile import TemporaryDirectory
 from pytest_httpx import HTTPXMock
 
+from ark_operator.data import ArkClusterSpec
 from ark_operator.exceptions import SteamCMDError
 from ark_operator.steam import Steam, install_steamcmd
 from tests.conftest import BASE_DIR
@@ -25,19 +27,19 @@ with (BASE_DIR / "test" / "archive.tar.gz").open("rb") as f:
     TEST_ARCHIVE["Linux"] = f.read()
 
 
-@pytest.fixture(name="steam")
-def steam_fixture() -> Steam:
-    """Steam fixture."""
-
-    return Steam(Path("/test/steam"))
-
-
 @pytest_asyncio.fixture(name="steamcmd_path")
 async def steamcmd_path_fixture() -> AsyncGenerator[Path]:
     """Steamcmd installed fixture."""
 
     async with TemporaryDirectory() as path:
-        yield Path(path)
+        yield Path(path) / "steam"
+
+
+@pytest.fixture(name="steam")
+def steam_fixture(steamcmd_path: Path) -> Steam:
+    """Steam fixture."""
+
+    return Steam(steamcmd_path)
 
 
 @pytest_asyncio.fixture(name="steamcmd_installed")
@@ -81,7 +83,7 @@ async def test_install_ark(mock_steamcmd: AsyncMock, steam: Steam) -> None:
 
     mock_steamcmd.assert_awaited_once_with(
         "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 validate +quit",
-        install_dir=Path("/test/steam"),
+        install_dir=steam.install_dir,
         retries=3,
         dry_run=False,
     )
@@ -96,7 +98,7 @@ async def test_install_ark_dry_run(mock_steamcmd: AsyncMock, steam: Steam) -> No
 
     mock_steamcmd.assert_awaited_once_with(
         "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 validate +quit",
-        install_dir=Path("/test/steam"),
+        install_dir=steam.install_dir,
         retries=3,
         dry_run=True,
     )
@@ -111,7 +113,7 @@ async def test_install_ark_no_validate(mock_steamcmd: AsyncMock, steam: Steam) -
 
     mock_steamcmd.assert_awaited_once_with(
         "+@ShutdownOnFailedCommand 1 +@NoPromptForPassword 1 +@sSteamCmdForcePlatformType windows +force_install_dir /test +login anonymous +app_update 2430930 +quit",
-        install_dir=Path("/test/steam"),
+        install_dir=steam.install_dir,
         retries=3,
         dry_run=False,
     )
@@ -159,9 +161,7 @@ async def test_steamcmd_run(
 
     await steam.cmd("test")
 
-    mock_install.assert_awaited_once_with(
-        Path("/test/steam"), force=False, dry_run=False
-    )
+    mock_install.assert_awaited_once_with(steam.install_dir, force=False, dry_run=False)
     mock_run.assert_awaited_once_with(
         "/test/steamcmd test",
         check=True,
@@ -182,9 +182,7 @@ async def test_steamcmd_run_dry_run(
 
     await steam.cmd("test", dry_run=True)
 
-    mock_install.assert_awaited_once_with(
-        Path("/test/steam"), force=False, dry_run=True
-    )
+    mock_install.assert_awaited_once_with(steam.install_dir, force=False, dry_run=True)
     mock_run.assert_awaited_once_with(
         "/test/steamcmd test",
         check=True,
@@ -209,9 +207,7 @@ async def test_steamcmd_run_retry(
 
     await steam.cmd("test", force_download=True)
 
-    mock_install.assert_awaited_once_with(
-        Path("/test/steam"), force=True, dry_run=False
-    )
+    mock_install.assert_awaited_once_with(steam.install_dir, force=True, dry_run=False)
     mock_run.assert_has_awaits(
         [
             call(
@@ -244,9 +240,7 @@ async def test_steamcmd_run_error(
     with pytest.raises(SteamCMDError):
         await steam.cmd("test", retries=0)
 
-    mock_install.assert_awaited_once_with(
-        Path("/test/steam"), force=False, dry_run=False
-    )
+    mock_install.assert_awaited_once_with(steam.install_dir, force=False, dry_run=False)
     mock_run.assert_awaited_once_with(
         "/test/steamcmd test", check=True, output_level=logging.INFO, dry_run=False
     )
@@ -395,3 +389,84 @@ async def test_install_steamcmd_reinstall_dry_run(
     assert path == steamcmd_installed / "steamcmd.sh"
     assert len(httpx_mock.get_requests()) == 0
     mock_shutil.rmtree.assert_not_awaited()
+
+
+@patch("ark_operator.steam.steamcmd_run")
+@patch("ark_operator.steam.install_steamcmd")
+@patch("ark_operator.steam.copy_ark")
+@pytest.mark.asyncio
+async def test_init_volumes(
+    mock_copy: AsyncMock,
+    mock_steamcmd: AsyncMock,
+    mock_run: AsyncMock,
+    steam: Steam,
+    steamcmd_path: Path,
+) -> None:
+    """Test init_volumes."""
+
+    base_dir = steamcmd_path.parent
+    spec = ArkClusterSpec()
+    await steam.init_volumes(steamcmd_path.parent, spec=spec)
+
+    assert await aos.path.exists(base_dir / "data" / "clusters" / "ark-cluster") is True
+    assert await aos.path.exists(base_dir / "data" / "maps") is True
+
+    for map_name in spec.server.all_maps:
+        list_dir = base_dir / "data" / "maps" / map_name / "lists"
+        assert (
+            await aos.path.exists(
+                base_dir / "data" / "maps" / map_name / "saved" / "Config"
+            )
+            is True
+        )
+        assert (
+            await aos.path.exists(base_dir / "data" / "maps" / map_name / "mods")
+            is True
+        )
+        assert await aos.path.exists(list_dir) is True
+        assert await aos.path.exists(list_dir / "PlayersExclusiveJoinList.txt") is True
+        assert await aos.path.exists(list_dir / "PlayersJoinNoCheckList.txt") is True
+
+    assert await aos.path.exists(base_dir / "server-a" / "steam") is True
+    assert await aos.path.exists(base_dir / "server-b" / "steam") is True
+    assert await aos.path.exists(base_dir / "server-a" / "ark") is True
+    assert await aos.path.exists(base_dir / "server-b" / "ark") is True
+
+    mock_run.assert_awaited_once()
+    mock_steamcmd.assert_awaited_once_with(
+        base_dir / "server-b" / "steam", dry_run=False
+    )
+    mock_copy.assert_awaited_once_with(
+        base_dir / "server-a" / "ark", base_dir / "server-b" / "ark", dry_run=False
+    )
+
+
+@patch("ark_operator.steam.aos")
+@patch("ark_operator.steam.steamcmd_run")
+@patch("ark_operator.steam.install_steamcmd")
+@patch("ark_operator.steam.copy_ark")
+@pytest.mark.asyncio
+async def test_init_volumes_dry_run(  # noqa: PLR0913
+    mock_copy: AsyncMock,
+    mock_steamcmd: AsyncMock,
+    mock_run: AsyncMock,
+    mock_aos: Mock,
+    steam: Steam,
+    steamcmd_path: Path,
+) -> None:
+    """Test init_volumes."""
+
+    mock_aos.makedirs = AsyncMock()
+
+    base_dir = steamcmd_path.parent
+    spec = ArkClusterSpec()
+    await steam.init_volumes(steamcmd_path.parent, spec=spec, dry_run=True)
+
+    mock_aos.makedirs.assert_not_awaited()
+    mock_run.assert_awaited_once()
+    mock_steamcmd.assert_awaited_once_with(
+        base_dir / "server-b" / "steam", dry_run=True
+    )
+    mock_copy.assert_awaited_once_with(
+        base_dir / "server-a" / "ark", base_dir / "server-b" / "ark", dry_run=True
+    )

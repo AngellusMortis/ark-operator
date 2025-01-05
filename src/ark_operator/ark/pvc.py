@@ -146,14 +146,15 @@ async def check_init_job(
             return False
         raise kopf.TemporaryError(ERROR_INIT_JOB_CHECK, delay=10) from ex
 
-    if force_delete:
+    if obj.status.failed and obj.status.failed >= JOB_RETRIES:
+        raise kopf.PermanentError(ERROR_INIT_FAILED)
+
+    completed = bool(obj.status.completion_time)
+    if completed or force_delete:
         logger.info("Deleting job %s", full_name)
         await v1.delete_namespaced_job(
             name=full_name, namespace=namespace, propagation_policy="Foreground"
         )
-        return False
-
-    if obj.status.failed >= JOB_RETRIES:
-        raise kopf.PermanentError(ERROR_INIT_FAILED)
+        return completed
 
     raise kopf.TemporaryError(ERROR_WAIT_INIT_POD, delay=10)

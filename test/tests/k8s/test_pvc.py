@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import kopf
 import pytest
-import pytest_asyncio
 
 from ark_operator.k8s import (
     check_pvc_exists,
@@ -15,44 +13,6 @@ from ark_operator.k8s import (
     delete_pvc,
     resize_pvc,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import AsyncGenerator
-
-
-@pytest_asyncio.fixture(name="k8s_client")
-async def k8s_client_fixture() -> AsyncGenerator[Mock]:
-    """k8s client fixture."""
-
-    with (
-        patch("ark_operator.k8s.client.config") as mock_config,
-        patch("ark_operator.k8s.client.ApiClient") as mock_klass,
-    ):
-        mock_config.load_kube_config = AsyncMock()
-
-        mock_client = Mock()
-        mock_client.close = AsyncMock()
-        mock_klass.return_value = mock_client
-
-        yield mock_client
-
-
-@pytest_asyncio.fixture(name="k8s_v1_client")
-async def k8s_v1_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # noqa: ARG001
-    """k8s client fixture."""
-
-    with (
-        patch("ark_operator.k8s.client.client") as mock_v1_klass,
-    ):
-        mock_v1_client = Mock()
-        mock_v1_client.create_namespaced_persistent_volume_claim = AsyncMock()
-        mock_v1_client.delete_namespaced_persistent_volume_claim = AsyncMock()
-        mock_v1_client.patch_namespaced_persistent_volume_claim = AsyncMock()
-        mock_v1_client.read_namespaced_persistent_volume_claim = AsyncMock()
-
-        mock_v1_klass.CoreV1Api.return_value = mock_v1_client
-
-        yield mock_v1_client
 
 
 @pytest.mark.asyncio(loop_scope="function")

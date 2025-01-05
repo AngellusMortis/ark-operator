@@ -346,6 +346,7 @@ class Steam:
 
         if not dry_run:
             for map_name in spec.server.all_maps:
+                list_dir = base_dir / "data" / "maps" / map_name / "lists"
                 await asyncio.gather(
                     aos.makedirs(
                         base_dir / "data" / "maps" / map_name / "saved" / "Config",
@@ -354,10 +355,10 @@ class Steam:
                     aos.makedirs(
                         base_dir / "data" / "maps" / map_name / "mods", exist_ok=True
                     ),
-                    aos.makedirs(
-                        base_dir / "data" / "maps" / map_name / "lists", exist_ok=True
-                    ),
+                    aos.makedirs(list_dir, exist_ok=True),
                 )
+                (list_dir / "PlayersExclusiveJoinList.txt").touch()
+                (list_dir / "PlayersJoinNoCheckList.txt").touch()
 
         _LOGGER.info("Initializing server-a volume")
         if not dry_run:

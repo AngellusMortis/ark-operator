@@ -5,6 +5,8 @@ metadata:
 spec:
   server:
     size: 50Gi
+    persist: true
     maps:
       - "@canonical"
   data:
+    persist: true
