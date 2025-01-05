@@ -92,6 +92,7 @@ async def get_pvc(*, name: str, namespace: str) -> V1PersistentVolumeClaim:
 async def create_pvc(  # noqa: PLR0913
     *,
     name: str,
+    instance_name: str,
     namespace: str,
     size: int | str,
     logger: kopf.Logger | None = None,
@@ -112,6 +113,7 @@ async def create_pvc(  # noqa: PLR0913
     pvc = yaml.safe_load(
         await pvc_tmpl.render_async(
             name=name,
+            instance_name=instance_name,
             storage_class=storage_class,
             size=size,
             access_mode=access_mode,

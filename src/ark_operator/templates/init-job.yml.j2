@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ instance_name }}-init
+  labels:
+    app.kubernetes.io/name: ark-operator
+    app.kubernetes.io/component: init-job
+    app.kubernetes.io/part-of: {{ instance_name }}
+spec:
+  backoffLimit: {{ retries }}
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: init-ark
+          image: ghcr.io/angellusmortis/ark-operator:master
+          imagePullPolicy: Always
+          command: ['arkctl', 'cluster', 'init-volumes', '/mnt']
+          volumeMounts:
+            - name: data
+              mountPath: /mnt/data
+            - name: server-a
+              mountPath: /mnt/server-a
+            - name: server-b
+              mountPath: /mnt/server-b
+          securityContext:
+            runAsUser: {{ uid }}
+            runAsGroup: {{ gid }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            seccompProfile:
+              type: "RuntimeDefault"
+            capabilities:
+              drop: ["ALL"]
+      initContainers:
+        - name: init-perms
+          image: debian:12.8-slim
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c', 'chown -R {{ uid }}:{{ gid }} /mnt/data /mnt/server-a /mnt/server-b']
+          volumeMounts:
+            - name: data
+              mountPath: /mnt/data
+            - name: server-a
+              mountPath: /mnt/server-a
+            - name: server-b
+              mountPath: /mnt/server-b
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ instance_name }}-data
+        - name: server-a
+          persistentVolumeClaim:
+            claimName: {{ instance_name }}-server-a
+        - name: server-b
+          persistentVolumeClaim:
+            claimName: {{ instance_name }}-server-b

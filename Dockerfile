@@ -46,8 +46,18 @@ FROM base AS prod
 COPY --from=builder-prod /usr/local/bin/ /usr/local/bin/
 COPY --from=builder-prod /usr/local/lib/python3.12/ /usr/local/lib/python3.12/
 
+RUN --mount=source=./,target=/tmp/ark-operator,type=bind \
+    --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
+    --mount=type=cache,mode=0755,id=pip,target=/root/.cache \
+    ls -la /tmp/ark-operator && \
+    && cd /tmp/ark-operator \
+    && apt-get update -qq \
+    && apt-get install -yqq git \
+    && pip install . \
+    && apt-get remove -yqq git
 USER app
-WORKDIR /workspaces/ark-operator/
+WORKDIR /
 
 
 # dev container

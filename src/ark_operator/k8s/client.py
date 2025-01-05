@@ -39,6 +39,12 @@ async def get_v1_client() -> client.CoreV1Api:
     return client.CoreV1Api(await get_k8s_client())
 
 
+async def get_v1_batch_client() -> client.BatchV1Api:
+    """Get v1 k8s client."""
+
+    return client.BatchV1Api(await get_k8s_client())
+
+
 async def get_v1_ext_client() -> client.ApiextensionsV1Api:
     """Get v1 k8s client."""
 

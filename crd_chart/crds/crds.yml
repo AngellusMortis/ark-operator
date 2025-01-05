@@ -115,6 +115,13 @@ spec:
                 type: integer
                 description: |-
                   GID to run containers as. Affects GID of ownership of files. Defaults to 65535
+              cluster:
+                type: object
+                properties:
+                  clusterID:
+                    type: string
+                    description: |-
+                      Cluster ID for ARK server cluster. Defaults to ark-cluster.
           status:
             type: object
             properties:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING, Annotated, cast
 
 from cyclopts import App, CycloptsError, Parameter
@@ -12,6 +11,7 @@ from ark_operator.cli.context import ClusterContext, get_all_context, set_contex
 from ark_operator.cli.options import (
     OPTION_ARK_SELECTOR,
     OPTION_ARK_SPEC,
+    OPTION_DRY_RUN,
     OPTION_OPTIONAL_HOST,
     OPTION_RCON_PASSWORD,
 )
@@ -20,9 +20,11 @@ from ark_operator.k8s import are_crds_installed, close_k8s_client
 from ark_operator.k8s import install_crds as install_crds_api
 from ark_operator.k8s import uninstall_crds as uninstall_crds_api
 from ark_operator.rcon import send_cmd_all
+from ark_operator.steam import Steam
 
 if TYPE_CHECKING:
     from ipaddress import IPv4Address, IPv6Address
+    from pathlib import Path
 
 
 cluster = App(
@@ -33,7 +35,6 @@ cluster = App(
 """
 )
 
-_LOGGER = logging.getLogger(__name__)
 ERROR_HOST_REQUIRED = "Host is required from the option or from loadBalancerIP on spec."
 
 
@@ -62,7 +63,6 @@ def meta(
     Helpful commands for managing an ARK: Survival Ascended k8s server cluster.
     """
 
-    print(spec.server.load_balancer_ip)
     selected_maps = expand_maps(selector.copy(), all_maps=spec.server.all_maps)
     set_context(
         "cluster",
@@ -108,6 +108,15 @@ async def check_crds() -> int:
         await close_k8s_client()
 
     return 0
+
+
+@cluster.command
+async def init_volumes(base_dir: Path, *, dry_run: OPTION_DRY_RUN = False) -> None:
+    """Initialize volumes for cluster."""
+
+    context = _get_context()
+    steam = Steam(base_dir / "server-a" / "steam")
+    await steam.init_volumes(base_dir, spec=context.spec, dry_run=dry_run)
 
 
 @cluster.command

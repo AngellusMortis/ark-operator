@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import platform
 import tarfile
@@ -10,7 +11,7 @@ import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from subprocess import CalledProcessError, CompletedProcess
-from typing import Literal, overload
+from typing import TYPE_CHECKING, Literal, overload
 
 import aioshutil
 import httpx
@@ -23,6 +24,9 @@ from ark_operator.ark import ARK_SERVER_APP_ID, copy_ark, has_newer_version
 from ark_operator.command import run_async
 from ark_operator.decorators import sync_only
 from ark_operator.exceptions import SteamCMDError
+
+if TYPE_CHECKING:
+    from ark_operator.data import ArkClusterSpec
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
@@ -327,3 +331,48 @@ class Steam:
         """Check if ARK has newer version."""
 
         return await has_newer_version(self, ark_dir)
+
+    async def init_volumes(
+        self, base_dir: Path, *, spec: ArkClusterSpec, dry_run: bool = False
+    ) -> None:
+        """Initialize ARK cluster volumes."""
+
+        _LOGGER.info("Initializing data volume (%s maps)", len(spec.server.all_maps))
+        if not dry_run:
+            await aos.makedirs(
+                base_dir / "data" / "clusters" / spec.cluster.cluster_id, exist_ok=True
+            )
+            await aos.makedirs(base_dir / "data" / "maps", exist_ok=True)
+
+        if not dry_run:
+            for map_name in spec.server.all_maps:
+                await asyncio.gather(
+                    aos.makedirs(
+                        base_dir / "data" / "maps" / map_name / "saved" / "Config",
+                        exist_ok=True,
+                    ),
+                    aos.makedirs(
+                        base_dir / "data" / "maps" / map_name / "mods", exist_ok=True
+                    ),
+                    aos.makedirs(
+                        base_dir / "data" / "maps" / map_name / "lists", exist_ok=True
+                    ),
+                )
+
+        _LOGGER.info("Initializing server-a volume")
+        if not dry_run:
+            await aos.makedirs(base_dir / "server-a" / "steam", exist_ok=True)
+            await aos.makedirs(base_dir / "server-a" / "ark", exist_ok=True)
+        steam = Steam(install_dir=base_dir / "server-a" / "steam")
+        await steam.install_ark(base_dir / "server-a" / "ark", dry_run=dry_run)
+
+        _LOGGER.info("Initializing server-b volume")
+        if not dry_run:
+            await aos.makedirs(base_dir / "server-b" / "steam", exist_ok=True)
+            await aos.makedirs(base_dir / "server-b" / "ark", exist_ok=True)
+        await install_steamcmd(base_dir / "server-b" / "steam", dry_run=dry_run)
+        await copy_ark(
+            base_dir / "server-a" / "ark",
+            base_dir / "server-b" / "ark",
+            dry_run=dry_run,
+        )

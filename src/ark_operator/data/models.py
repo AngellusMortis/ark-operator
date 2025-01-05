@@ -37,7 +37,12 @@ MAP_LOOPUP_MAP = {
 }
 
 States = Literal[
-    "Initializing", "Creating PVCs", "Updating PVCs", "Deleting PVCs", "Running"
+    "Initializing",
+    "Creating PVCs",
+    "Initialing PVCs",
+    "Updating PVCs",
+    "Deleting PVCs",
+    "Running",
 ]
 
 
@@ -124,6 +129,12 @@ class ArkDataSpec(BaseK8sModel):
     persist: bool = True
 
 
+class ArkClusterSettings(BaseK8sModel):
+    """ArkCluster.spec.cluster CRD spec."""
+
+    cluster_id: str = "ark-cluster"
+
+
 class ArkClusterSpec(BaseK8sModel):
     """ArkCluster.spec CRD spec."""
 
@@ -131,6 +142,7 @@ class ArkClusterSpec(BaseK8sModel):
     data: ArkDataSpec = ArkDataSpec()
     run_as_user: int = 65535
     run_as_group: int = 65535
+    cluster: ArkClusterSettings = ArkClusterSettings()
 
 
 class ArkClusterStatus(BaseK8sModel):

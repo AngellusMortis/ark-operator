@@ -222,7 +222,13 @@ async def test_create_pvc(k8s_v1_client: Mock) -> None:
     )
 
     assert (
-        await create_pvc(name="test", namespace="test", size="50Gi", logger=Mock())
+        await create_pvc(
+            name="test",
+            instance_name="testing",
+            namespace="test",
+            size="50Gi",
+            logger=Mock(),
+        )
         is True
     )
 
@@ -231,7 +237,14 @@ async def test_create_pvc(k8s_v1_client: Mock) -> None:
         body={
             "apiVersion": "v1",
             "kind": "PersistentVolumeClaim",
-            "metadata": {"name": "test"},
+            "metadata": {
+                "name": "testing-test",
+                "labels": {
+                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/component": "test",
+                    "app.kubernetes.io/part-of": "testing",
+                },
+            },
             "spec": {
                 "accessModes": ["ReadWriteOnce"],
                 "resources": {"requests": {"storage": "50Gi"}},
@@ -254,6 +267,7 @@ async def test_create_pvc_storage_class(k8s_v1_client: Mock) -> None:
     assert (
         await create_pvc(
             name="test",
+            instance_name="testing",
             namespace="test",
             size="50Gi",
             access_mode="ReadWriteMany",
@@ -269,7 +283,14 @@ async def test_create_pvc_storage_class(k8s_v1_client: Mock) -> None:
         body={
             "apiVersion": "v1",
             "kind": "PersistentVolumeClaim",
-            "metadata": {"name": "test"},
+            "metadata": {
+                "name": "testing-test",
+                "labels": {
+                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/component": "test",
+                    "app.kubernetes.io/part-of": "testing",
+                },
+            },
             "spec": {
                 "storageClassName": "longhorn",
                 "accessModes": ["ReadWriteMany"],
@@ -286,6 +307,7 @@ async def test_create_pvc_too_small(k8s_v1_client: Mock) -> None:
     with pytest.raises(kopf.PermanentError):
         await create_pvc(
             name="test",
+            instance_name="testing",
             namespace="test",
             size="40Gi",
             access_mode="ReadWriteMany",
@@ -306,14 +328,27 @@ async def test_create_pvc_error(k8s_v1_client: Mock) -> None:
     )
 
     with pytest.raises(kopf.PermanentError):
-        await create_pvc(name="test", namespace="test", size="50Gi", logger=Mock())
+        await create_pvc(
+            name="test",
+            instance_name="testing",
+            namespace="test",
+            size="50Gi",
+            logger=Mock(),
+        )
 
     k8s_v1_client.create_namespaced_persistent_volume_claim.assert_awaited_once_with(
         namespace="test",
         body={
             "apiVersion": "v1",
             "kind": "PersistentVolumeClaim",
-            "metadata": {"name": "test"},
+            "metadata": {
+                "name": "testing-test",
+                "labels": {
+                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/component": "test",
+                    "app.kubernetes.io/part-of": "testing",
+                },
+            },
             "spec": {
                 "accessModes": ["ReadWriteOnce"],
                 "resources": {"requests": {"storage": "50Gi"}},

@@ -5,6 +5,8 @@ from typing import Unpack
 import kopf
 
 from ark_operator.ark import (
+    check_init_job,
+    create_init_job,
     update_data_pvc,
     update_server_pvc,
 )
@@ -20,6 +22,7 @@ from ark_operator.k8s import delete_pvc, get_k8s_client
 DEFAULT_NAME = "ark"
 DEFAULT_NAMESPACE = "default"
 ERROR_WAIT_PVC = "Waiting for PVC to complete"
+ERROR_WAIT_INIT_POD = "Waiting for volume init pod to completed."
 
 
 @kopf.on.startup()  # type: ignore[arg-type]
@@ -65,6 +68,13 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
     data_done = status.is_stage_completed(ClusterStage.DATA_PVC)
     if not server_done or not data_done:
         status.state = "Creating PVCs"
+        patch = kwargs["patch"]
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
+
+    init_done = status.is_stage_completed(ClusterStage.INIT_PVC)
+    if server_done and data_done and not init_done:
+        status.state = "Initialing PVCs"
         patch = kwargs["patch"]
         patch.status.update(**status.model_dump(include={"state", "ready"}))
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
@@ -129,10 +139,39 @@ async def on_create_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
             warn_existing=True,
         )
     except kopf.PermanentError as ex:
-        kwargs["patch"].status["state"] = str(ex)
+        kwargs["patch"].status["state"] = f"Error: {ex!s}"
         raise
 
     kwargs["patch"].status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+
+
+@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
+@kopf.on.create("arkcluster")
+async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
+    """Create an ARKCluster."""
+
+    status = ArkClusterStatus(**kwargs["status"])
+    if status.is_stage_completed(ClusterStage.INIT_PVC):
+        return
+
+    logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+    spec = ArkClusterSpec(**kwargs["spec"])
+
+    try:
+        job_result = await check_init_job(name=name, namespace=namespace, logger=logger)
+        if not job_result:
+            logger.info("Init job does not exist yet, creating it")
+            await create_init_job(
+                name=name, namespace=namespace, spec=spec, logger=logger
+            )
+            raise kopf.TemporaryError(ERROR_WAIT_INIT_POD, delay=10)
+    except kopf.PermanentError as ex:
+        kwargs["patch"].status["state"] = f"Error: {ex!s}"
+        raise
+
+    kwargs["patch"].status["stages"] = status.mark_stage_complete(ClusterStage.INIT_PVC)
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -256,3 +295,16 @@ async def on_delete_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
             namespace=namespace,
             logger=logger,
         )
+
+
+@kopf.on.delete("arkcluster")  # type: ignore[arg-type]
+async def on_delete_init_job(**kwargs: Unpack[ChangeEvent]) -> None:
+    """Delete an ARKCluster."""
+
+    logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+
+    await check_init_job(
+        name=name, namespace=namespace, logger=logger, force_delete=True
+    )

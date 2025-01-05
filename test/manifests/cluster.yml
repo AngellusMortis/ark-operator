@@ -4,7 +4,7 @@ metadata:
   name: ark
 spec:
   server:
-    size: 55Gi
+    size: 50Gi
     maps:
-      - @canonical
+      - "@canonical"
   data:

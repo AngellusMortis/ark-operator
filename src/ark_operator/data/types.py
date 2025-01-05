@@ -32,6 +32,7 @@ class ClusterStage(StrEnum):
 
     SERVER_PVC = "server_pvc"
     DATA_PVC = "data_pvc"
+    INIT_PVC = "init_pvc"
 
 
 class ActivityEvent(TypedDict):

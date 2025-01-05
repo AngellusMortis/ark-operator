@@ -2,17 +2,30 @@
 
 import asyncio
 import logging
+from http import HTTPStatus
 
 import kopf
+import yaml
 from environs import Env
+from kubernetes_asyncio.client import ApiException
 
-from ark_operator.data import ArkDataSpec, ArkServerSpec
-from ark_operator.k8s import check_pvc_exists, create_pvc
+from ark_operator.data import ArkClusterSpec, ArkDataSpec, ArkServerSpec
+from ark_operator.k8s import (
+    check_pvc_exists,
+    create_pvc,
+    get_v1_batch_client,
+)
+from ark_operator.templates import loader
 
 _ENV = Env()
 MIN_SIZE_SERVER = _ENV("ARK_OP_MIN_SERVER_SIZE", "50Gi")
+JOB_RETRIES = 3
 
 ERROR_PVC_ALREADY_EXISTS = "Failed to create PVC because it already exists."
+ERROR_INIT_POD = "Failed to create volume init pod."
+ERROR_INIT_POD_CHECK = "Failed to check on volume init pod."
+ERROR_WAIT_INIT_POD = "Waiting for volume init pod to completed."
+ERROR_INIT_FAILED = "Failed to initialize PVCs."
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -26,18 +39,18 @@ async def update_server_pvc(
     """Create or update ARK server PVCs."""
 
     logger = logger or _LOGGER
-    pvcs = [
-        f"{name}-server-a",
-        f"{name}-server-b",
-    ]
     tasks = []
-    for pvc_name in pvcs:
+    for pvc_name in ["server-a", "server-b"]:
         if not await check_pvc_exists(
-            name=pvc_name, namespace=namespace, logger=logger, new_size=spec.size
+            name=f"{name}-{pvc_name}",
+            namespace=namespace,
+            logger=logger,
+            new_size=spec.size,
         ):
             tasks.append(  # noqa: PERF401
                 create_pvc(
                     name=pvc_name,
+                    instance_name=name,
                     namespace=namespace,
                     storage_class=spec.storage_class,
                     size=spec.size,
@@ -61,12 +74,13 @@ async def update_data_pvc(
     """Create or update ARK data PVC."""
 
     logger = logger or _LOGGER
-    pvc = f"{name}-data"
+    full_name = f"{name}-data"
     if not await check_pvc_exists(
-        name=pvc, namespace=namespace, logger=logger, new_size=spec.size
+        name=full_name, namespace=namespace, logger=logger, new_size=spec.size
     ):
         await create_pvc(
-            name=pvc,
+            name="data",
+            instance_name=name,
             namespace=namespace,
             storage_class=spec.storage_class,
             access_mode="ReadWriteMany",
@@ -75,3 +89,68 @@ async def update_data_pvc(
         )
     elif warn_existing:
         logger.warning("Failed to create PVC because it already exists: %s", name)
+
+
+async def create_init_job(
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    logger: kopf.Logger | None = None,
+) -> None:
+    """Create pod to initialize PVCs."""
+
+    logger = logger or _LOGGER
+    pod_tmpl = loader.get_template("init-job.yml.j2")
+    pod = yaml.safe_load(
+        await pod_tmpl.render_async(
+            instance_name=name,
+            uid=spec.run_as_user,
+            gid=spec.run_as_group,
+            retries=JOB_RETRIES,
+        )
+    )
+
+    v1 = await get_v1_batch_client()
+    try:
+        obj = await v1.create_namespaced_job(
+            namespace=namespace,
+            body=pod,
+        )
+    except Exception as ex:
+        raise kopf.PermanentError(ERROR_INIT_POD) from ex
+
+    logger.info("Created Volume init job: %s", obj.metadata.name)
+
+
+async def check_init_job(
+    *,
+    name: str,
+    namespace: str,
+    logger: kopf.Logger | None = None,
+    force_delete: bool = False,
+) -> bool:
+    """Check if PVC init pod has completed and clean it up."""
+
+    logger = logger or _LOGGER
+    full_name = f"{name}-init"
+    v1 = await get_v1_batch_client()
+    logger.debug("Fetching init job")
+    try:
+        obj = await v1.read_namespaced_job(name=full_name, namespace=namespace)
+    except ApiException as ex:
+        if ex.status == HTTPStatus.NOT_FOUND:
+            return False
+        raise kopf.TemporaryError(ERROR_INIT_POD_CHECK, delay=10) from ex
+
+    if force_delete:
+        logger.info("Deleting job %s", full_name)
+        await v1.delete_namespaced_job(
+            name=full_name, namespace=namespace, propagation_policy="Foreground"
+        )
+        return False
+
+    if obj.status.failed >= JOB_RETRIES:
+        raise kopf.PermanentError(ERROR_INIT_FAILED)
+
+    raise kopf.TemporaryError(ERROR_WAIT_INIT_POD, delay=10)

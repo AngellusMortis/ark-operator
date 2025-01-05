@@ -3,6 +3,7 @@
 from ark_operator.k8s.client import (
     close_k8s_client,
     get_k8s_client,
+    get_v1_batch_client,
     get_v1_client,
     get_v1_ext_client,
 )
@@ -25,6 +26,7 @@ __all__ = [
     "delete_pvc",
     "get_k8s_client",
     "get_pvc",
+    "get_v1_batch_client",
     "get_v1_client",
     "get_v1_ext_client",
     "install_crds",
