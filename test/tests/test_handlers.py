@@ -42,6 +42,12 @@ def _run(cmd: str, shell: bool = False, check: bool = True) -> CompletedProcess[
     return run_sync(cmd, check=check, shell=shell, echo=True)
 
 
+def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
+    _run(
+        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'={str(ready).lower()} arkcluster/ark --timeout=60s",
+    )
+
+
 def _verify_startup(namespace: str) -> None:
     # PVC setup
     try:
@@ -56,11 +62,9 @@ def _verify_startup(namespace: str) -> None:
             f"kubectl -n {namespace} wait --for=jsonpath='{{.status.active}}'=1 job/ark-init --timeout=30s",
         )
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'=1 job/ark-init --timeout=30s",
+            f"kubectl -n {namespace} wait --for=delete job/ark-init --timeout=300s",
         )
-        _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=600s",
-        )
+        _verify_cluster_ready(namespace)
 
         _run(
             f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
@@ -276,7 +280,8 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
             f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
             shell=True,
         )
-        _verify_startup(k8s_namespace)
+        _verify_cluster_ready(k8s_namespace, ready=False)
+        _verify_cluster_ready(k8s_namespace)
 
         result = _run(
             f"kubectl -n {k8s_namespace} get pvc --no-headers -o custom-columns=':metadata.name,:spec.resources.requests.storage'"
