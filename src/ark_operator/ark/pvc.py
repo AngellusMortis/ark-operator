@@ -22,8 +22,8 @@ MIN_SIZE_SERVER = _ENV("ARK_OP_MIN_SERVER_SIZE", "50Gi")
 JOB_RETRIES = 3
 
 ERROR_PVC_ALREADY_EXISTS = "Failed to create PVC because it already exists."
-ERROR_INIT_POD = "Failed to create volume init pod."
-ERROR_INIT_POD_CHECK = "Failed to check on volume init pod."
+ERROR_INIT_JOB = "Failed to create volume init job."
+ERROR_INIT_JOB_CHECK = "Failed to check on volume init job."
 ERROR_WAIT_INIT_POD = "Waiting for volume init pod to completed."
 ERROR_INIT_FAILED = "Failed to initialize PVCs."
 _LOGGER = logging.getLogger(__name__)
@@ -97,17 +97,20 @@ async def create_init_job(
     namespace: str,
     spec: ArkClusterSpec,
     logger: kopf.Logger | None = None,
+    dry_run: bool = False,
 ) -> None:
     """Create pod to initialize PVCs."""
 
     logger = logger or _LOGGER
-    pod_tmpl = loader.get_template("init-job.yml.j2")
-    pod = yaml.safe_load(
-        await pod_tmpl.render_async(
+    job_tmpl = loader.get_template("init-job.yml.j2")
+    job = yaml.safe_load(
+        await job_tmpl.render_async(
             instance_name=name,
             uid=spec.run_as_user,
             gid=spec.run_as_group,
             retries=JOB_RETRIES,
+            spec=spec.model_dump_json(),
+            dry_run=dry_run,
         )
     )
 
@@ -115,10 +118,10 @@ async def create_init_job(
     try:
         obj = await v1.create_namespaced_job(
             namespace=namespace,
-            body=pod,
+            body=job,
         )
     except Exception as ex:
-        raise kopf.PermanentError(ERROR_INIT_POD) from ex
+        raise kopf.PermanentError(ERROR_INIT_JOB) from ex
 
     logger.info("Created Volume init job: %s", obj.metadata.name)
 
@@ -141,7 +144,7 @@ async def check_init_job(
     except ApiException as ex:
         if ex.status == HTTPStatus.NOT_FOUND:
             return False
-        raise kopf.TemporaryError(ERROR_INIT_POD_CHECK, delay=10) from ex
+        raise kopf.TemporaryError(ERROR_INIT_JOB_CHECK, delay=10) from ex
 
     if force_delete:
         logger.info("Deleting job %s", full_name)

@@ -14,7 +14,7 @@ aiosignal==1.3.2
     # via aiohttp
 annotated-types==0.7.0
     # via pydantic
-anyio==4.7.0
+anyio==4.8.0
     # via
     #   asyncer
     #   httpx
@@ -41,7 +41,7 @@ click==8.1.8
     # via kopf
 colorama==0.4.6
     # via ark-operator (pyproject.toml)
-cyclopts==3.1.3
+cyclopts @ git+https://github.com/BrianPugh/cyclopts@2a944b99b5e49b76bac9e45c03533afe43cc192f
     # via ark-operator (pyproject.toml)
 docstring-parser==0.16
     # via cyclopts
@@ -93,7 +93,7 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via jinja2
-marshmallow==3.23.2
+marshmallow==3.23.3
     # via environs
 mdurl==0.1.2
     # via markdown-it-py
@@ -129,7 +129,7 @@ pydantic-core==2.27.2
     # via pydantic
 pydantic-settings==2.7.1
     # via ark-operator (pyproject.toml)
-pygments==2.18.0
+pygments==2.19.0
     # via rich
 pykube-ng==23.6.0
     # via kopf

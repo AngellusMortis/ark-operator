@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from pathlib import Path  # required for cyclopts  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, cast
 
 from cyclopts import App, CycloptsError, Parameter
@@ -24,7 +25,6 @@ from ark_operator.steam import Steam
 
 if TYPE_CHECKING:
     from ipaddress import IPv4Address, IPv6Address
-    from pathlib import Path
 
 
 cluster = App(

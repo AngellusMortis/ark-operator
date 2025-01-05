@@ -3,6 +3,7 @@
 from typing import Unpack
 
 import kopf
+from environs import Env
 
 from ark_operator.ark import (
     check_init_job,
@@ -19,6 +20,8 @@ from ark_operator.data import (
 )
 from ark_operator.k8s import delete_pvc, get_k8s_client
 
+_ENV = Env()
+DRY_RUN = _ENV.bool("ARK_OP_KOPF_DRY_RUN", _ENV.bool("ARK_OP_DRY_RUN", False))
 DEFAULT_NAME = "ark"
 DEFAULT_NAMESPACE = "default"
 ERROR_WAIT_PVC = "Waiting for PVC to complete"
@@ -164,7 +167,11 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         if not job_result:
             logger.info("Init job does not exist yet, creating it")
             await create_init_job(
-                name=name, namespace=namespace, spec=spec, logger=logger
+                name=name,
+                namespace=namespace,
+                spec=spec,
+                logger=logger,
+                dry_run=DRY_RUN,
             )
             raise kopf.TemporaryError(ERROR_WAIT_INIT_POD, delay=10)
     except kopf.PermanentError as ex:

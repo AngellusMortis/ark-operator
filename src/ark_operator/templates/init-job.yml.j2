@@ -23,6 +23,13 @@ spec:
               mountPath: /mnt/server-a
             - name: server-b
               mountPath: /mnt/server-b
+          env:
+          {% if dry_run %}
+            - name: ARK_OP_DRY_RUN
+              value: "True"
+          {% endif %}
+            - name: ARK_CLUSTER_SPEC
+              value: '{{ spec }}'
           securityContext:
             runAsUser: {{ uid }}
             runAsGroup: {{ gid }}

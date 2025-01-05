@@ -59,6 +59,7 @@ RUN --mount=source=./,target=/tmp/ark-operator,type=bind \
     && apt-get autoremove -yqq
 USER app
 WORKDIR /
+ENTRYPOINT [ "arkctl" ]
 
 
 # dev container

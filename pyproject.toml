@@ -28,7 +28,7 @@ dependencies = [
     "aioshutil",
     "asyncer",
     "colorama",
-    "cyclopts",
+    "cyclopts @ git+https://github.com/BrianPugh/cyclopts@json-data",
     "environs",
     "gamercon-async",
     "httpx",
@@ -199,3 +199,5 @@ asyncio_default_fixture_loop_scope = "session"
 
 [tool.pytest_env]
 ARK_OP_MIN_SERVER_SIZE = "1Mi"
+# do not actually install ARK or run servers for tests
+ARK_OP_KOPF_DRY_RUN = "True"
