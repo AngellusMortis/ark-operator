@@ -80,6 +80,16 @@ def _verify_startup(namespace: str) -> None:
         _run(f"kubectl -n {namespace} get all", check=False)
 
         result = _run(
+            f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
+        )
+        for pvc in result.stdout.strip().split("\n"):
+            pvc = pvc.strip()  # noqa: PLW2901
+            if not pvc:
+                continue
+
+            _run(f"kubectl -n {namespace} describe pvc/{pvc}", check=False)
+
+        result = _run(
             f"kubectl -n {namespace} get pod --no-headers -o custom-columns=':metadata.name'"
         )
         for pod in result.stdout.strip().split("\n"):
@@ -87,6 +97,7 @@ def _verify_startup(namespace: str) -> None:
             if not pod:
                 continue
 
+            _run(f"kubectl -n {namespace} describe pod/{pod}", check=False)
             _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
             _run(f"kubectl -n {namespace} logs -c init-ark pod/{pod}", check=False)
         raise
