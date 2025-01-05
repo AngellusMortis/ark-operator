@@ -50,7 +50,7 @@ RUN --mount=source=./,target=/tmp/ark-operator,type=bind \
     --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     --mount=type=cache,mode=0755,id=pip,target=/root/.cache \
-    ls -la /tmp/ark-operator && \
+    ls -la /tmp/ark-operator \
     && cd /tmp/ark-operator \
     && apt-get update -qq \
     && apt-get install -yqq git \
