@@ -13,8 +13,6 @@ from ark_operator.command import run_sync
 from ark_operator.k8s import get_v1_ext_client
 from tests.conftest import BASE_DIR, remove_cluster_finalizers
 
-GHA_FAIL = "Will fail in Github Actions until pods are created"
-
 CRDS = BASE_DIR / "crd_chart" / "crds" / "crds.yml"
 CLUSTER_SPEC: dict[str, Any] = {
     "apiVersion": "mort.is/v1beta1",
@@ -46,26 +44,48 @@ def _run(cmd: str, shell: bool = False, check: bool = True) -> CompletedProcess[
 
 def _verify_startup(namespace: str) -> None:
     # PVC setup
-    _run(
-        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.state}}'='Initializing PVCs' arkcluster/ark --timeout=30s",
-    )
-    result = _run(
-        f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
-    )
-    _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
-    _run(
-        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=600s",
-    )
+    try:
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.state}}'='Initializing PVCs' arkcluster/ark --timeout=30s",
+        )
+        result = _run(
+            f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
+        )
+        _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.active}}'=1 job/ark-init --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'=1 job/ark-init --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'=true arkcluster/ark --timeout=600s",
+        )
 
-    _run(
-        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
-    )
-    _run(
-        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
-    )
-    _run(
-        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
-    )
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
+        )
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
+        )
+    except Exception:
+        _run(f"kubectl -n {namespace} get arkcluster", check=False)
+        _run(f"kubectl -n {namespace} get all", check=False)
+
+        result = _run(
+            f"kubectl -n {namespace} get pod --no-headers -o custom-columns=':metadata.name'"
+        )
+        for pod in result.stdout.strip().split("\n"):
+            pod = pod.strip()  # noqa: PLW2901
+            if not pod:
+                continue
+
+            _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
+            _run(f"kubectl -n {namespace} logs -c init-ark pod/{pod}", check=False)
+        raise
 
 
 def _delete_cluster(
@@ -223,7 +243,6 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
-@pytest.mark.xfail(reason=GHA_FAIL)
 def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
 
@@ -270,7 +289,6 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
-@pytest.mark.xfail(reason=GHA_FAIL)
 def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
 
