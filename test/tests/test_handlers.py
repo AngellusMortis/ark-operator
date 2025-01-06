@@ -56,10 +56,42 @@ def _run(cmd: str, shell: bool = False, check: bool = True) -> CompletedProcess[
     return run_sync(cmd, check=check, shell=shell, echo=True)
 
 
-def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
-    _run(
-        f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'={str(ready).lower()} arkcluster/ark --timeout=60s",
+def _dump_namespace(namespace: str) -> None:
+    _run(f"kubectl -n {namespace} get arkcluster", check=False)
+    _run(f"kubectl -n {namespace} get all", check=False)
+    _run(f"kubectl -n {namespace} get pvc", check=False)
+
+    result = _run(
+        f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
     )
+    for pvc in result.stdout.strip().split("\n"):
+        pvc = pvc.strip()  # noqa: PLW2901
+        if not pvc:
+            continue
+
+        _run(f"kubectl -n {namespace} describe pvc/{pvc}", check=False)
+
+    result = _run(
+        f"kubectl -n {namespace} get pod --no-headers -o custom-columns=':metadata.name'"
+    )
+    for pod in result.stdout.strip().split("\n"):
+        pod = pod.strip()  # noqa: PLW2901
+        if not pod:
+            continue
+
+        _run(f"kubectl -n {namespace} describe pod/{pod}", check=False)
+        _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
+        _run(f"kubectl -n {namespace} logs -c init-ark pod/{pod}", check=False)
+
+
+def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
+    try:
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'={str(ready).lower()} arkcluster/ark --timeout=120s",
+        )
+    except Exception:
+        _dump_namespace(namespace)
+        raise
 
 
 def _verify_startup(namespace: str) -> None:
@@ -78,8 +110,13 @@ def _verify_startup(namespace: str) -> None:
         _run(
             f"kubectl -n {namespace} wait --for=delete job/ark-init --timeout=300s",
         )
-        _verify_cluster_ready(namespace)
+    except Exception:
+        _dump_namespace(namespace)
+        raise
 
+    _verify_cluster_ready(namespace)
+
+    try:
         _run(
             f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
         )
@@ -90,31 +127,7 @@ def _verify_startup(namespace: str) -> None:
             f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
         )
     except Exception:
-        _run(f"kubectl -n {namespace} get arkcluster", check=False)
-        _run(f"kubectl -n {namespace} get all", check=False)
-        _run(f"kubectl -n {namespace} get pvc", check=False)
-
-        result = _run(
-            f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
-        )
-        for pvc in result.stdout.strip().split("\n"):
-            pvc = pvc.strip()  # noqa: PLW2901
-            if not pvc:
-                continue
-
-            _run(f"kubectl -n {namespace} describe pvc/{pvc}", check=False)
-
-        result = _run(
-            f"kubectl -n {namespace} get pod --no-headers -o custom-columns=':metadata.name'"
-        )
-        for pod in result.stdout.strip().split("\n"):
-            pod = pod.strip()  # noqa: PLW2901
-            if not pod:
-                continue
-
-            _run(f"kubectl -n {namespace} describe pod/{pod}", check=False)
-            _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
-            _run(f"kubectl -n {namespace} logs -c init-ark pod/{pod}", check=False)
+        _dump_namespace(namespace)
         raise
 
 
