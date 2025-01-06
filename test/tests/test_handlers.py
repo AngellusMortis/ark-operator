@@ -1,9 +1,9 @@
 """ARK Operator kopf tests."""
 
-from collections.abc import Generator
+from __future__ import annotations
+
 from copy import deepcopy
-from subprocess import CompletedProcess
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest
 import yaml
@@ -12,6 +12,12 @@ from kopf.testing import KopfRunner
 from ark_operator.command import run_sync
 from ark_operator.k8s import get_v1_ext_client
 from tests.conftest import BASE_DIR, remove_cluster_finalizers
+
+if TYPE_CHECKING:
+    from collections.abc import Generator
+    from subprocess import CompletedProcess
+
+    from _pytest.monkeypatch import MonkeyPatch
 
 CRDS = BASE_DIR / "crd_chart" / "crds" / "crds.yml"
 CLUSTER_SPEC: dict[str, Any] = {
@@ -23,10 +29,18 @@ CLUSTER_SPEC: dict[str, Any] = {
     "spec": {
         "server": {
             "size": "2Mi",
+            "maps": ["BobsMissions_WP"],
         },
         "data": {"size": "2Mi"},
     },
 }
+
+
+@pytest.fixture(autouse=True)
+def _force_pvc_mode(monkeypatch: MonkeyPatch) -> Generator[None, None, None]:
+    monkeypatch.setenv("ARK_OP_FORCE_ACCESS_MODE", "ReadWriteOnce")
+
+    yield  # noqa: PT022
 
 
 def _dump_yaml(data: Any) -> str:  # noqa: ANN401
@@ -78,6 +92,7 @@ def _verify_startup(namespace: str) -> None:
     except Exception:
         _run(f"kubectl -n {namespace} get arkcluster", check=False)
         _run(f"kubectl -n {namespace} get all", check=False)
+        _run(f"kubectl -n {namespace} get pvc", check=False)
 
         result = _run(
             f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"

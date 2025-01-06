@@ -1,20 +1,31 @@
 """K8s resource creators for PVCs."""
 
+from __future__ import annotations
+
 import logging
+from typing import TYPE_CHECKING, cast
 
 import kopf
 import yaml
-from kubernetes_asyncio.client.models import V1PersistentVolumeClaim
+from environs import Env
 
 from ark_operator.k8s.client import get_v1_client
 from ark_operator.k8s.utils import convert_k8s_size
 from ark_operator.templates import loader
+
+if TYPE_CHECKING:
+    from kubernetes_asyncio.client.models import V1PersistentVolumeClaim
 
 ERROR_PVC = "Failed to create PVC"
 ERROR_PVC_TOO_SMALL = "PVC is too small. Min size is {min}"
 ERROR_PVC_RESIZE_TOO_SMALL = "Failed to resize PVC, new size is smaller then old size"
 ERROR_PVC_RESIZE = "Failed to resize PVC"
 _LOGGER = logging.getLogger(__name__)
+_ENV = Env()
+
+
+def _force_pvc_mode() -> str | None:
+    return cast(str | None, _ENV.str("ARK_OP_FORCE_ACCESS_MODE", None))
 
 
 async def resize_pvc(
@@ -116,7 +127,7 @@ async def create_pvc(  # noqa: PLR0913
             instance_name=instance_name,
             storage_class=storage_class,
             size=size,
-            access_mode=access_mode,
+            access_mode=_force_pvc_mode() or access_mode,
         )
     )
 
