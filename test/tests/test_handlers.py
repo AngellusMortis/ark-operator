@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
     from _pytest.monkeypatch import MonkeyPatch
 
+GHA_CANNOT_RESIZE = "Github Actions cannot resize PVCs"
 CRDS = BASE_DIR / "crd_chart" / "crds" / "crds.yml"
 CLUSTER_SPEC: dict[str, Any] = {
     "apiVersion": "mort.is/v1beta1",
@@ -87,7 +88,7 @@ def _dump_namespace(namespace: str) -> None:
 def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
     try:
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'={str(ready).lower()} arkcluster/ark --timeout=120s",
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'={str(ready).lower()} arkcluster/ark --timeout=60s",
         )
     except Exception:
         _dump_namespace(namespace)
@@ -286,6 +287,7 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.xfail(reason=GHA_CANNOT_RESIZE)
 def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
 
