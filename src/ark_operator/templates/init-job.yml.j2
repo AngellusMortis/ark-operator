@@ -28,9 +28,6 @@ spec:
             - name: ARK_OP_DRY_RUN
               value: "True"
           {% endif %}
-            # Steam requires a writable home directory
-            - name: HOME
-              value: /mnt/server-a/steam
             - name: ARK_CLUSTER_SPEC
               value: '{{ spec }}'
             - name: ARK_SERVER_HOST

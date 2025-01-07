@@ -71,6 +71,7 @@ dev = [
     "pytest-cov",
     "pytest-env",
     "pytest-httpx",
+    "pytest-socket",
     "pytest-timeout",
     "pytest-xdist[psutil]",
     "pytest",
@@ -101,7 +102,7 @@ allow-direct-references = true
 
 ## linting metadata
 [tool.ruff]
-exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv"]
+exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv", "steam"]
 line-length = 88
 target-version = "py311"
 
@@ -131,7 +132,7 @@ max-complexity = 10
 python_version = "3.11"
 warn_unused_configs = true
 disable_error_code = "no-redef"
-exclude = ["dist", "/usr/local/lib", "codeql"]
+exclude = ["dist", "/usr/local/lib", "codeql", "steam"]
 disallow_any_generics = true
 disallow_subclassing_any = true
 disallow_untyped_calls = true
@@ -189,13 +190,17 @@ skip_covered = false
 show_contexts = true
 
 [tool.pytest.ini_options]
-addopts = "--strict-markers -ra -Wd --ignore=.* --cov-report term-missing --no-cov-on-fail --cov=src/ark_operator --cov-append --maxfail=10 -n=auto"
+addopts = "--disable-socket --allow-unix-socket --strict-markers -ra -Wd --ignore=.* --cov-report term-missing --no-cov-on-fail --cov=src/ark_operator --cov-append --maxfail=10 -n=auto"
 filterwarnings = []
 testpaths = ["test"]
 timeout_func_only = false
+timeout = 1
 log_level = "DEBUG"
 asyncio_mode = "strict"
 asyncio_default_fixture_loop_scope = "session"
+markers = [
+    "k8s: Tests that require a real k8s cluster",
+]
 
 [tool.pytest_env]
 ARK_OP_MIN_SERVER_SIZE = "1Mi"

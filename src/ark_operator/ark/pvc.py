@@ -53,6 +53,7 @@ async def update_server_pvc(
                     instance_name=name,
                     namespace=namespace,
                     storage_class=spec.storage_class,
+                    access_mode="ReadWriteMany",
                     size=spec.size,
                     logger=logger,
                     min_size=MIN_SIZE_SERVER,

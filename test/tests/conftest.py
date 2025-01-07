@@ -1,8 +1,10 @@
 """Tests conftest."""
 
+from __future__ import annotations
+
 import os
-from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, Mock, patch
 from uuid import uuid4
 
@@ -12,8 +14,13 @@ import pytest_asyncio
 from ark_operator.command import run_sync
 from ark_operator.k8s import close_k8s_client
 
+if TYPE_CHECKING:
+    from collections.abc import AsyncGenerator, Generator
+
+
 BASE_DIR = Path(__file__).parent.parent.parent
 CLUSTER_CRD = BASE_DIR / "crd_chart" / "crds" / "ArkCluster.yml"
+ERROR_K8S = "k8s mark required to use k8s namespace"
 
 
 def remove_test_namespaces() -> None:
@@ -41,8 +48,21 @@ def remove_cluster_finalizers(namespace: str) -> None:
 
 
 @pytest.fixture
-def k8s_namespace() -> Generator[str, None, None]:
+def marks(request: pytest.FixtureRequest) -> list[str]:
+    """Active marks for test."""
+
+    _marks = [m.name for m in request.node.iter_markers()]
+    if request.node.parent:
+        _marks += [m.name for m in request.node.parent.iter_markers()]
+    return _marks
+
+
+@pytest.fixture
+def k8s_namespace(marks: list[str]) -> Generator[str, None, None]:
     """Create k8s namespace for testing."""
+
+    if "k8s" not in marks:
+        raise RuntimeError(ERROR_K8S)
 
     namespace = f"kubetest-{uuid4()}"
     run_sync(f"kubectl create namespace {namespace}")

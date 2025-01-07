@@ -49,7 +49,7 @@ docutils==0.21.2
     # via rich-rst
 durationpy==0.9
     # via kubernetes
-environs==11.2.1
+environs==12.0.0
     # via ark-operator (pyproject.toml)
 frozenlist==1.5.0
     # via
@@ -93,7 +93,7 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via jinja2
-marshmallow==3.23.3
+marshmallow==3.24.1
     # via environs
 mdurl==0.1.2
     # via markdown-it-py
@@ -129,7 +129,7 @@ pydantic-core==2.27.2
     # via pydantic
 pydantic-settings==2.7.1
     # via ark-operator (pyproject.toml)
-pygments==2.19.0
+pygments==2.19.1
     # via rich
 pykube-ng==23.6.0
     # via kopf
@@ -169,7 +169,7 @@ rich-rst==1.3.1
     # via cyclopts
 rsa==4.9
     # via google-auth
-setuptools==75.6.0
+setuptools==75.7.0
     # via
     #   zope-event
     #   zope-interface

@@ -10,6 +10,12 @@
             "problemMatcher": []
         },
         {
+            "label": "Test Code (Fast)",
+            "type": "shell",
+            "command": "${workspaceFolder}/.bin/test-code --fast",
+            "problemMatcher": []
+        },
+        {
             "label": "Test Code",
             "type": "shell",
             "command": "${workspaceFolder}/.bin/test-code",

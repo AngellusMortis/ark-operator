@@ -176,10 +176,6 @@ async def test_create_init_job(k8s_v1_batch_client: Mock) -> None:
                                 ],
                                 "env": [
                                     {
-                                        "name": "HOME",
-                                        "value": "/mnt/server-a/steam",
-                                    },
-                                    {
                                         "name": "ARK_CLUSTER_SPEC",
                                         "value": '{"server":{"load_balancer_ip":null,"storage_class":null,"size":"50Gi","maps":["@canonical"],"persist":false,"game_port_start":7777,"rcon_port_start":27020,"all_maps":["BobsMissions_WP","TheIsland_WP","ScorchedEarth_WP","Aberration_WP","Extinction_WP"],"all_servers":{"BobsMissions_WP":{"map_id":"BobsMissions_WP","port":7777,"rcon_port":27020},"TheIsland_WP":{"map_id":"TheIsland_WP","port":7778,"rcon_port":27021},"ScorchedEarth_WP":{"map_id":"ScorchedEarth_WP","port":7779,"rcon_port":27022},"Aberration_WP":{"map_id":"Aberration_WP","port":7780,"rcon_port":27023},"Extinction_WP":{"map_id":"Extinction_WP","port":7781,"rcon_port":27024}}},"data":{"storage_class":null,"size":"50Gi","persist":true},"run_as_user":65535,"run_as_group":65535,"cluster":{"cluster_id":"ark-cluster"}}',
                                     },
@@ -291,10 +287,6 @@ async def test_create_init_job_dry_run(k8s_v1_batch_client: Mock) -> None:
                                     {
                                         "name": "ARK_OP_DRY_RUN",
                                         "value": "True",
-                                    },
-                                    {
-                                        "name": "HOME",
-                                        "value": "/mnt/server-a/steam",
                                     },
                                     {
                                         "name": "ARK_CLUSTER_SPEC",

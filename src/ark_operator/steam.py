@@ -41,8 +41,8 @@ ERROR_UNSUPPORTED = (
     "Non supported operating system. Expected Windows or Linux, got {platform}"
 )
 ERROR_STEAMCMD = "Error executing steamcmd"
-ERROR_FAILED_INSTALL = "Failed to install steamcmd"
-ERROR_DOWNLOAD_FAILED = "Failed to download steamcmd"
+ERROR_FAILED_INSTALL = "Failed to install {tool}"
+ERROR_DOWNLOAD_FAILED = "Failed to download {tool}"
 
 PACKAGE_LINKS = {
     "Windows": {
@@ -56,6 +56,8 @@ PACKAGE_LINKS = {
         "d_extension": ".tar.gz",
     },
 }
+PROTON_VERSION = "9-22"
+PROTON_URL = f"https://github.com/GloriousEggroll/proton-ge-custom/releases/download/GE-Proton{PROTON_VERSION}/GE-Proton{PROTON_VERSION}.tar.gz"
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -110,6 +112,7 @@ async def install_steamcmd(
 
     if not dry_run:
         await aos.makedirs(install_dir, exist_ok=True)
+
     async with httpx.AsyncClient() as client:
         _LOGGER.debug("Downloading steamcmd from %s", url)
         if not dry_run:
@@ -118,14 +121,54 @@ async def install_steamcmd(
                 response.raise_for_status()
                 data = await response.aread()
             except Exception as ex:
-                raise SteamCMDError(ERROR_DOWNLOAD_FAILED) from ex
+                raise SteamCMDError(
+                    ERROR_DOWNLOAD_FAILED.format(tool="steamcmd")
+                ) from ex
 
         _LOGGER.debug("Extracting steamcmd %s", install_dir)
         if not dry_run:
             await _extract_archive(install_dir, plat, data)
 
     if not dry_run and not await aos.path.exists(exe_path):
-        raise SteamCMDError(ERROR_FAILED_INSTALL)
+        raise SteamCMDError(ERROR_FAILED_INSTALL.format(tool="steamcmd"))
+
+    return exe_path
+
+
+async def install_proton(
+    install_dir: Path, *, force: bool = False, dry_run: bool = False
+) -> Path:
+    """Install Proton-GE."""
+
+    proton_dir = install_dir / ".steam" / "root" / "compatibilitytools.d"
+    exe_path = proton_dir / f"GE-Proton{PROTON_VERSION}" / "proton"
+
+    exists = await aos.path.exists(exe_path)
+    if not force and exists:
+        _LOGGER.debug("proton already installed, skipping install")
+        return exe_path
+
+    if exists:
+        _LOGGER.debug("Redowloading proton")
+        if not dry_run:
+            await aioshutil.rmtree(proton_dir)
+
+    if not dry_run:
+        await aos.makedirs(proton_dir, exist_ok=True)
+
+    async with httpx.AsyncClient() as client:
+        _LOGGER.debug("Downloading proton from %s", PROTON_URL)
+        if not dry_run:
+            try:
+                response = await client.get(PROTON_URL, follow_redirects=True)
+                response.raise_for_status()
+                data = await response.aread()
+            except Exception as ex:
+                raise SteamCMDError(ERROR_DOWNLOAD_FAILED.format(tool="proton")) from ex
+
+        _LOGGER.debug("Extracting proton %s", proton_dir)
+        if not dry_run:
+            await _extract_archive(proton_dir, "Linux", data)
 
     return exe_path
 
@@ -183,6 +226,7 @@ async def steamcmd_run(  # type: ignore[return]
                 check=True,
                 output_level=logging.INFO,
                 dry_run=dry_run,
+                env={"HOME": str(install_dir)},
             )
         except CalledProcessError as ex:
             if retries > 0:
@@ -302,6 +346,8 @@ class Steam:
     ) -> CompletedProcess[str] | CompletedProcess[None]:
         """Install ARK server."""
 
+        await install_proton(self.install_dir, dry_run=dry_run)
+
         cmd = [
             "+@ShutdownOnFailedCommand 1",
             "+@NoPromptForPassword 1",
@@ -343,10 +389,13 @@ class Steam:
                 base_dir / "data" / "clusters" / spec.cluster.cluster_id, exist_ok=True
             )
             await aos.makedirs(base_dir / "data" / "maps", exist_ok=True)
+            list_dir = base_dir / "data" / "lists"
+            await aos.makedirs(list_dir, exist_ok=True)
+            (list_dir / "PlayersExclusiveJoinList.txt").touch()
+            (list_dir / "PlayersJoinNoCheckList.txt").touch()
 
         if not dry_run:
             for map_name in spec.server.all_maps:
-                list_dir = base_dir / "data" / "maps" / map_name / "lists"
                 await asyncio.gather(
                     aos.makedirs(
                         base_dir / "data" / "maps" / map_name / "saved" / "Config",
@@ -355,10 +404,11 @@ class Steam:
                     aos.makedirs(
                         base_dir / "data" / "maps" / map_name / "mods", exist_ok=True
                     ),
-                    aos.makedirs(list_dir, exist_ok=True),
+                    aos.makedirs(
+                        base_dir / "data" / "maps" / map_name / "compatdata",
+                        exist_ok=True,
+                    ),
                 )
-                (list_dir / "PlayersExclusiveJoinList.txt").touch()
-                (list_dir / "PlayersJoinNoCheckList.txt").touch()
 
         _LOGGER.info("Initializing server-a volume")
         if not dry_run:

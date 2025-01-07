@@ -162,6 +162,9 @@ def install_crds(k8s_namespace: str) -> Generator[None, None, None]:
     remove_cluster_finalizers(k8s_namespace)
 
 
+@pytest.mark.k8s
+@pytest.mark.enable_socket
+@pytest.mark.timeout(0)
 @pytest.mark.asyncio(loop_scope="function")
 async def test_crds_exist() -> None:
     """Test the CRDs are installed correctly."""
@@ -175,6 +178,9 @@ async def test_crds_exist() -> None:
     assert response.items[0].metadata.name == "arkclusters.mort.is"
 
 
+@pytest.mark.k8s
+@pytest.mark.enable_socket
+@pytest.mark.timeout(0)
 def test_handler_startup(k8s_namespace: str) -> None:
     """Test kopf starts up and shutdowns correctly."""
 
@@ -194,6 +200,9 @@ def test_handler_startup(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.k8s
+@pytest.mark.enable_socket
+@pytest.mark.timeout(0)
 def test_handler_too_small(k8s_namespace: str) -> None:
     """Test kopf Webhook."""
 
@@ -222,6 +231,9 @@ def test_handler_too_small(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.k8s
+@pytest.mark.enable_socket
+@pytest.mark.timeout(0)
 def test_handler_basic_cluster(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a basic cluster."""
 
@@ -253,6 +265,9 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.k8s
+@pytest.mark.enable_socket
+@pytest.mark.timeout(0)
 def test_handler_server_persist(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
 
@@ -287,6 +302,9 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.k8s
+@pytest.mark.enable_socket
+@pytest.mark.timeout(0)
 @pytest.mark.xfail(reason=GHA_CANNOT_RESIZE)
 def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
@@ -335,6 +353,9 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
     assert runner.exception is None
 
 
+@pytest.mark.k8s
+@pytest.mark.enable_socket
+@pytest.mark.timeout(0)
 def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
     """Test kopf creates/updates/deletes a with existing PVCs cluster."""
 

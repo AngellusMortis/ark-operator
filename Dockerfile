@@ -12,7 +12,13 @@ RUN addgroup --system --gid 1000 app \
 RUN --mount=type=cache,mode=0755,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,mode=0755,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     apt-get update -qq \
-    && apt-get install -yqq lib32stdc++6
+    && apt-get install -yqq lib32stdc++6 dbus libfreetype6 locales \
+    # required for Steam/Proton
+    && rm -f /etc/machine-id \
+    && dbus-uuidgen --ensure=/etc/machine-id \
+    && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
+    && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
+    && locale-gen
 
 
 FROM base AS builder-prod
@@ -91,9 +97,11 @@ RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing
 ENV PYTHONPATH=/workspaces/ark-operator/src/:/workspaces/ark-operator/test/
 ENV PATH=$PATH:/workspaces/ark-operator/.bin
 ENV ARK_OP_DEBUG=True
-ENV ARK_STEAM_DIR=/workspaces/ark-operator/steam/install
-ENV ARK_SERVER_A_DIR=/workspaces/ark-operator/steam/ark_a
-ENV ARK_SERVER_B_DIR=/workspaces/ark-operator/steam/ark_b
+ENV ARK_STEAM_DIR=/workspaces/ark-operator/steam/server-a/steam
+ENV ARK_SERVER_A_DIR=/workspaces/ark-operator/steam/server-a/ark
+ENV ARK_SERVER_B_DIR=/workspaces/ark-operator/steam/server-b/ark
+ENV STEAM_COMPAT_CLIENT_INSTALL_PATH=/workspaces/ark-operator/steam/data/maps/BobsMissions_WP/compatdata
+ENV STEAM_COMPAT_DATA_PATH=/workspaces/ark-operator/steam/data/maps/BobsMissions_WP/compatdata
 
 USER app
 WORKDIR /workspaces/ark-operator/

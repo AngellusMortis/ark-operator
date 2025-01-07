@@ -74,9 +74,14 @@ def test_initialize(mock_steam: Mock, mock_cdn: Mock, steam: Steam) -> None:
     mock_cdn.assert_called_once()
 
 
+@patch("ark_operator.steam.install_proton")
 @patch("ark_operator.steam.steamcmd_run")
 @pytest.mark.asyncio
-async def test_install_ark(mock_steamcmd: AsyncMock, steam: Steam) -> None:
+async def test_install_ark(
+    mock_steamcmd: AsyncMock,
+    mock_proton: AsyncMock,
+    steam: Steam,
+) -> None:
     """Test install_ark."""
 
     await steam.install_ark(Path("/test"))
@@ -87,11 +92,15 @@ async def test_install_ark(mock_steamcmd: AsyncMock, steam: Steam) -> None:
         retries=3,
         dry_run=False,
     )
+    mock_proton.assert_awaited_once_with(steam.install_dir, dry_run=False)
 
 
+@patch("ark_operator.steam.install_proton")
 @patch("ark_operator.steam.steamcmd_run")
 @pytest.mark.asyncio
-async def test_install_ark_dry_run(mock_steamcmd: AsyncMock, steam: Steam) -> None:
+async def test_install_ark_dry_run(
+    mock_steamcmd: AsyncMock, mock_proton: AsyncMock, steam: Steam
+) -> None:
     """Test install_ark."""
 
     await steam.install_ark(Path("/test"), dry_run=True)
@@ -102,11 +111,15 @@ async def test_install_ark_dry_run(mock_steamcmd: AsyncMock, steam: Steam) -> No
         retries=3,
         dry_run=True,
     )
+    mock_proton.assert_awaited_once_with(steam.install_dir, dry_run=True)
 
 
+@patch("ark_operator.steam.install_proton")
 @patch("ark_operator.steam.steamcmd_run")
 @pytest.mark.asyncio
-async def test_install_ark_no_validate(mock_steamcmd: AsyncMock, steam: Steam) -> None:
+async def test_install_ark_no_validate(
+    mock_steamcmd: AsyncMock, mock_proton: AsyncMock, steam: Steam
+) -> None:
     """Test install_ark."""
 
     await steam.install_ark(Path("/test"), validate=False)
@@ -117,6 +130,7 @@ async def test_install_ark_no_validate(mock_steamcmd: AsyncMock, steam: Steam) -
         retries=3,
         dry_run=False,
     )
+    mock_proton.assert_awaited_once_with(steam.install_dir, dry_run=False)
 
 
 @patch("ark_operator.steam.copy_ark")
@@ -167,6 +181,7 @@ async def test_steamcmd_run(
         check=True,
         output_level=logging.INFO,
         dry_run=False,
+        env={"HOME": str(steam.install_dir)},
     )
 
 
@@ -188,6 +203,7 @@ async def test_steamcmd_run_dry_run(
         check=True,
         output_level=logging.INFO,
         dry_run=True,
+        env={"HOME": str(steam.install_dir)},
     )
 
 
@@ -215,12 +231,14 @@ async def test_steamcmd_run_retry(
                 check=True,
                 output_level=logging.INFO,
                 dry_run=False,
+                env={"HOME": str(steam.install_dir)},
             ),
             call(
                 "/test/steamcmd test",
                 check=True,
                 output_level=logging.INFO,
                 dry_run=False,
+                env={"HOME": str(steam.install_dir)},
             ),
         ]
     )
@@ -242,7 +260,11 @@ async def test_steamcmd_run_error(
 
     mock_install.assert_awaited_once_with(steam.install_dir, force=False, dry_run=False)
     mock_run.assert_awaited_once_with(
-        "/test/steamcmd test", check=True, output_level=logging.INFO, dry_run=False
+        "/test/steamcmd test",
+        check=True,
+        output_level=logging.INFO,
+        dry_run=False,
+        env={"HOME": str(steam.install_dir)},
     )
 
 
@@ -391,14 +413,16 @@ async def test_install_steamcmd_reinstall_dry_run(
     mock_shutil.rmtree.assert_not_awaited()
 
 
+@patch("ark_operator.steam.install_proton")
 @patch("ark_operator.steam.steamcmd_run")
 @patch("ark_operator.steam.install_steamcmd")
 @patch("ark_operator.steam.copy_ark")
 @pytest.mark.asyncio
-async def test_init_volumes(
+async def test_init_volumes(  # noqa: PLR0913
     mock_copy: AsyncMock,
     mock_steamcmd: AsyncMock,
     mock_run: AsyncMock,
+    mock_proton: AsyncMock,
     steam: Steam,
     steamcmd_path: Path,
 ) -> None:
@@ -410,9 +434,12 @@ async def test_init_volumes(
 
     assert await aos.path.exists(base_dir / "data" / "clusters" / "ark-cluster") is True
     assert await aos.path.exists(base_dir / "data" / "maps") is True
+    list_dir = base_dir / "data" / "lists"
+    assert await aos.path.exists(list_dir) is True
+    assert await aos.path.exists(list_dir / "PlayersExclusiveJoinList.txt") is True
+    assert await aos.path.exists(list_dir / "PlayersJoinNoCheckList.txt") is True
 
     for map_name in spec.server.all_maps:
-        list_dir = base_dir / "data" / "maps" / map_name / "lists"
         assert (
             await aos.path.exists(
                 base_dir / "data" / "maps" / map_name / "saved" / "Config"
@@ -423,9 +450,6 @@ async def test_init_volumes(
             await aos.path.exists(base_dir / "data" / "maps" / map_name / "mods")
             is True
         )
-        assert await aos.path.exists(list_dir) is True
-        assert await aos.path.exists(list_dir / "PlayersExclusiveJoinList.txt") is True
-        assert await aos.path.exists(list_dir / "PlayersJoinNoCheckList.txt") is True
 
     assert await aos.path.exists(base_dir / "server-a" / "steam") is True
     assert await aos.path.exists(base_dir / "server-b" / "steam") is True
@@ -433,6 +457,7 @@ async def test_init_volumes(
     assert await aos.path.exists(base_dir / "server-b" / "ark") is True
 
     mock_run.assert_awaited_once()
+    mock_proton.assert_awaited_once_with(base_dir / "server-a" / "steam", dry_run=False)
     mock_steamcmd.assert_awaited_once_with(
         base_dir / "server-b" / "steam", dry_run=False
     )
@@ -442,6 +467,7 @@ async def test_init_volumes(
 
 
 @patch("ark_operator.steam.aos")
+@patch("ark_operator.steam.install_proton")
 @patch("ark_operator.steam.steamcmd_run")
 @patch("ark_operator.steam.install_steamcmd")
 @patch("ark_operator.steam.copy_ark")
@@ -450,6 +476,7 @@ async def test_init_volumes_dry_run(  # noqa: PLR0913
     mock_copy: AsyncMock,
     mock_steamcmd: AsyncMock,
     mock_run: AsyncMock,
+    mock_proton: AsyncMock,
     mock_aos: Mock,
     steam: Steam,
     steamcmd_path: Path,
@@ -462,6 +489,7 @@ async def test_init_volumes_dry_run(  # noqa: PLR0913
     spec = ArkClusterSpec()
     await steam.init_volumes(steamcmd_path.parent, spec=spec, dry_run=True)
 
+    mock_proton.assert_awaited_once_with(base_dir / "server-a" / "steam", dry_run=True)
     mock_aos.makedirs.assert_not_awaited()
     mock_run.assert_awaited_once()
     mock_steamcmd.assert_awaited_once_with(

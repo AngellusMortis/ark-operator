@@ -104,7 +104,7 @@ durationpy==0.9
     # via
     #   -c requirements.txt
     #   kubernetes
-environs==11.2.1
+environs==12.0.0
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
@@ -212,7 +212,7 @@ markupsafe==3.0.2
     # via
     #   -c requirements.txt
     #   jinja2
-marshmallow==3.23.3
+marshmallow==3.24.1
     # via
     #   -c requirements.txt
     #   environs
@@ -310,7 +310,7 @@ pydantic-settings==2.7.1
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
-pygments==2.19.0
+pygments==2.19.1
     # via
     #   -c requirements.txt
     #   readme-renderer
@@ -330,6 +330,7 @@ pytest==8.3.4
     #   pytest-cov
     #   pytest-env
     #   pytest-httpx
+    #   pytest-socket
     #   pytest-timeout
     #   pytest-xdist
 pytest-asyncio==0.25.1
@@ -339,6 +340,8 @@ pytest-cov==6.0.0
 pytest-env==1.1.5
     # via ark-operator (pyproject.toml)
 pytest-httpx==0.35.0
+    # via ark-operator (pyproject.toml)
+pytest-socket==0.7.0
     # via ark-operator (pyproject.toml)
 pytest-timeout==2.3.1
     # via ark-operator (pyproject.toml)
@@ -408,7 +411,7 @@ ruff==0.8.6
     # via ark-operator (pyproject.toml)
 secretstorage==3.3.3
     # via keyring
-setuptools==75.6.0
+setuptools==75.7.0
     # via
     #   -c requirements.txt
     #   zope-event
@@ -434,7 +437,7 @@ tomli-w==1.1.0
     # via hatch
 tomlkit==0.13.2
     # via hatch
-trove-classifiers==2024.10.21.16
+trove-classifiers==2025.1.6.15
     # via hatchling
 twine==6.0.1
     # via ark-operator (pyproject.toml)
@@ -462,7 +465,7 @@ urllib3==1.26.20
     #   twine
 userpath==1.9.2
     # via hatch
-uv==0.5.14
+uv==0.5.15
     # via hatch
 vdf==3.4
     # via
