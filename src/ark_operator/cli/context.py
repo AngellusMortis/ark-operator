@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ark_operator.data import ArkClusterSpec
 from ark_operator.log import LoggingFormat, LoggingLevel
@@ -37,11 +37,21 @@ class ServerContext:
     """Server commands context object."""
 
     install_dir: Path
+    data_dir: Path
     steam_dir: Path
     steam: Steam
     host: IPv4Address | IPv6Address | str
     rcon_port: int
     rcon_password: str
+    game_port: int
+    map_name: str
+    session_name: str
+    multihome_ip: str | None
+    max_players: int
+    cluster_id: str
+    battleye: bool
+    allowed_platforms: list[Literal["ALL", "PS5", "XSX", "PC", "WINGDK"]]
+    whitelist: bool
 
     parent: CoreContext
 

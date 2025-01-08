@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+from configparser import ConfigParser
+from dataclasses import dataclass
 from functools import lru_cache
+from io import StringIO
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal, overload
 
 import aioshutil
 import vdf
@@ -14,8 +18,11 @@ from aiofiles import open as aopen
 from aiofiles import os as aos
 from asyncer import asyncify
 
+from ark_operator.command import run_async
+
 if TYPE_CHECKING:
     from pathlib import Path
+    from subprocess import CompletedProcess
 
     from ark_operator.steam import Steam
 
@@ -43,6 +50,7 @@ MAP_SHORTHAND_LOOKUP = {
     "@official": ["BobsMissions_WP", *ALL_OFFICIAL],
     "@officialNoClub": ALL_OFFICIAL,
 }
+ARK_RUN_TEMPLATE = '{proton_path!s} run {server_path!s} {map_name}?SessionName="{session_name}"?RCONEnabled=True?RCONPort={rcon_port}?ServerAdminPassword={rcon_password} -port={game_port} -WinLiveMaxPlayers={max_players} -clusterid={cluster_id} -ClusterDirOverride={data_dir!s} -NoTransferFromFiltering {extra_args}'  # noqa: E501
 
 ERROR_NO_ALL = "@all can only be used if a list of all maps is passed in."
 
@@ -169,3 +177,256 @@ def expand_maps(maps: list[str], *, all_maps: list[str] | None = None) -> list[s
     ordered_maps += list(_expanded)
 
     return ordered_maps
+
+
+async def _make_sure_file_exists(
+    path: Path, *, force_delete: bool = True, dry_run: bool = False
+) -> None:
+    await aos.makedirs(path.parent, exist_ok=True)
+    exists = await aos.path.exists(path)
+    if not dry_run and exists and force_delete:
+        await aos.remove(path)
+        exists = False
+
+    if not dry_run and not await aos.path.exists(path):
+        path.touch()
+
+
+async def _ensure_symlink(target: Path, link: Path, *, is_dir: bool = True) -> None:
+    if await aos.path.exists(link):
+        if await aos.path.islink(link):
+            if await aos.readlink(str(link)) == str(target):
+                _LOGGER.debug("Symlink exists %s -> %s", link, target)
+                return
+            _LOGGER.debug("Symlink %s exists, but mismatched", link)
+            await aos.remove(link)
+        else:
+            _LOGGER.debug("Directory %s instead of symlink, deleteing", link)
+            await aioshutil.rmtree(link)
+
+    _LOGGER.info("Creating symlink %s -> %s", link, target)
+    await aos.symlink(target, link, target_is_directory=is_dir)
+
+
+@dataclass
+class ArkServer:
+    """ARK server run wrapper."""
+
+    server_dir: Path
+    data_dir: Path
+    map_name: str
+    session_name: str
+    rcon_port: int
+    rcon_password: str
+    game_port: int
+    max_players: int
+    cluster_id: str
+    battleye: bool
+    allowed_platforms: list[Literal["ALL", "PS5", "XSX", "PC", "WINGDK"]]
+    whitelist: bool
+    multihome_ip: str | None
+
+    @property
+    def list_dir(self) -> Path:
+        """Directory with whitelist/bypass list."""
+
+        return self.data_dir / "lists"
+
+    @property
+    def ark_dir(self) -> Path:
+        """ARK install dir."""
+
+        return self.server_dir / "ark"
+
+    @property
+    def binary_dir(self) -> Path:
+        """ARK binary dir."""
+
+        return self.ark_dir / "ShooterGame" / "Binaries" / "Win64"
+
+    @property
+    def mod_dir(self) -> Path:
+        """ARK save dir."""
+
+        return self.data_dir / "maps" / self.map_name / "mods"
+
+    @property
+    def saved_dir(self) -> Path:
+        """ARK save dir."""
+
+        return self.data_dir / "maps" / self.map_name / "saved"
+
+    @property
+    def compatdata_dir(self) -> Path:
+        """ARK compatdata dir."""
+
+        return self.data_dir / "maps" / self.map_name / "compatdata"
+
+    @property
+    def config_dir(self) -> Path:
+        """ARK Config dir."""
+
+        return self.saved_dir / "Config" / "WindowsServer"
+
+    @property
+    def steam_dir(self) -> Path:
+        """Steam install dir."""
+
+        return self.server_dir / "steam"
+
+    @property
+    def proton_dir(self) -> Path:
+        """Proton install dir."""
+
+        from ark_operator.steam import PROTON_VERSION
+
+        return (
+            self.steam_dir
+            / ".steam"
+            / "root"
+            / "compatibilitytools.d"
+            / f"GE-Proton{PROTON_VERSION}"
+        )
+
+    @property
+    def log_file(self) -> Path:
+        """ARK log file path."""
+
+        return self.saved_dir / "Logs" / "ShooterGame.log"
+
+    @property
+    def whitelist_file(self) -> Path:
+        """Whitelist file for server."""
+
+        return self.list_dir / "PlayersExclusiveJoinList.txt"
+
+    @property
+    def bypass_file(self) -> Path:
+        """Bypass list file for server."""
+
+        return self.list_dir / "PlayersJoinNoCheckList.txt"
+
+    @property
+    def server_platforms(self) -> list[Literal["ALL", "PS5", "XSX", "PC", "WINGDK"]]:
+        """Allowed server platforms."""
+
+        if "ALL" in self.allowed_platforms:
+            return ["ALL"]
+
+        return self.allowed_platforms
+
+    @property
+    def run_command(self) -> str:
+        """ARK server run command."""
+
+        extra_args = ["ServerPlatform" + "+".join(self.server_platforms)]
+        if not self.battleye:
+            extra_args.append("NoBattlEye")
+        if self.whitelist:
+            extra_args.append("exclusivejoin")
+        if self.multihome_ip:
+            extra_args.append("MULTIHOME")
+        if self.map_name == "BobsMissions_WP":
+            extra_args.append("mods=1005639")
+
+        args = f"-{' -'.join(extra_args)}"
+        return ARK_RUN_TEMPLATE.format(
+            proton_path=self.proton_dir / "proton",
+            server_path=self.binary_dir / "ArkAscendedServer.exe",
+            map_name=self.map_name,
+            session_name=self.session_name,
+            rcon_port=self.rcon_port,
+            rcon_password=self.rcon_password,
+            game_port=self.game_port,
+            max_players=self.max_players,
+            cluster_id=self.cluster_id,
+            data_dir=self.data_dir,
+            extra_args=args,
+        )
+
+    def make_game_user_settings(self) -> ConfigParser:
+        """GameUserSettings.ini file."""
+
+        conf = ConfigParser()
+        conf["ServerSettings"] = {
+            "RCONEnabled": "True",
+            "RCONPort": str(self.rcon_port),
+            "ServerAdminPassword": self.rcon_password,
+        }
+        conf["SessionSettings"] = {
+            "Port": str(self.game_port),
+            "SessionName": self.session_name,
+        }
+
+        if self.multihome_ip:
+            conf["MultiHome"] = {"Multihome": "True"}
+            conf["SessionSettings"]["MultiHome"] = self.multihome_ip
+
+        return conf
+
+    async def _write_config(self) -> None:
+        conf = self.make_game_user_settings()
+        with StringIO() as ss:
+            conf.write(ss)
+            ss.seek(0)
+            async with aopen(self.config_dir / "GameUserSettings.ini", "w") as f:
+                await f.write(ss.read().strip())
+
+    @overload
+    async def run(
+        self, *, dry_run: Literal[False] = False
+    ) -> CompletedProcess[str]: ...  # pragma: no cover
+
+    @overload
+    async def run(
+        self, *, dry_run: Literal[True]
+    ) -> CompletedProcess[None]: ...  # pragma: no cover
+
+    @overload
+    async def run(
+        self, *, dry_run: bool
+    ) -> CompletedProcess[str] | CompletedProcess[None]: ...  # pragma: no cover
+
+    async def run(
+        self, *, dry_run: bool = False
+    ) -> CompletedProcess[str] | CompletedProcess[None]:
+        """Run ARK server."""
+
+        await _make_sure_file_exists(self.whitelist_file)
+        await _make_sure_file_exists(self.bypass_file)
+        await _ensure_symlink(self.saved_dir, self.ark_dir / "ShooterGame" / "Saved")
+        await _ensure_symlink(self.mod_dir, self.binary_dir / "ShooterGame")
+        await _ensure_symlink(
+            self.whitelist_file,
+            self.binary_dir / "PlayersExclusiveJoinList.txt",
+            is_dir=False,
+        )
+        await _ensure_symlink(
+            self.whitelist_file,
+            self.binary_dir / "PlayersJoinNoCheckList.txt",
+            is_dir=False,
+        )
+        await _make_sure_file_exists(self.log_file)
+        await self._write_config()
+
+        task = asyncio.create_task(
+            run_async(
+                self.run_command,
+                dry_run=dry_run,
+                env={
+                    "STEAM_COMPAT_CLIENT_INSTALL_PATH": str(self.compatdata_dir),
+                    "STEAM_COMPAT_DATA_PATH": str(self.compatdata_dir),
+                },
+            )
+        )
+        async with aopen(self.log_file) as f:
+            while True:
+                if line := await f.readline():
+                    _LOGGER.info(line.strip())
+                    continue
+
+                await asyncio.sleep(0.1)
+                if task.done():
+                    break
+
+        return await task

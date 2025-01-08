@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING
 
 import kopf
 import yaml
@@ -25,7 +25,7 @@ _ENV = Env()
 
 
 def _force_pvc_mode() -> str | None:
-    return cast(str | None, _ENV.str("ARK_OP_FORCE_ACCESS_MODE", None))
+    return _ENV.str("ARK_OP_FORCE_ACCESS_MODE", None)
 
 
 async def resize_pvc(

@@ -19,8 +19,16 @@ OPTION_DRY_RUN = Annotated[bool, Parameter(env_var="ARK_OP_DRY_RUN")]
 OPTION_INSTALL_DIR = Annotated[
     Path,
     Parameter(
-        ("--install-dir", "-d"),
+        ("--install-dir", "-i"),
         env_var=["ARK_SERVER_DIR", "ARK_SERVER_A_DIR"],
+    ),
+]
+
+OPTION_DATA_DIR = Annotated[
+    Path,
+    Parameter(
+        ("--data-dir", "-d"),
+        env_var=["ARK_DATA_DIR"],
     ),
 ]
 
@@ -56,6 +64,14 @@ OPTION_HOST = Annotated[
     ),
 ]
 
+OPTION_GAME_PORT = Annotated[
+    int,
+    Parameter(
+        ("-p", "--game-port"),
+        env_var=["ARK_SERVER_GAME_PORT"],
+    ),
+]
+
 OPTION_RCON_PORT = Annotated[
     int,
     Parameter(
@@ -82,10 +98,43 @@ OPTION_MAPS = Annotated[
         Literal["@canonical", "@canonicalNoClub", "@official", "@officialNoClub"] | str  # noqa: PYI051
     ]
     | None,
-    Parameter("-m", "--maps"),
+    Parameter(("-m", "--maps")),
 ]
 
 OPTION_ARK_SELECTOR = Annotated[
     list[Literal["@all"] | str],  # noqa: PYI051
     Parameter("--selector"),
+]
+
+OPTION_SERVER_MAP = Annotated[
+    str, Parameter(("-m", "--map"), env_var=["ARK_SERVER_MAP"])
+]
+
+OPTION_SERVER_SESSION_NAME = Annotated[
+    str, Parameter(("-n", "--session-name"), env_var=["ARK_SERVER_SESSION_NAME"])
+]
+
+OPTION_SERVER_MULTIHOME_IP = Annotated[
+    str | None, Parameter("--multihome-ip", env_var=["ARK_SERVER_MULTIHOME"])
+]
+
+OPTION_SERVER_MAX_PLAYERS = Annotated[
+    int, Parameter("--max-players", env_var=["ARK_SERVER_MAX_PLAYERS"])
+]
+
+OPTION_SERVER_CLUSTER_ID = Annotated[
+    str, Parameter("--cluster-id", env_var=["ARK_SERVER_CLUSTER_ID"])
+]
+
+OPTION_SERVER_BATTLEYE = Annotated[
+    bool, Parameter("--battleye", env_var=["ARK_SERVER_BATTLEYE"])
+]
+
+OPTION_SERVER_ALLOWED_PLATFORMS = Annotated[
+    list[Literal["ALL", "PS5", "XSX", "PC", "WINGDK"]] | None,
+    Parameter("--allowed-platforms", env_var=["ARK_SERVER_ALLOWED_PLATFORMS"]),
+]
+
+OPTION_SERVER_WHITELIST = Annotated[
+    bool, Parameter("--whitelist", env_var=["ARK_SERVER_WHITELIST"])
 ]

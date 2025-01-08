@@ -49,7 +49,7 @@ docutils==0.21.2
     # via rich-rst
 durationpy==0.9
     # via kubernetes
-environs==12.0.0
+environs==14.0.0
     # via ark-operator (pyproject.toml)
 frozenlist==1.5.0
     # via

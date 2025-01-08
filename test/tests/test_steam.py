@@ -442,7 +442,13 @@ async def test_init_volumes(  # noqa: PLR0913
     for map_name in spec.server.all_maps:
         assert (
             await aos.path.exists(
-                base_dir / "data" / "maps" / map_name / "saved" / "Config"
+                base_dir
+                / "data"
+                / "maps"
+                / map_name
+                / "saved"
+                / "Config"
+                / "WindowsServer"
             )
             is True
         )

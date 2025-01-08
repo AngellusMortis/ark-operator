@@ -85,6 +85,29 @@ spec:
                     description: |-
                       Starting port for server cluster. The first server will be this port and each
                       additional server will be +1. Default is 27020.
+                  maxPlayers:
+                    type: integer
+                    description: |-
+                      Max number of players per server/map. Defaults to 70.
+                  battleye:
+                    type: boolean
+                    description: |-
+                      Enable BattleEye on the servers. Defaults to true.
+                  allowedPlatforms:
+                    type: array
+                    items:
+                      type: string
+                      pattern: ^(ALL|PC|PS5|XSX|WINGDK)$
+                    description: |-
+                      Platforms allowed for server. Defaults to ALL.
+                  whitelist:
+                    type: boolean
+                    description: |-
+                      Whether server should have whitelist or not. Defaults to false.
+                  multihomeIP:
+                    type: string
+                    description: |-
+                      External IP address for users to join server from.
               data:
                 type: object
                 properties:

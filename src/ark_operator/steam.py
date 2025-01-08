@@ -398,7 +398,13 @@ class Steam:
             for map_name in spec.server.all_maps:
                 await asyncio.gather(
                     aos.makedirs(
-                        base_dir / "data" / "maps" / map_name / "saved" / "Config",
+                        base_dir
+                        / "data"
+                        / "maps"
+                        / map_name
+                        / "saved"
+                        / "Config"
+                        / "WindowsServer",
                         exist_ok=True,
                     ),
                     aos.makedirs(

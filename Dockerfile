@@ -3,7 +3,7 @@ FROM python:3.12-slim-bookworm AS base
 LABEL org.opencontainers.image.source=https://github.com/AngellusMortis/ark-operator
 
 ENV PYTHONUNBUFFERED=1
-ENV UV_SYSTEM_PYTHON=true
+ENV UV_PIP_SYSTEM_PYTHON=true
 ARG TARGETPLATFORM
 
 RUN addgroup --system --gid 1000 app \
@@ -100,8 +100,6 @@ ENV ARK_OP_DEBUG=True
 ENV ARK_STEAM_DIR=/workspaces/ark-operator/steam/server-a/steam
 ENV ARK_SERVER_A_DIR=/workspaces/ark-operator/steam/server-a/ark
 ENV ARK_SERVER_B_DIR=/workspaces/ark-operator/steam/server-b/ark
-ENV STEAM_COMPAT_CLIENT_INSTALL_PATH=/workspaces/ark-operator/steam/data/maps/BobsMissions_WP/compatdata
-ENV STEAM_COMPAT_DATA_PATH=/workspaces/ark-operator/steam/data/maps/BobsMissions_WP/compatdata
 
 USER app
 WORKDIR /workspaces/ark-operator/

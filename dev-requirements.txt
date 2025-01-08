@@ -104,7 +104,7 @@ durationpy==0.9
     # via
     #   -c requirements.txt
     #   kubernetes
-environs==12.0.0
+environs==14.0.0
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
@@ -437,7 +437,7 @@ tomli-w==1.1.0
     # via hatch
 tomlkit==0.13.2
     # via hatch
-trove-classifiers==2025.1.6.15
+trove-classifiers==2025.1.7.14
     # via hatchling
 twine==6.0.1
     # via ark-operator (pyproject.toml)

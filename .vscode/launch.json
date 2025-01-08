@@ -21,7 +21,7 @@
             "request": "launch",
             "module": "ark_operator",
             "args": [
-                "server",
+                "cluster",
                 "rcon",
                 "ListPlayers",
             ],

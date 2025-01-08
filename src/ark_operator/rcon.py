@@ -8,6 +8,7 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, cast
 
 from gamercon_async import GameRCON
+from gamercon_async.gamercon_async import TimeoutError as RCONTimeoutError
 
 from ark_operator.ark import expand_maps
 from ark_operator.exceptions import RCONError
@@ -103,7 +104,7 @@ async def send_cmd_all(  # noqa: PLR0913
     ]
 
     try:
-        responses = await asyncio.gather(*tasks, return_exceptions=not raise_exceptions)
+        responses = await asyncio.gather(*tasks, return_exceptions=True)
     finally:
         if close:
             await close_clients()
@@ -112,6 +113,14 @@ async def send_cmd_all(  # noqa: PLR0913
     for index, response in enumerate(responses):
         return_responses[objs[index].map_id] = response
         if isinstance(response, Exception):
+            if isinstance(response.__context__, RCONTimeoutError):
+                _LOGGER.info("%s - %s", objs[index].map_name, cmd)
+                _LOGGER.warning("Timeout")
+                continue
+
+            if raise_exceptions:
+                raise response
+
             _LOGGER.exception(
                 "Error while sending command %s to server %s",
                 cmd,

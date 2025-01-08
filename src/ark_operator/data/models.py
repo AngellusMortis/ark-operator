@@ -91,6 +91,11 @@ class ArkServerSpec(BaseK8sModel):
     persist: bool = False
     game_port_start: int = 7777
     rcon_port_start: int = 27020
+    max_players: int = 70
+    battleye: bool = True
+    allowed_platforms: list[str] = ["ALL"]
+    whitelist: bool = False
+    multihome_ip: str | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
