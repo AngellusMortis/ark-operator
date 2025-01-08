@@ -3,6 +3,7 @@ FROM python:3.12-slim-bookworm AS base
 LABEL org.opencontainers.image.source=https://github.com/AngellusMortis/ark-operator
 
 ENV PYTHONUNBUFFERED=1
+ENV UV_SYSTEM_PYTHON=true
 ENV UV_PIP_SYSTEM_PYTHON=true
 ARG TARGETPLATFORM
 
