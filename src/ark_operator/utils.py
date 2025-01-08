@@ -44,6 +44,7 @@ async def ensure_symlink(target: Path, link: Path, *, is_dir: bool = True) -> No
             return
 
     _LOGGER.info("Creating symlink %s -> %s", link, target)
+    await aos.makedirs(link.parent, exist_ok=True)
     await aos.symlink(target, link, target_is_directory=is_dir)
 
 

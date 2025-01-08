@@ -63,7 +63,7 @@
             ],
             "console": "integratedTerminal",
             "env": {
-                "PYTEST_ADDOPTS": "-n=0 --no-cov -vv"
+                "PYTEST_ADDOPTS": "-n=0 --no-cov -vv --timeout=0"
             }
         },
     ]
