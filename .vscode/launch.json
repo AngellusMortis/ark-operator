@@ -28,6 +28,17 @@
             "justMyCode": false,
         },
         {
+            "name": "ARK Operator: Run Server",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "ark_operator",
+            "args": [
+                "server",
+                "run",
+            ],
+            "justMyCode": false,
+        },
+        {
             "name": "ARK Operator: Run Kopf",
             "type": "debugpy",
             "request": "launch",

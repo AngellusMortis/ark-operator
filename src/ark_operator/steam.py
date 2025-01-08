@@ -24,6 +24,7 @@ from ark_operator.ark import ARK_SERVER_APP_ID, copy_ark, has_newer_version
 from ark_operator.command import run_async
 from ark_operator.decorators import sync_only
 from ark_operator.exceptions import SteamCMDError
+from ark_operator.utils import ensure_symlink, touch_file
 
 if TYPE_CHECKING:
     from ark_operator.data import ArkClusterSpec
@@ -390,9 +391,10 @@ class Steam:
             )
             await aos.makedirs(base_dir / "data" / "maps", exist_ok=True)
             list_dir = base_dir / "data" / "lists"
+
             await aos.makedirs(list_dir, exist_ok=True)
-            (list_dir / "PlayersExclusiveJoinList.txt").touch()
-            (list_dir / "PlayersJoinNoCheckList.txt").touch()
+            await touch_file(list_dir / "PlayersExclusiveJoinList.txt")
+            await touch_file(list_dir / "PlayersJoinNoCheckList.txt")
 
         if not dry_run:
             for map_name in spec.server.all_maps:
@@ -422,6 +424,19 @@ class Steam:
             await aos.makedirs(base_dir / "server-a" / "ark", exist_ok=True)
         steam = Steam(install_dir=base_dir / "server-a" / "steam")
         await steam.install_ark(base_dir / "server-a" / "ark", dry_run=dry_run)
+        binary_a_dir = (
+            base_dir / "server-a" / "ark" / "ShooterGame" / "Binaries" / "Win64"
+        )
+        await ensure_symlink(
+            list_dir / "PlayersExclusiveJoinList.txt",
+            binary_a_dir / "PlayersExclusiveJoinList.txt",
+            is_dir=False,
+        )
+        await ensure_symlink(
+            list_dir / "PlayersJoinNoCheckList.txt",
+            binary_a_dir / "PlayersJoinNoCheckList.txt",
+            is_dir=False,
+        )
 
         _LOGGER.info("Initializing server-b volume")
         if not dry_run:
@@ -432,4 +447,17 @@ class Steam:
             base_dir / "server-a" / "ark",
             base_dir / "server-b" / "ark",
             dry_run=dry_run,
+        )
+        binary_b_dir = (
+            base_dir / "server-b" / "ark" / "ShooterGame" / "Binaries" / "Win64"
+        )
+        await ensure_symlink(
+            list_dir / "PlayersExclusiveJoinList.txt",
+            binary_b_dir / "PlayersExclusiveJoinList.txt",
+            is_dir=False,
+        )
+        await ensure_symlink(
+            list_dir / "PlayersJoinNoCheckList.txt",
+            binary_b_dir / "PlayersJoinNoCheckList.txt",
+            is_dir=False,
         )

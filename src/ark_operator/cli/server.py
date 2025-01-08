@@ -6,6 +6,7 @@ import asyncio
 import logging
 from typing import TYPE_CHECKING, Annotated, cast
 
+from aiofiles import os as aos
 from cyclopts import App, Parameter
 
 from ark_operator.ark import ArkServer
@@ -139,7 +140,7 @@ async def _run_command(
     context = _get_context()
 
     host = host or context.host
-    _LOGGER.info("%s:%s - %s", context.host, context.rcon_port, cmd)
+    _LOGGER.info("%s:%s - %s", host, context.rcon_port, cmd)
     response = await send_cmd(
         cmd,
         host=host,
@@ -206,5 +207,8 @@ async def run(*, dry_run: OPTION_DRY_RUN = False) -> None:
     try:
         await asyncio.shield(server.run(dry_run=dry_run))
     except asyncio.CancelledError:
-        _LOGGER.info("Shuting down server...")
+        _LOGGER.info("Shutting down server...")
         await _do_shutdown(host="127.0.0.1")
+
+    if await aos.path.exists(server.marker_file):
+        await aos.remove(server.marker_file)

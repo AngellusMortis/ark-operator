@@ -19,6 +19,7 @@ from aiofiles import os as aos
 from asyncer import asyncify
 
 from ark_operator.command import run_async
+from ark_operator.utils import ensure_symlink, touch_file
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -189,23 +190,7 @@ async def _make_sure_file_exists(
         exists = False
 
     if not dry_run and not await aos.path.exists(path):
-        path.touch()
-
-
-async def _ensure_symlink(target: Path, link: Path, *, is_dir: bool = True) -> None:
-    if await aos.path.exists(link):
-        if await aos.path.islink(link):
-            if await aos.readlink(str(link)) == str(target):
-                _LOGGER.debug("Symlink exists %s -> %s", link, target)
-                return
-            _LOGGER.debug("Symlink %s exists, but mismatched", link)
-            await aos.remove(link)
-        else:
-            _LOGGER.debug("Directory %s instead of symlink, deleteing", link)
-            await aioshutil.rmtree(link)
-
-    _LOGGER.info("Creating symlink %s -> %s", link, target)
-    await aos.symlink(target, link, target_is_directory=is_dir)
+        await touch_file(path)
 
 
 @dataclass
@@ -307,6 +292,12 @@ class ArkServer:
         return self.list_dir / "PlayersJoinNoCheckList.txt"
 
     @property
+    def marker_file(self) -> Path:
+        """File to track if server has started."""
+
+        return self.saved_dir / ".started"
+
+    @property
     def server_platforms(self) -> list[Literal["ALL", "PS5", "XSX", "PC", "WINGDK"]]:
         """Allowed server platforms."""
 
@@ -388,24 +379,31 @@ class ArkServer:
     ) -> CompletedProcess[str] | CompletedProcess[None]: ...  # pragma: no cover
 
     async def run(
-        self, *, dry_run: bool = False
+        self,
+        *,
+        dry_run: bool = False,
+        read_only: bool = False,
     ) -> CompletedProcess[str] | CompletedProcess[None]:
         """Run ARK server."""
 
-        await _make_sure_file_exists(self.whitelist_file)
-        await _make_sure_file_exists(self.bypass_file)
-        await _ensure_symlink(self.saved_dir, self.ark_dir / "ShooterGame" / "Saved")
-        await _ensure_symlink(self.mod_dir, self.binary_dir / "ShooterGame")
-        await _ensure_symlink(
-            self.whitelist_file,
-            self.binary_dir / "PlayersExclusiveJoinList.txt",
-            is_dir=False,
-        )
-        await _ensure_symlink(
-            self.whitelist_file,
-            self.binary_dir / "PlayersJoinNoCheckList.txt",
-            is_dir=False,
-        )
+        if not read_only:
+            await _make_sure_file_exists(self.whitelist_file)
+            await _make_sure_file_exists(self.bypass_file)
+            await ensure_symlink(self.saved_dir, self.ark_dir / "ShooterGame" / "Saved")
+            await ensure_symlink(self.mod_dir, self.binary_dir / "ShooterGame")
+            await ensure_symlink(
+                self.whitelist_file,
+                self.binary_dir / "PlayersExclusiveJoinList.txt",
+                is_dir=False,
+            )
+            await ensure_symlink(
+                self.whitelist_file,
+                self.binary_dir / "PlayersJoinNoCheckList.txt",
+                is_dir=False,
+            )
+
+        if await aos.path.exists(self.marker_file):
+            await aos.remove(self.marker_file)
         await _make_sure_file_exists(self.log_file)
         await self._write_config()
 
@@ -423,6 +421,9 @@ class ArkServer:
             while True:
                 if line := await f.readline():
                     _LOGGER.info(line.strip())
+                    if line and "has successfully started" in line:
+                        _LOGGER.debug("Creating marker file %s", self.marker_file)
+                        await touch_file(self.marker_file)
                     continue
 
                 await asyncio.sleep(0.1)
