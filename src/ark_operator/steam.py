@@ -385,12 +385,12 @@ class Steam:
         """Initialize ARK cluster volumes."""
 
         _LOGGER.info("Initializing data volume (%s maps)", len(spec.server.all_maps))
+        list_dir = base_dir / "data" / "lists"
         if not dry_run:
             await aos.makedirs(
                 base_dir / "data" / "clusters" / spec.cluster.cluster_id, exist_ok=True
             )
             await aos.makedirs(base_dir / "data" / "maps", exist_ok=True)
-            list_dir = base_dir / "data" / "lists"
 
             await aos.makedirs(list_dir, exist_ok=True)
             await touch_file(list_dir / "PlayersExclusiveJoinList.txt")
@@ -424,19 +424,20 @@ class Steam:
             await aos.makedirs(base_dir / "server-a" / "ark", exist_ok=True)
         steam = Steam(install_dir=base_dir / "server-a" / "steam")
         await steam.install_ark(base_dir / "server-a" / "ark", dry_run=dry_run)
-        binary_a_dir = (
-            base_dir / "server-a" / "ark" / "ShooterGame" / "Binaries" / "Win64"
-        )
-        await ensure_symlink(
-            list_dir / "PlayersExclusiveJoinList.txt",
-            binary_a_dir / "PlayersExclusiveJoinList.txt",
-            is_dir=False,
-        )
-        await ensure_symlink(
-            list_dir / "PlayersJoinNoCheckList.txt",
-            binary_a_dir / "PlayersJoinNoCheckList.txt",
-            is_dir=False,
-        )
+        if not dry_run:
+            binary_a_dir = (
+                base_dir / "server-a" / "ark" / "ShooterGame" / "Binaries" / "Win64"
+            )
+            await ensure_symlink(
+                list_dir / "PlayersExclusiveJoinList.txt",
+                binary_a_dir / "PlayersExclusiveJoinList.txt",
+                is_dir=False,
+            )
+            await ensure_symlink(
+                list_dir / "PlayersJoinNoCheckList.txt",
+                binary_a_dir / "PlayersJoinNoCheckList.txt",
+                is_dir=False,
+            )
 
         _LOGGER.info("Initializing server-b volume")
         if not dry_run:
@@ -448,16 +449,17 @@ class Steam:
             base_dir / "server-b" / "ark",
             dry_run=dry_run,
         )
-        binary_b_dir = (
-            base_dir / "server-b" / "ark" / "ShooterGame" / "Binaries" / "Win64"
-        )
-        await ensure_symlink(
-            list_dir / "PlayersExclusiveJoinList.txt",
-            binary_b_dir / "PlayersExclusiveJoinList.txt",
-            is_dir=False,
-        )
-        await ensure_symlink(
-            list_dir / "PlayersJoinNoCheckList.txt",
-            binary_b_dir / "PlayersJoinNoCheckList.txt",
-            is_dir=False,
-        )
+        if not dry_run:
+            binary_b_dir = (
+                base_dir / "server-b" / "ark" / "ShooterGame" / "Binaries" / "Win64"
+            )
+            await ensure_symlink(
+                list_dir / "PlayersExclusiveJoinList.txt",
+                binary_b_dir / "PlayersExclusiveJoinList.txt",
+                is_dir=False,
+            )
+            await ensure_symlink(
+                list_dir / "PlayersJoinNoCheckList.txt",
+                binary_b_dir / "PlayersJoinNoCheckList.txt",
+                is_dir=False,
+            )
