@@ -10,8 +10,8 @@ import yaml
 from kopf.testing import KopfRunner
 
 from ark_operator.command import run_sync
-from ark_operator.k8s import get_v1_ext_client
-from tests.conftest import BASE_DIR, remove_cluster_finalizers
+from ark_operator.k8s import CRD_FILE, get_v1_ext_client
+from tests.conftest import remove_cluster_finalizers
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from _pytest.monkeypatch import MonkeyPatch
 
 GHA_CANNOT_RESIZE = "Github Actions cannot resize PVCs"
-CRDS = BASE_DIR / "crd_chart" / "crds" / "crds.yml"
 CLUSTER_SPEC: dict[str, Any] = {
     "apiVersion": "mort.is/v1beta1",
     "kind": "ArkCluster",
@@ -155,7 +154,7 @@ def _delete_cluster(
 def install_crds(k8s_namespace: str) -> Generator[None, None, None]:
     """Install ArkCluster crds."""
 
-    run_sync(f"kubectl apply -f {CRDS!s}", check=False)
+    run_sync(f"kubectl apply -f {CRD_FILE!s}", check=False)
 
     yield
 
