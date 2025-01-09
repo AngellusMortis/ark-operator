@@ -52,6 +52,8 @@ class ServerContext:
     battleye: bool
     allowed_platforms: list[Literal["ALL", "PS5", "XSX", "PC", "WINGDK"]]
     whitelist: bool
+    parameters: list[str]
+    options: list[str]
 
     parent: CoreContext
 

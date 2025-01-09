@@ -51,9 +51,24 @@ MAP_SHORTHAND_LOOKUP = {
     "@official": ["BobsMissions_WP", *ALL_OFFICIAL],
     "@officialNoClub": ALL_OFFICIAL,
 }
-ARK_RUN_TEMPLATE = '{proton_path!s} run {server_path!s} {map_name}?SessionName="{session_name}"?RCONEnabled=True?RCONPort={rcon_port}?ServerAdminPassword={rcon_password} -port={game_port} -WinLiveMaxPlayers={max_players} -clusterid={cluster_id} -ClusterDirOverride={data_dir!s} -NoTransferFromFiltering {extra_args}'  # noqa: E501
+ARK_RUN_TEMPLATE = '{proton_path!s} run {server_path!s} {map_name}?SessionName="{session_name}"?RCONEnabled=True?RCONPort={rcon_port}{extra_params}?ServerAdminPassword={rcon_password} -port={game_port} -WinLiveMaxPlayers={max_players} -clusterid={cluster_id} -ClusterDirOverride={data_dir!s} -NoTransferFromFiltering {extra_options}'  # noqa: E501
+MANAGED_PARAMS = {"SessionName", "RCONEnabled", "RCONPort", "ServerAdminPassword"}
+MANAGED_OPTIONS = {
+    "port",
+    "WinLiveMaxPlayers",
+    "clusterid",
+    "ClusterDirOverride",
+    "NoTransferFromFiltering",
+    "ServerPlatform",
+    "NoBattlEye",
+    "exclusivejoin",
+    "MULTIHOME",
+    "mods",
+}
+
 
 ERROR_NO_ALL = "@all can only be used if a list of all maps is passed in."
+ERROR_MANAGED = "{items} are managed {type_}, they cannot be proved manually."
 
 CAMEL_RE = re.compile(r"((?<=[a-z])[A-Z]|(?<!\A)[A-Z](?=[a-z]))")
 
@@ -210,6 +225,9 @@ class ArkServer:
     allowed_platforms: list[Literal["ALL", "PS5", "XSX", "PC", "WINGDK"]]
     whitelist: bool
     multihome_ip: str | None
+    parameters: list[str]
+    options: list[str]
+    mods: list[str]
 
     @property
     def list_dir(self) -> Path:
@@ -310,17 +328,41 @@ class ArkServer:
     def run_command(self) -> str:
         """ARK server run command."""
 
-        extra_args = ["ServerPlatform" + "+".join(self.server_platforms)]
+        mods = self.mods.copy()
+        extra_options = ["ServerPlatform" + "+".join(self.server_platforms)]
         if not self.battleye:
-            extra_args.append("NoBattlEye")
+            extra_options.append("NoBattlEye")
         if self.whitelist:
-            extra_args.append("exclusivejoin")
+            extra_options.append("exclusivejoin")
         if self.multihome_ip:
-            extra_args.append("MULTIHOME")
+            extra_options.append("MULTIHOME")
         if self.map_name == "BobsMissions_WP":
-            extra_args.append("mods=1005639")
+            mods.insert(0, "1005639")
+        if self.options:
+            overlap = {o.split("=")[0] for o in self.options}.intersection(
+                MANAGED_OPTIONS
+            )
+            if overlap:
+                raise ValueError(ERROR_MANAGED.format(items=overlap, type_="options"))
+            extra_options += self.options
 
-        args = f"-{' -'.join(extra_args)}"
+        extra_params = []
+        if self.parameters:
+            overlap = {o.split("=")[0] for o in self.parameters}.intersection(
+                MANAGED_PARAMS
+            )
+            if overlap:
+                raise ValueError(
+                    ERROR_MANAGED.format(items=overlap, type_="parameters")
+                )
+            extra_params = self.parameters.copy()
+
+        if mods:
+            extra_options.append(f"mods={','.join(mods)}")
+        options = f"-{' -'.join(extra_options)}"
+        params = "?".join(extra_params)
+        if params:
+            params = f"?{params}"
         return ARK_RUN_TEMPLATE.format(
             proton_path=self.proton_dir / "proton",
             server_path=self.binary_dir / "ArkAscendedServer.exe",
@@ -332,13 +374,16 @@ class ArkServer:
             max_players=self.max_players,
             cluster_id=self.cluster_id,
             data_dir=self.data_dir,
-            extra_args=args,
+            extra_options=options,
+            extra_params=params,
         )
 
     def make_game_user_settings(self) -> ConfigParser:
         """GameUserSettings.ini file."""
 
         conf = ConfigParser()
+        # make config parser case sensitive
+        conf.optionxform = str  # type: ignore[method-assign,assignment]
         conf["ServerSettings"] = {
             "RCONEnabled": "True",
             "RCONPort": str(self.rcon_port),
@@ -365,24 +410,24 @@ class ArkServer:
 
     @overload
     async def run(
-        self, *, dry_run: Literal[False] = False
+        self, *, read_only: bool, dry_run: Literal[False] = False
     ) -> CompletedProcess[str]: ...  # pragma: no cover
 
     @overload
     async def run(
-        self, *, dry_run: Literal[True]
+        self, *, read_only: bool, dry_run: Literal[True]
     ) -> CompletedProcess[None]: ...  # pragma: no cover
 
     @overload
     async def run(
-        self, *, dry_run: bool
+        self, *, read_only: bool, dry_run: bool
     ) -> CompletedProcess[str] | CompletedProcess[None]: ...  # pragma: no cover
 
     async def run(
         self,
         *,
-        dry_run: bool = False,
         read_only: bool = False,
+        dry_run: bool = False,
     ) -> CompletedProcess[str] | CompletedProcess[None]:
         """Run ARK server."""
 

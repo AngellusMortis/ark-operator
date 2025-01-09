@@ -22,6 +22,7 @@ from ark_operator.k8s import install_crds as install_crds_api
 from ark_operator.k8s import uninstall_crds as uninstall_crds_api
 from ark_operator.rcon import send_cmd_all
 from ark_operator.steam import Steam
+from ark_operator.utils import comma_list
 
 if TYPE_CHECKING:
     from ipaddress import IPv4Address, IPv6Address
@@ -63,6 +64,7 @@ def meta(
     Helpful commands for managing an ARK: Survival Ascended k8s server cluster.
     """
 
+    selector = comma_list(selector)
     selected_maps = expand_maps(selector.copy(), all_maps=spec.server.all_maps)
     set_context(
         "cluster",

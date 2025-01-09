@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, overload
 
 from aiofiles import open as aopen
 from aiofiles import os as aos
@@ -53,3 +53,27 @@ async def touch_file(path: Path) -> None:
 
     async with aopen(path, "a"):
         pass
+
+
+@overload
+def comma_list(args: list[str]) -> list[str]: ...  # pragma: no cover
+
+
+@overload
+def comma_list(args: None) -> None: ...  # pragma: no cover
+
+
+@overload
+def comma_list(args: list[str] | None) -> list[str] | None: ...  # pragma: no cover
+
+
+def comma_list(args: list[str] | None) -> list[str] | None:
+    """Handle list of comma seperated lists."""
+
+    if args is None:
+        return None
+
+    if len(args) == 1 and "," in args[0]:
+        args = args[0].split(",")
+
+    return args

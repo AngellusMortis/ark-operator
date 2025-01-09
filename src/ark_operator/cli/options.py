@@ -51,7 +51,7 @@ OPTION_COPY_DIR = Annotated[
 OPTION_OPTIONAL_HOST = Annotated[
     IPv4Address | IPv6Address | str | None,
     Parameter(
-        ("--host", "-h"),
+        ("--host"),
         env_var=["ARK_SERVER_HOST"],
     ),
 ]
@@ -59,7 +59,7 @@ OPTION_OPTIONAL_HOST = Annotated[
 OPTION_HOST = Annotated[
     IPv4Address | IPv6Address | str,
     Parameter(
-        ("--host", "-h"),
+        ("--host"),
         env_var=["ARK_SERVER_HOST"],
     ),
 ]
@@ -137,4 +137,12 @@ OPTION_SERVER_ALLOWED_PLATFORMS = Annotated[
 
 OPTION_SERVER_WHITELIST = Annotated[
     bool, Parameter("--whitelist", env_var=["ARK_SERVER_WHITELIST"])
+]
+
+OPTION_SERVER_PARAM = Annotated[
+    list[str] | None, Parameter("--param", env_var=["ARK_SERVER_PARAMS"])
+]
+
+OPTION_SERVER_OPT = Annotated[
+    list[str] | None, Parameter("--opt", env_var=["ARK_SERVER_OPTS"])
 ]

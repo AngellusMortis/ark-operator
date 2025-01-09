@@ -26,12 +26,15 @@ from ark_operator.cli.options import (
     OPTION_SERVER_MAP,
     OPTION_SERVER_MAX_PLAYERS,
     OPTION_SERVER_MULTIHOME_IP,
+    OPTION_SERVER_OPT,
+    OPTION_SERVER_PARAM,
     OPTION_SERVER_SESSION_NAME,
     OPTION_SERVER_WHITELIST,
     OPTION_STEAM_DIR,
 )
 from ark_operator.rcon import send_cmd
 from ark_operator.steam import Steam
+from ark_operator.utils import comma_list
 
 if TYPE_CHECKING:
     from ipaddress import IPv4Address, IPv6Address
@@ -69,6 +72,8 @@ def meta(  # noqa: PLR0913
     battleye: OPTION_SERVER_BATTLEYE = True,
     allowed_platforms: OPTION_SERVER_ALLOWED_PLATFORMS = None,
     whitelist: OPTION_SERVER_WHITELIST = False,
+    parameters: OPTION_SERVER_PARAM = None,
+    options: OPTION_SERVER_OPT = None,
 ) -> int | None:
     """
     ARK Server CLI.
@@ -76,8 +81,12 @@ def meta(  # noqa: PLR0913
     Helpful commands for managing an ARK: Survival Ascended server.
     """
 
+    allowed_platforms = comma_list(allowed_platforms)  # type: ignore[assignment,arg-type]
+    parameters = comma_list(parameters)
+    options = comma_list(options)
     install_dir = install_dir.absolute()
     steam_dir = steam_dir.absolute()
+
     set_context(
         "server",
         ServerContext(
@@ -97,6 +106,8 @@ def meta(  # noqa: PLR0913
             battleye=battleye,
             allowed_platforms=allowed_platforms or ["ALL"],
             whitelist=whitelist,
+            parameters=parameters or [],
+            options=options or [],
             parent=get_all_context("core"),  # type: ignore[arg-type]
         ),
     )
@@ -185,8 +196,19 @@ async def shutdown() -> None:
 
 
 @server.command
-async def run(*, dry_run: OPTION_DRY_RUN = False) -> None:
-    """Run ARK server."""
+async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> None:
+    """
+    Run ARK server.
+
+    Args:
+    ----
+    dry_run: bool
+        Do not actually start the server. Mostly for testing.
+
+    immutable: bool
+        Immutable/read only ARK server/steam install.
+
+    """
 
     context = _get_context()
     server = ArkServer(
@@ -203,9 +225,11 @@ async def run(*, dry_run: OPTION_DRY_RUN = False) -> None:
         allowed_platforms=context.allowed_platforms,
         whitelist=context.whitelist,
         multihome_ip=context.multihome_ip,
+        parameters=context.parameters,
+        options=context.options,
     )
     try:
-        await asyncio.shield(server.run(dry_run=dry_run))
+        await asyncio.shield(server.run(dry_run=dry_run, read_only=immutable))
     except asyncio.CancelledError:
         _LOGGER.info("Shutting down server...")
         await _do_shutdown(host="127.0.0.1")
