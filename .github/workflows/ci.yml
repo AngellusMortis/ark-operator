@@ -239,7 +239,6 @@ jobs:
         run: |
           kubectl get storageclass
           source ./.venv/bin/activate
-          cp crd_chart/crds/crds.yml src/ark_operator/resources/crds.yml
           ./.bin/test-code
 
       - name: 📡 Upload Code Coverage
@@ -272,7 +271,6 @@ jobs:
       - name: 🔨 Build Package
         run: |
           source ./.venv/bin/activate
-          cp crd_chart/crds/crds.yml src/ark_operator/resources/crds.yml
           hatch build
 
       - name: 📡 Upload package

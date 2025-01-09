@@ -324,9 +324,24 @@ class ArkServer:
 
         return self.allowed_platforms
 
-    @property
-    def run_command(self) -> str:
-        """ARK server run command."""
+    def make_params(self) -> list[str]:
+        """List of ARK server params (?)."""
+
+        extra_params = []
+        if self.parameters:
+            overlap = {o.split("=")[0] for o in self.parameters}.intersection(
+                MANAGED_PARAMS
+            )
+            if overlap:
+                raise ValueError(
+                    ERROR_MANAGED.format(items=overlap, type_="parameters")
+                )
+            extra_params = self.parameters.copy()
+
+        return extra_params
+
+    def make_opts(self) -> list[str]:
+        """List of ARK server options (-)."""
 
         mods = self.mods.copy()
         extra_options = ["ServerPlatform" + "+".join(self.server_platforms)]
@@ -346,21 +361,16 @@ class ArkServer:
                 raise ValueError(ERROR_MANAGED.format(items=overlap, type_="options"))
             extra_options += self.options
 
-        extra_params = []
-        if self.parameters:
-            overlap = {o.split("=")[0] for o in self.parameters}.intersection(
-                MANAGED_PARAMS
-            )
-            if overlap:
-                raise ValueError(
-                    ERROR_MANAGED.format(items=overlap, type_="parameters")
-                )
-            extra_params = self.parameters.copy()
-
         if mods:
             extra_options.append(f"mods={','.join(mods)}")
-        options = f"-{' -'.join(extra_options)}"
-        params = "?".join(extra_params)
+
+        return extra_options
+
+    def make_run_command(self) -> str:
+        """ARK server run command."""
+
+        options = f"-{' -'.join(self.make_opts())}"
+        params = "?".join(self.make_params())
         if params:
             params = f"?{params}"
         return ARK_RUN_TEMPLATE.format(
@@ -454,12 +464,13 @@ class ArkServer:
 
         task = asyncio.create_task(
             run_async(
-                self.run_command,
+                self.make_run_command(),
                 dry_run=dry_run,
                 env={
                     "STEAM_COMPAT_CLIENT_INSTALL_PATH": str(self.compatdata_dir),
                     "STEAM_COMPAT_DATA_PATH": str(self.compatdata_dir),
                 },
+                echo=True,
             )
         )
         async with aopen(self.log_file) as f:
@@ -467,7 +478,9 @@ class ArkServer:
                 if line := await f.readline():
                     _LOGGER.info(line.strip())
                     if line and "has successfully started" in line:
-                        _LOGGER.debug("Creating marker file %s", self.marker_file)
+                        _LOGGER.debug(
+                            "Creating startup marker file %s", self.marker_file
+                        )
                         await touch_file(self.marker_file)
                     continue
 

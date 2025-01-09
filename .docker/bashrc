@@ -30,6 +30,6 @@ function prompt_command {
 }
 export PROMPT_COMMAND=prompt_command
 
-if [[ ! -f /workspaces/ark-operator/src/ark_operator/resources/crds.yml ]]; then
-    ln -s /workspaces/ark-operator/crd_chart/crds/crds.yml /workspaces/ark-operator/src/ark_operator/resources/crds.yml
+if [[ ! -f /workspaces/ark-operator/crd_chart/crds/crds.yml ]]; then
+    ln -s /workspaces/ark-operator/src/ark_operator/resources/crds.yml /workspaces/ark-operator/crd_chart/crds/crds.yml
 fi

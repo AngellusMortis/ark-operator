@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import signal
 from typing import TYPE_CHECKING, Annotated, cast
 
 from aiofiles import os as aos
@@ -25,6 +26,7 @@ from ark_operator.cli.options import (
     OPTION_SERVER_CLUSTER_ID,
     OPTION_SERVER_MAP,
     OPTION_SERVER_MAX_PLAYERS,
+    OPTION_SERVER_MODS,
     OPTION_SERVER_MULTIHOME_IP,
     OPTION_SERVER_OPT,
     OPTION_SERVER_PARAM,
@@ -74,6 +76,7 @@ def meta(  # noqa: PLR0913
     whitelist: OPTION_SERVER_WHITELIST = False,
     parameters: OPTION_SERVER_PARAM = None,
     options: OPTION_SERVER_OPT = None,
+    mods: OPTION_SERVER_MODS = None,
 ) -> int | None:
     """
     ARK Server CLI.
@@ -81,6 +84,7 @@ def meta(  # noqa: PLR0913
     Helpful commands for managing an ARK: Survival Ascended server.
     """
 
+    mods = comma_list(mods)
     allowed_platforms = comma_list(allowed_platforms)  # type: ignore[assignment,arg-type]
     parameters = comma_list(parameters)
     options = comma_list(options)
@@ -108,6 +112,7 @@ def meta(  # noqa: PLR0913
             whitelist=whitelist,
             parameters=parameters or [],
             options=options or [],
+            mods=mods or [],
             parent=get_all_context("core"),  # type: ignore[arg-type]
         ),
     )
@@ -210,6 +215,22 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
 
     """
 
+    start_shutdown = asyncio.Event()
+    loop = asyncio.get_event_loop()
+
+    async def _shutdown() -> None:
+        try:
+            await asyncio.shield(start_shutdown.wait())
+        except asyncio.CancelledError:
+            await start_shutdown.wait()
+
+        _LOGGER.info("Shutting down server...")
+        await _do_shutdown(host="127.0.0.1")
+
+    cleanup_task = asyncio.create_task(_shutdown())
+    loop.add_signal_handler(signal.SIGINT, start_shutdown.set)
+    loop.add_signal_handler(signal.SIGTERM, start_shutdown.set)
+
     context = _get_context()
     server = ArkServer(
         server_dir=context.install_dir.parent,
@@ -227,12 +248,13 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
         multihome_ip=context.multihome_ip,
         parameters=context.parameters,
         options=context.options,
+        mods=context.mods,
     )
     try:
         await asyncio.shield(server.run(dry_run=dry_run, read_only=immutable))
     except asyncio.CancelledError:
-        _LOGGER.info("Shutting down server...")
-        await _do_shutdown(host="127.0.0.1")
+        start_shutdown.set()
 
+    await cleanup_task
     if await aos.path.exists(server.marker_file):
         await aos.remove(server.marker_file)

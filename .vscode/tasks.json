@@ -30,13 +30,13 @@
         {
             "label": "Apply CRDs",
             "type": "shell",
-            "command": "kubectl apply -f ${workspaceFolder}/crd_chart/crds/crds.yml",
+            "command": "kubectl apply -f ${workspaceFolder}/src/ark_operator/resources/crds.yml",
             "problemMatcher": []
         },
         {
             "label": "Delete CRDs",
             "type": "shell",
-            "command": "kubectl delete -f ${workspaceFolder}/crd_chart/crds/crds.yml",
+            "command": "kubectl delete -f ${workspaceFolder}/src/ark_operator/resources/crds.yml",
             "problemMatcher": []
         },
         {

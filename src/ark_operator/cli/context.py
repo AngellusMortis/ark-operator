@@ -54,6 +54,7 @@ class ServerContext:
     whitelist: bool
     parameters: list[str]
     options: list[str]
+    mods: list[str]
 
     parent: CoreContext
 

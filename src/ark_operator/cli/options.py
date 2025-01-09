@@ -146,3 +146,7 @@ OPTION_SERVER_PARAM = Annotated[
 OPTION_SERVER_OPT = Annotated[
     list[str] | None, Parameter("--opt", env_var=["ARK_SERVER_OPTS"])
 ]
+
+OPTION_SERVER_MODS = Annotated[
+    list[str] | None, Parameter("--mod", env_var=["ARK_SERVER_MODS"])
+]
