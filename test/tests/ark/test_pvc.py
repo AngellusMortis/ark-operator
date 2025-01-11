@@ -161,7 +161,7 @@ async def test_create_init_job(k8s_v1_batch_client: Mock) -> None:
                         "containers": [
                             {
                                 "name": "init-ark",
-                                "image": "ghcr.io/angellusmortis/ark-operator:master",
+                                "image": "ghcr.io/angellusmortis/ark-server:master",
                                 "imagePullPolicy": "Always",
                                 "command": [
                                     "arkctl",
@@ -270,7 +270,7 @@ async def test_create_init_job_dry_run(k8s_v1_batch_client: Mock) -> None:
                         "containers": [
                             {
                                 "name": "init-ark",
-                                "image": "ghcr.io/angellusmortis/ark-operator:master",
+                                "image": "ghcr.io/angellusmortis/ark-server:master",
                                 "imagePullPolicy": "Always",
                                 "command": [
                                     "arkctl",

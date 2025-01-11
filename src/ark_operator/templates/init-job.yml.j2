@@ -13,7 +13,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: init-ark
-          image: ghcr.io/angellusmortis/ark-operator:master
+          image: ghcr.io/angellusmortis/ark-server:master
           imagePullPolicy: Always
           command: ['arkctl', 'cluster', 'init-volumes', '/mnt']
           volumeMounts:

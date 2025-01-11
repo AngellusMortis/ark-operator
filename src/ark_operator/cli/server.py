@@ -8,7 +8,7 @@ import signal
 from typing import TYPE_CHECKING, Annotated, cast
 
 from aiofiles import os as aos
-from cyclopts import App, Parameter
+from cyclopts import App, CycloptsError, Parameter
 
 from ark_operator.ark import ArkServer
 from ark_operator.cli.context import ServerContext, get_all_context, set_context
@@ -40,6 +40,7 @@ from ark_operator.utils import comma_list
 
 if TYPE_CHECKING:
     from ipaddress import IPv4Address, IPv6Address
+    from pathlib import Path
 
 server = App(
     help="""
@@ -50,22 +51,71 @@ server = App(
 )
 
 _LOGGER = logging.getLogger(__name__)
+ERROR_FIELD_REQUIRED = "Error option {name} is required"
 
 
 def _get_context() -> ServerContext:
     return cast(ServerContext, get_all_context("server"))
 
 
+def _require_steam() -> Steam:
+    context = _get_context()
+    if context.steam is None:
+        raise CycloptsError(msg=ERROR_FIELD_REQUIRED.format(name="steam_dir"))
+
+    return context.steam
+
+
+def _require_install_dir() -> Path:
+    context = _get_context()
+    if context.install_dir is None:
+        raise CycloptsError(msg=ERROR_FIELD_REQUIRED.format(name="install_dir"))
+
+    return context.install_dir
+
+
+def _require_host() -> IPv4Address | IPv6Address | str:
+    context = _get_context()
+    if context.host is None:
+        raise CycloptsError(msg=ERROR_FIELD_REQUIRED.format(name="host"))
+
+    return context.host
+
+
+def _require_data_dir() -> Path:
+    context = _get_context()
+    if context.data_dir is None:
+        raise CycloptsError(msg=ERROR_FIELD_REQUIRED.format(name="data_dir"))
+
+    return context.data_dir
+
+
+def _require_map_name() -> str:
+    context = _get_context()
+    if context.map_name is None:
+        raise CycloptsError(msg=ERROR_FIELD_REQUIRED.format(name="map_name"))
+
+    return context.map_name
+
+
+def _require_session_name() -> str:
+    context = _get_context()
+    if context.session_name is None:
+        raise CycloptsError(msg=ERROR_FIELD_REQUIRED.format(name="session_name"))
+
+    return context.session_name
+
+
 @server.meta.default
 def meta(  # noqa: PLR0913
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
-    install_dir: OPTION_INSTALL_DIR,
-    data_dir: OPTION_DATA_DIR,
-    steam_dir: OPTION_STEAM_DIR,
-    host: OPTION_HOST,
     rcon_password: OPTION_RCON_PASSWORD,
-    map_name: OPTION_SERVER_MAP,
-    session_name: OPTION_SERVER_SESSION_NAME,
+    host: OPTION_HOST = None,
+    map_name: OPTION_SERVER_MAP = None,
+    session_name: OPTION_SERVER_SESSION_NAME = None,
+    install_dir: OPTION_INSTALL_DIR = None,
+    data_dir: OPTION_DATA_DIR = None,
+    steam_dir: OPTION_STEAM_DIR = None,
     rcon_port: OPTION_RCON_PORT = 27020,
     game_port: OPTION_GAME_PORT = 7777,
     multihome_ip: OPTION_SERVER_MULTIHOME_IP = None,
@@ -88,8 +138,8 @@ def meta(  # noqa: PLR0913
     allowed_platforms = comma_list(allowed_platforms)  # type: ignore[assignment,arg-type]
     parameters = comma_list(parameters)
     options = comma_list(options)
-    install_dir = install_dir.absolute()
-    steam_dir = steam_dir.absolute()
+    install_dir = install_dir.absolute() if install_dir else None
+    steam_dir = steam_dir.absolute() if steam_dir else None
 
     set_context(
         "server",
@@ -97,7 +147,7 @@ def meta(  # noqa: PLR0913
             install_dir=install_dir,
             data_dir=data_dir,
             steam_dir=steam_dir,
-            steam=Steam(install_dir=steam_dir),
+            steam=Steam(install_dir=steam_dir) if steam_dir else None,
             host=host,
             rcon_port=rcon_port,
             rcon_password=rcon_password,
@@ -128,13 +178,15 @@ async def install(
 ) -> None:
     """Install ARK: Survival Ascended Server."""
 
-    context = _get_context()
+    steam = _require_steam()
+    install_dir = _require_install_dir()
+
     if copy_from:
         copy_from = copy_from.absolute()
-        _LOGGER.info("Copy ARK from %s to ARK at %s", copy_from, context.install_dir)
-        await context.steam.copy_ark(copy_from, context.install_dir, dry_run=dry_run)
+        _LOGGER.info("Copy ARK from %s to ARK at %s", copy_from, install_dir)
+        await steam.copy_ark(copy_from, install_dir, dry_run=dry_run)
 
-    has_newer = await context.steam.has_newer_version(context.install_dir)
+    has_newer = await steam.has_newer_version(install_dir)
     _LOGGER.info(
         "ARK has newer version: %s",
         has_newer,
@@ -144,10 +196,8 @@ async def install(
             "Skipping install since there is no new version and validate is disabled"
         )
     else:
-        _LOGGER.info("Installing ARK at %s", context.install_dir)
-        await context.steam.install_ark(
-            context.install_dir, validate=validate, dry_run=dry_run
-        )
+        _LOGGER.info("Installing ARK at %s", install_dir)
+        await steam.install_ark(install_dir, validate=validate, dry_run=dry_run)
 
 
 async def _run_command(
@@ -155,7 +205,7 @@ async def _run_command(
 ) -> None:
     context = _get_context()
 
-    host = host or context.host
+    host = host or _require_host()
     _LOGGER.info("%s:%s - %s", host, context.rcon_port, cmd)
     response = await send_cmd(
         cmd,
@@ -233,10 +283,10 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
 
     context = _get_context()
     server = ArkServer(
-        server_dir=context.install_dir.parent,
-        data_dir=context.data_dir,
-        map_name=context.map_name,
-        session_name=context.session_name,
+        server_dir=_require_install_dir().parent,
+        data_dir=_require_data_dir(),
+        map_name=_require_map_name(),
+        session_name=_require_session_name(),
         rcon_port=context.rcon_port,
         rcon_password=context.rcon_password,
         game_port=context.game_port,

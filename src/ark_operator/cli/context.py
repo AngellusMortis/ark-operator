@@ -36,16 +36,16 @@ class CoreContext:
 class ServerContext:
     """Server commands context object."""
 
-    install_dir: Path
-    data_dir: Path
-    steam_dir: Path
-    steam: Steam
-    host: IPv4Address | IPv6Address | str
+    install_dir: Path | None
+    data_dir: Path | None
+    steam_dir: Path | None
+    steam: Steam | None
+    host: IPv4Address | IPv6Address | str | None
     rcon_port: int
     rcon_password: str
     game_port: int
-    map_name: str
-    session_name: str
+    map_name: str | None
+    session_name: str | None
     multihome_ip: str | None
     max_players: int
     cluster_id: str

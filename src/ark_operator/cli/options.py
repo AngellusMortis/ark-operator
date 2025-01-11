@@ -17,7 +17,7 @@ OPTION_LOG_CONFIG = Annotated[dict[str, Any], Parameter(env_var="ARK_OP_LOG_CONF
 OPTION_DRY_RUN = Annotated[bool, Parameter(env_var="ARK_OP_DRY_RUN")]
 
 OPTION_INSTALL_DIR = Annotated[
-    Path,
+    Path | None,
     Parameter(
         ("--install-dir", "-i"),
         env_var=["ARK_SERVER_DIR", "ARK_SERVER_A_DIR"],
@@ -25,7 +25,7 @@ OPTION_INSTALL_DIR = Annotated[
 ]
 
 OPTION_DATA_DIR = Annotated[
-    Path,
+    Path | None,
     Parameter(
         ("--data-dir", "-d"),
         env_var=["ARK_DATA_DIR"],
@@ -33,7 +33,7 @@ OPTION_DATA_DIR = Annotated[
 ]
 
 OPTION_STEAM_DIR = Annotated[
-    Path,
+    Path | None,
     Parameter(
         ("--steam-dir", "-s"),
         env_var="ARK_STEAM_DIR",
@@ -57,7 +57,7 @@ OPTION_OPTIONAL_HOST = Annotated[
 ]
 
 OPTION_HOST = Annotated[
-    IPv4Address | IPv6Address | str,
+    IPv4Address | IPv6Address | str | None,
     Parameter(
         ("--host"),
         env_var=["ARK_SERVER_HOST"],
@@ -107,11 +107,11 @@ OPTION_ARK_SELECTOR = Annotated[
 ]
 
 OPTION_SERVER_MAP = Annotated[
-    str, Parameter(("-m", "--map"), env_var=["ARK_SERVER_MAP"])
+    str | None, Parameter(("-m", "--map"), env_var=["ARK_SERVER_MAP"])
 ]
 
 OPTION_SERVER_SESSION_NAME = Annotated[
-    str, Parameter(("-n", "--session-name"), env_var=["ARK_SERVER_SESSION_NAME"])
+    str | None, Parameter(("-n", "--session-name"), env_var=["ARK_SERVER_SESSION_NAME"])
 ]
 
 OPTION_SERVER_MULTIHOME_IP = Annotated[
