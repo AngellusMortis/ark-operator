@@ -37,7 +37,13 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        target: ["dev", "prod"]
+        include:
+          - target: dev
+            image: ghcr.io/angellusmortis/ark-operator-dev
+          - target: prod
+            image: ghcr.io/angellusmortis/arkctl
+          - target: server
+            image: ghcr.io/angellusmortis/ark-server
 
     steps:
       - name: ⬇️ Checkout Repo
@@ -89,22 +95,12 @@ jobs:
             }
           skip-extraction: ${{ steps.pip-cache.outputs.cache-hit }}
 
-      - name: 🔧 Set Image Name
-        run: |
-          CONTAINER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator"
-          if [[ ${{ matrix.target }} == "dev" ]]; then
-            CONTAINER_IMAGE_NAME="ghcr.io/angellusmortis/ark-operator-dev"
-          fi
-
-          echo "CONTAINER_IMAGE_NAME=$CONTAINER_IMAGE_NAME"
-          echo "CONTAINER_IMAGE_NAME=$CONTAINER_IMAGE_NAME" >> $GITHUB_ENV
-
       - name: 🔧 Set Docker Tags
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: |
-            ${{ env.CONTAINER_IMAGE_NAME }}
+            ${{ matrix.image }}
 
       - name: 🔨 Build Docker
         uses: docker/build-push-action@v6

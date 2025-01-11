@@ -187,15 +187,20 @@ async def test_send_cmd_all_exception_timeout(mock_rcon: Mock) -> None:
     mock_client.__aexit__ = AsyncMock()
     mock_rcon.return_value = mock_client
 
-    with pytest.raises(RCONError):
-        await send_cmd_all(
-            "testCMD", spec=SPEC.model_copy(deep=True), host="test", password="password"
-        )
+    await send_cmd_all(
+        "testCMD", spec=SPEC.model_copy(deep=True), host="test", password="password"
+    )
 
     assert call("test", 27020, "password", timeout=3) in mock_rcon.call_args_list
     assert call("test", 27021, "password", timeout=3) in mock_rcon.call_args_list
     assert mock_client.__aenter__.await_count == 2
-    assert mock_client.__aexit__.await_count == 2
+    mock_client.send.assert_has_awaits(
+        [
+            call("testCMD"),
+            call("testCMD"),
+        ]
+    )
+    mock_client.__aexit__.assert_not_awaited()
 
 
 @patch("ark_operator.rcon.GameRCON")

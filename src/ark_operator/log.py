@@ -6,6 +6,7 @@ import sys
 from typing import Any, Literal
 
 from pythonjsonlogger import json
+from rich.console import Console
 from rich.logging import RichHandler
 
 LoggingFormat = Literal["rich", "json", "auto"]
@@ -64,9 +65,12 @@ def init_logging(
     will skip logging setup.
     """
 
+    console: Console | None = Console(width=200)
     if logging_format == "auto":
-        # pretty logger when running with a TTY, JSON logger for Splunk
+        # pretty logger when running with a TTY, JSON logger otherwise
         logging_format = "rich" if (sys.stdin and sys.stdin.isatty()) else "json"
+        # if logging is set to auto, let the width of the console be set dynamically
+        console = None
 
     match logging_format:
         case "rich":
@@ -74,7 +78,7 @@ def init_logging(
                 level=level,
                 format="%(message)s",
                 datefmt="[%X]",
-                handlers=[RichHandler()],
+                handlers=[RichHandler(console=console)],
             )
         case "json":
             handler = logging.StreamHandler()

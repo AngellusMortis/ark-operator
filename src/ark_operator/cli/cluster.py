@@ -113,12 +113,16 @@ async def check_crds() -> int:
 
 
 @cluster.command
-async def init_volumes(base_dir: Path, *, dry_run: OPTION_DRY_RUN = False) -> None:
+async def init_volumes(
+    base_dir: Path, *, dry_run: OPTION_DRY_RUN = False, single_server: bool = False
+) -> None:
     """Initialize volumes for cluster."""
 
     context = _get_context()
     steam = Steam(base_dir / "server-a" / "steam")
-    await steam.init_volumes(base_dir, spec=context.spec, dry_run=dry_run)
+    await steam.init_volumes(
+        base_dir, spec=context.spec, dry_run=dry_run, single_server=single_server
+    )
 
 
 @cluster.command

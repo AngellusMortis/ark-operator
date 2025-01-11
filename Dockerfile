@@ -69,6 +69,20 @@ WORKDIR /
 ENTRYPOINT [ "arkctl" ]
 
 
+# ark-server image
+FROM prod AS server
+
+ENV ARK_BASE_DIR=/srv/ark
+ENV ARK_SERVER_DIR=${ARK_BASE_DIR}/server/ark
+ENV ARK_STEAM_DIR=${ARK_BASE_DIR}/server/steam
+ENV ARK_DATA_DIR=${ARK_BASE_DIR}/data
+# not actually used for server run command
+ENV ARK_SERVER_HOST=127.0.0.1
+
+COPY --chmod=755 .docker/server-entry.sh /entrypoint
+VOLUME [ "/srv/ark/server", "/srv/ark/data" ]
+ENTRYPOINT [ "/entrypoint" ]
+
 # dev container
 FROM prod AS dev
 
@@ -98,9 +112,11 @@ RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing
 ENV PYTHONPATH=/workspaces/ark-operator/src/:/workspaces/ark-operator/test/
 ENV PATH=$PATH:/workspaces/ark-operator/.bin
 ENV ARK_OP_DEBUG=True
-ENV ARK_STEAM_DIR=/workspaces/ark-operator/steam/server-a/steam
-ENV ARK_SERVER_A_DIR=/workspaces/ark-operator/steam/server-a/ark
-ENV ARK_SERVER_B_DIR=/workspaces/ark-operator/steam/server-b/ark
+ENV ARK_STEAM_DIR=/workspaces/ark-operator/test/server/server-a/steam
+ENV ARK_SERVER_DIR=/workspaces/ark-operator/test/server/server-a/ark
+ENV ARK_SERVER_A_DIR=/workspaces/ark-operator/test/server/server-a/ark
+ENV ARK_SERVER_B_DIR=/workspaces/ark-operator/test/server/server-b/ark
+ENV ARK_DATA_DIR=/workspaces/ark-operator/test/server/data
 
 USER app
 WORKDIR /workspaces/ark-operator/

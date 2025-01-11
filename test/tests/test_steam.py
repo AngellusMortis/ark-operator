@@ -491,6 +491,55 @@ async def test_init_volumes(  # noqa: PLR0913
     )
 
 
+@patch("ark_operator.steam.install_proton")
+@patch("ark_operator.steam.steamcmd_run")
+@patch("ark_operator.steam.install_steamcmd", AsyncMock())
+@patch("ark_operator.steam.copy_ark", AsyncMock())
+@pytest.mark.asyncio
+async def test_init_volumes_single(
+    mock_run: AsyncMock,
+    mock_proton: AsyncMock,
+    steam: Steam,
+    steamcmd_path: Path,
+) -> None:
+    """Test init_volumes."""
+
+    base_dir = steamcmd_path.parent
+    spec = ArkClusterSpec()
+    await steam.init_volumes(steamcmd_path.parent, spec=spec, single_server=True)
+
+    assert await aos.path.exists(base_dir / "data" / "clusters" / "ark-cluster") is True
+    assert await aos.path.exists(base_dir / "data" / "maps") is True
+    list_dir = base_dir / "data" / "lists"
+    assert await aos.path.exists(list_dir) is True
+    assert await aos.path.exists(list_dir / "PlayersExclusiveJoinList.txt") is True
+    assert await aos.path.exists(list_dir / "PlayersJoinNoCheckList.txt") is True
+
+    for map_name in spec.server.all_maps:
+        assert (
+            await aos.path.exists(
+                base_dir
+                / "data"
+                / "maps"
+                / map_name
+                / "saved"
+                / "Config"
+                / "WindowsServer"
+            )
+            is True
+        )
+        assert (
+            await aos.path.exists(base_dir / "data" / "maps" / map_name / "mods")
+            is True
+        )
+
+    assert await aos.path.exists(base_dir / "server" / "steam") is True
+    assert await aos.path.exists(base_dir / "server" / "ark") is True
+
+    mock_run.assert_awaited_once()
+    mock_proton.assert_awaited_once_with(base_dir / "server" / "steam", dry_run=False)
+
+
 @patch("ark_operator.steam.aos")
 @patch("ark_operator.steam.install_proton")
 @patch("ark_operator.steam.steamcmd_run")

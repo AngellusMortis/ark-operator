@@ -2,7 +2,6 @@
 !.git
 !.bin
 !.docker
-steam
 dist
 htmlcov
-test
+test/*

@@ -1,7 +1,8 @@
 crd_chart/crds/crds.yml
 test/steam_install
 coverage.json
-steam
+test/server/**
+!test/server/docker-compose.yml
 
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,python

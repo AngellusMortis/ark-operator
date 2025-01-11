@@ -102,7 +102,7 @@ allow-direct-references = true
 
 ## linting metadata
 [tool.ruff]
-exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv", "steam"]
+exclude = ["*migrations*", ".*", "/usr/local/lib", "dist", "venv", "test/server"]
 line-length = 88
 target-version = "py311"
 
@@ -132,7 +132,7 @@ max-complexity = 10
 python_version = "3.11"
 warn_unused_configs = true
 disable_error_code = "no-redef"
-exclude = ["dist", "/usr/local/lib", "codeql", "steam"]
+exclude = ["dist", "/usr/local/lib", "codeql", "test/server"]
 disallow_any_generics = true
 disallow_subclassing_any = true
 disallow_untyped_calls = true
@@ -193,7 +193,7 @@ show_contexts = true
 [tool.pytest.ini_options]
 addopts = "--disable-socket --allow-unix-socket --strict-markers -ra -Wd --ignore=.* --cov-report term-missing --no-cov-on-fail --cov=src/ark_operator --cov-append --maxfail=10 -n=auto"
 filterwarnings = []
-testpaths = ["test"]
+testpaths = ["test/tests"]
 timeout_func_only = false
 timeout = 1
 log_level = "DEBUG"

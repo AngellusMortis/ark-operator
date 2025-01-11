@@ -382,8 +382,78 @@ class Steam:
 
         return await has_newer_version(self, ark_dir)
 
+    async def _init_server(
+        self,
+        base_dir: Path,
+        *,
+        dry_run: bool,
+        name: str,
+    ) -> None:
+        list_dir = base_dir / "data" / "lists"
+        _LOGGER.info("Initializing %s volume", name)
+        if not dry_run:
+            await aos.makedirs(base_dir / name / "steam", exist_ok=True)
+            await aos.makedirs(base_dir / name / "ark", exist_ok=True)
+        steam = Steam(install_dir=base_dir / name / "steam")
+        await steam.install_ark(
+            base_dir / name / "ark", dry_run=dry_run, validate=False
+        )
+        if not dry_run:
+            binary_a_dir = (
+                base_dir / name / "ark" / "ShooterGame" / "Binaries" / "Win64"
+            )
+            await ensure_symlink(
+                list_dir / "PlayersExclusiveJoinList.txt",
+                binary_a_dir / "PlayersExclusiveJoinList.txt",
+                is_dir=False,
+            )
+            await ensure_symlink(
+                list_dir / "PlayersJoinNoCheckList.txt",
+                binary_a_dir / "PlayersJoinNoCheckList.txt",
+                is_dir=False,
+            )
+
+    async def _init_server_ab(
+        self,
+        base_dir: Path,
+        *,
+        dry_run: bool,
+    ) -> None:
+        list_dir = base_dir / "data" / "lists"
+        await self._init_server(base_dir, dry_run=dry_run, name="server-a")
+
+        _LOGGER.info("Initializing server-b volume")
+        if not dry_run:
+            await aos.makedirs(base_dir / "server-b" / "steam", exist_ok=True)
+            await aos.makedirs(base_dir / "server-b" / "ark", exist_ok=True)
+        await install_steamcmd(base_dir / "server-b" / "steam", dry_run=dry_run)
+        await copy_ark(
+            base_dir / "server-a" / "ark",
+            base_dir / "server-b" / "ark",
+            dry_run=dry_run,
+        )
+        if not dry_run:
+            binary_b_dir = (
+                base_dir / "server-b" / "ark" / "ShooterGame" / "Binaries" / "Win64"
+            )
+            await ensure_symlink(
+                list_dir / "PlayersExclusiveJoinList.txt",
+                binary_b_dir / "PlayersExclusiveJoinList.txt",
+                is_dir=False,
+            )
+            await ensure_symlink(
+                list_dir / "PlayersJoinNoCheckList.txt",
+                binary_b_dir / "PlayersJoinNoCheckList.txt",
+                is_dir=False,
+            )
+
     async def init_volumes(
-        self, base_dir: Path, *, spec: ArkClusterSpec, dry_run: bool = False
+        self,
+        base_dir: Path,
+        *,
+        spec: ArkClusterSpec,
+        single_server: bool = False,
+        dry_run: bool = False,
     ) -> None:
         """Initialize ARK cluster volumes."""
 
@@ -421,48 +491,8 @@ class Steam:
                     ),
                 )
 
-        _LOGGER.info("Initializing server-a volume")
-        if not dry_run:
-            await aos.makedirs(base_dir / "server-a" / "steam", exist_ok=True)
-            await aos.makedirs(base_dir / "server-a" / "ark", exist_ok=True)
-        steam = Steam(install_dir=base_dir / "server-a" / "steam")
-        await steam.install_ark(base_dir / "server-a" / "ark", dry_run=dry_run)
-        if not dry_run:
-            binary_a_dir = (
-                base_dir / "server-a" / "ark" / "ShooterGame" / "Binaries" / "Win64"
-            )
-            await ensure_symlink(
-                list_dir / "PlayersExclusiveJoinList.txt",
-                binary_a_dir / "PlayersExclusiveJoinList.txt",
-                is_dir=False,
-            )
-            await ensure_symlink(
-                list_dir / "PlayersJoinNoCheckList.txt",
-                binary_a_dir / "PlayersJoinNoCheckList.txt",
-                is_dir=False,
-            )
+        if single_server:
+            await self._init_server(base_dir, dry_run=dry_run, name="server")
+            return
 
-        _LOGGER.info("Initializing server-b volume")
-        if not dry_run:
-            await aos.makedirs(base_dir / "server-b" / "steam", exist_ok=True)
-            await aos.makedirs(base_dir / "server-b" / "ark", exist_ok=True)
-        await install_steamcmd(base_dir / "server-b" / "steam", dry_run=dry_run)
-        await copy_ark(
-            base_dir / "server-a" / "ark",
-            base_dir / "server-b" / "ark",
-            dry_run=dry_run,
-        )
-        if not dry_run:
-            binary_b_dir = (
-                base_dir / "server-b" / "ark" / "ShooterGame" / "Binaries" / "Win64"
-            )
-            await ensure_symlink(
-                list_dir / "PlayersExclusiveJoinList.txt",
-                binary_b_dir / "PlayersExclusiveJoinList.txt",
-                is_dir=False,
-            )
-            await ensure_symlink(
-                list_dir / "PlayersJoinNoCheckList.txt",
-                binary_b_dir / "PlayersJoinNoCheckList.txt",
-                is_dir=False,
-            )
+        await self._init_server_ab(base_dir, dry_run=dry_run)

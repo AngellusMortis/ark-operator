@@ -8,7 +8,6 @@ from contextlib import suppress
 from typing import TYPE_CHECKING, cast
 
 from gamercon_async import GameRCON
-from gamercon_async.gamercon_async import TimeoutError as RCONTimeoutError
 
 from ark_operator.ark import expand_maps
 from ark_operator.exceptions import RCONError
@@ -113,7 +112,7 @@ async def send_cmd_all(  # noqa: PLR0913
     for index, response in enumerate(responses):
         return_responses[objs[index].map_id] = response
         if isinstance(response, Exception):
-            if isinstance(response.__context__, RCONTimeoutError):
+            if "timeout" in repr(response.__context__).lower():
                 _LOGGER.info("%s - %s", objs[index].map_name, cmd)
                 _LOGGER.warning("Timeout")
                 continue

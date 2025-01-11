@@ -50,6 +50,18 @@
             "type": "shell",
             "command": "kubectl delete -n ark-dev -f ${workspaceFolder}/test/manifests/cluster.yml",
             "problemMatcher": []
+        },
+        {
+            "label": "Install ARK (server-a)",
+            "type": "shell",
+            "command": "arkctl server --install-dir ${workspaceFolder}/test/server/server-a/ark install --copy-from ${workspaceFolder}/test/server/server-a/ark",
+            "problemMatcher": []
+        },
+        {
+            "label": "Install ARK (server-b)",
+            "type": "shell",
+            "command": "arkctl server --install-dir ${workspaceFolder}/test/server/server-b/ark install --copy-from ${workspaceFolder}/test/server/server-a/ark",
+            "problemMatcher": []
         }
     ]
 }

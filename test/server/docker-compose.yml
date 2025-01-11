@@ -1,0 +1,31 @@
+services:
+  dev:
+    image: ghcr.io/angellusmortis/ark-operator-dev
+    build:
+      context: ../../
+      target: dev
+      dockerfile: ./Dockerfile
+
+  prod:
+    image: ghcr.io/angellusmortis/arkctl
+    build:
+      context: ../../
+      target: prod
+      dockerfile: ./Dockerfile
+
+  server:
+    image: ghcr.io/angellusmortis/ark-server
+    build:
+      context: ../../
+      target: server
+      dockerfile: ./Dockerfile
+    environment:
+      ARK_SERVER_RCON_PASSWORD: password
+      ARK_SERVER_MAP: BobsMissions_WP
+      ARK_SERVER_SESSION_NAME: Mortis - Test
+      ARK_OP_LOG_FORMAT: rich
+    tty: true
+    volumes:
+      - ./server-a:/srv/ark/server
+      - ./data:/srv/ark/data
+      - ../../.docker/server-entry.sh:/entrypoint
