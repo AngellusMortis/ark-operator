@@ -39,7 +39,7 @@ async def ensure_symlink(target: Path, link: Path, *, is_dir: bool = True) -> No
             _LOGGER.debug("Symlink %s exists, but mismatched", link)
             await aos.remove(link)
         elif not await aos.path.isdir(link):
-            _LOGGER.debug("File %s is not symlink, deleteing", link)
+            _LOGGER.debug("File %s is not symlink, deleting", link)
             await aos.remove(link)
         else:
             # assume directory is volume mounted correctly

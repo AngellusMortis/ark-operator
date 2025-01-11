@@ -190,7 +190,7 @@ async def save() -> None:
 async def broadcast(*message: str) -> None:
     """Run send message via rcon to ARK server."""
 
-    await _run_command(f"ServerChat {" ".join(message)}")
+    await _run_command(f"ServerChat {' '.join(message)}")
 
 
 @server.command

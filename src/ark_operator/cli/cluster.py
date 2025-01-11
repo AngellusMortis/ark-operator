@@ -155,7 +155,7 @@ async def broadcast(*message: str) -> None:
 
     context = _get_context()
     await send_cmd_all(
-        f"ServerChat {" ".join(message)}",
+        f"ServerChat {' '.join(message)}",
         host=context.host,
         password=context.rcon_password,
         spec=context.spec.server,

@@ -212,7 +212,7 @@ markupsafe==3.0.2
     # via
     #   -c requirements.txt
     #   jinja2
-marshmallow==3.24.1
+marshmallow==3.25.0
     # via
     #   -c requirements.txt
     #   environs
@@ -297,7 +297,7 @@ pycryptodomex==3.21.0
     # via
     #   -c requirements.txt
     #   steam
-pydantic==2.10.4
+pydantic==2.10.5
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
@@ -319,7 +319,7 @@ pykube-ng==23.6.0
     # via
     #   -c requirements.txt
     #   kopf
-pyngrok==7.2.2
+pyngrok==7.2.3
     # via kopf
 pyproject-hooks==1.2.0
     # via build
@@ -333,7 +333,7 @@ pytest==8.3.4
     #   pytest-socket
     #   pytest-timeout
     #   pytest-xdist
-pytest-asyncio==0.25.1
+pytest-asyncio==0.25.2
     # via ark-operator (pyproject.toml)
 pytest-cov==6.0.0
     # via ark-operator (pyproject.toml)
@@ -407,11 +407,11 @@ rsa==4.9
     # via
     #   -c requirements.txt
     #   google-auth
-ruff==0.8.6
+ruff==0.9.0
     # via ark-operator (pyproject.toml)
 secretstorage==3.3.3
     # via keyring
-setuptools==75.7.0
+setuptools==75.8.0
     # via
     #   -c requirements.txt
     #   zope-event
@@ -465,7 +465,7 @@ urllib3==1.26.20
     #   twine
 userpath==1.9.2
     # via hatch
-uv==0.5.15
+uv==0.5.16
     # via hatch
 vdf==3.4
     # via

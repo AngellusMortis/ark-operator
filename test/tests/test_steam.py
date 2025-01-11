@@ -15,7 +15,7 @@ from pytest_httpx import HTTPXMock
 
 from ark_operator.data import ArkClusterSpec
 from ark_operator.exceptions import SteamCMDError
-from ark_operator.steam import Steam, install_steamcmd
+from ark_operator.steam import Steam, install_steamcmd, install_proton, PROTON_VERSION
 from tests.conftest import BASE_DIR
 
 TEST_ARCHIVE: dict[str, bytes] = {}
@@ -58,6 +58,20 @@ async def steamcmd_installed_fixture(
 
     yield steamcmd_path
 
+
+@pytest_asyncio.fixture(name="proton_installed")
+async def proton_installed_fixture(
+    steamcmd_path: Path,
+) -> AsyncGenerator[Path]:
+    """proton installed fixture."""
+
+    proton_dir = steamcmd_path / ".steam" / "root" / "compatibilitytools.d" / f"GE-Proton{PROTON_VERSION}"
+    proton_dir.mkdir(parents=True, exist_ok=True)
+    exe = proton_dir / "proton"
+    async with aopen(exe, "wb") as f:
+        await f.write(b"")
+
+    yield steamcmd_path
 
 @patch("ark_operator.steam.CDNClient")
 @patch("ark_operator.steam.SteamClient")
@@ -504,3 +518,94 @@ async def test_init_volumes_dry_run(  # noqa: PLR0913
     mock_copy.assert_awaited_once_with(
         base_dir / "server-a" / "ark", base_dir / "server-b" / "ark", dry_run=True
     )
+
+
+@patch("ark_operator.steam.aos")
+@pytest.mark.asyncio
+async def test_install_proton_already_installed(
+    mock_aos: Mock, httpx_mock: HTTPXMock
+) -> None:
+    """Test install_proton."""
+
+    mock_aos.path.exists = AsyncMock(return_value=True)
+
+    await install_proton(Path("/test/proton"))
+
+    mock_aos.path.exists.assert_awaited_once()
+    assert len(httpx_mock.get_requests()) == 0
+
+
+@patch("ark_operator.steam._extract_archive", AsyncMock())
+@pytest.mark.asyncio
+async def test_install_proton_extract_failed(
+    httpx_mock: HTTPXMock,
+    steamcmd_path: Path,
+) -> None:
+    """Test install_proton."""
+
+    httpx_mock.add_response(status_code=200, content=TEST_ARCHIVE["Linux"])
+
+    with pytest.raises(SteamCMDError):
+        assert await install_proton(steamcmd_path)
+
+    assert len(httpx_mock.get_requests()) == 1
+
+
+@patch("ark_operator.steam._extract_archive", AsyncMock())
+@pytest.mark.asyncio
+async def test_install_proton_download_failed(
+    httpx_mock: HTTPXMock,
+    steamcmd_path: Path,
+) -> None:
+    """Test install_proton."""
+
+    httpx_mock.add_response(status_code=400)
+
+    with pytest.raises(SteamCMDError):
+        assert await install_proton(steamcmd_path)
+
+    assert len(httpx_mock.get_requests()) == 1
+
+
+@pytest.mark.asyncio
+async def test_install_proton(
+    httpx_mock: HTTPXMock,
+    steamcmd_path: Path,
+) -> None:
+    """Test install_proton."""
+
+    httpx_mock.add_response(status_code=200, content=TEST_ARCHIVE["Linux"])
+
+    assert await install_proton(steamcmd_path) == steamcmd_path / ".steam" / "root" / "compatibilitytools.d" / f"GE-Proton{PROTON_VERSION}" / "proton"
+    assert len(httpx_mock.get_requests()) == 1
+
+
+@pytest.mark.asyncio
+async def test_install_proton_reinstall(
+    httpx_mock: HTTPXMock,
+    proton_installed: Path,
+) -> None:
+    """Test install_proton."""
+
+    httpx_mock.add_response(status_code=200, content=TEST_ARCHIVE["Linux"])
+
+    path = await install_proton(proton_installed, force=True)
+    assert path == proton_installed / ".steam" / "root" / "compatibilitytools.d" / f"GE-Proton{PROTON_VERSION}" / "proton"
+    assert len(httpx_mock.get_requests()) == 1
+
+
+@patch("ark_operator.steam.aioshutil")
+@pytest.mark.asyncio
+async def test_install_proton_reinstall_dry_run(
+    mock_shutil: Mock,
+    httpx_mock: HTTPXMock,
+    proton_installed: Path,
+) -> None:
+    """Test install_proton."""
+
+    mock_shutil.rmtree = AsyncMock()
+
+    path = await install_proton(proton_installed, force=True, dry_run=True)
+    assert path == proton_installed / ".steam" / "root" / "compatibilitytools.d" / f"GE-Proton{PROTON_VERSION}" / "proton"
+    assert len(httpx_mock.get_requests()) == 0
+    mock_shutil.rmtree.assert_not_awaited()

@@ -1,3 +1,4 @@
+# noqa: A005
 """ARK Operator types."""
 
 from __future__ import annotations

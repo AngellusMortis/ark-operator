@@ -171,6 +171,9 @@ async def install_proton(
         if not dry_run:
             await _extract_archive(proton_dir, "Linux", data)
 
+    if not dry_run and not await aos.path.exists(exe_path):
+        raise SteamCMDError(ERROR_FAILED_INSTALL.format(tool="steamcmd"))
+
     return exe_path
 
 
