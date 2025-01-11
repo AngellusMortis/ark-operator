@@ -7,9 +7,9 @@ from ark_operator.ark.pvc import (
     update_data_pvc,
     update_server_pvc,
 )
+from ark_operator.ark.runner import ArkServer
 from ark_operator.ark.utils import (
     ARK_SERVER_APP_ID,
-    ArkServer,
     copy_ark,
     expand_maps,
     get_ark_buildid,

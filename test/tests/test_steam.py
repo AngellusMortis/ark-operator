@@ -10,7 +10,6 @@ import pytest
 import pytest_asyncio
 from aiofiles import open as aopen
 from aiofiles import os as aos
-from aiofiles.tempfile import TemporaryDirectory
 from pytest_httpx import HTTPXMock
 
 from ark_operator.data import ArkClusterSpec
@@ -28,11 +27,10 @@ with (BASE_DIR / "test" / "archive.tar.gz").open("rb") as f:
 
 
 @pytest_asyncio.fixture(name="steamcmd_path")
-async def steamcmd_path_fixture() -> AsyncGenerator[Path]:
+async def steamcmd_path_fixture(temp_dir: Path) -> AsyncGenerator[Path]:
     """Steamcmd installed fixture."""
 
-    async with TemporaryDirectory() as path:
-        yield Path(path) / "steam"
+    yield temp_dir / "steam"
 
 
 @pytest.fixture(name="steam")

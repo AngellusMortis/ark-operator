@@ -10,6 +10,7 @@ from uuid import uuid4
 
 import pytest
 import pytest_asyncio
+from aiofiles import tempfile
 
 from ark_operator.command import run_sync
 from ark_operator.k8s import close_k8s_client
@@ -149,6 +150,14 @@ async def k8s_v1_batch_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:
         mock_v1_klass.BatchV1Api.return_value = mock_v1_client
 
         yield mock_v1_client
+
+
+@pytest_asyncio.fixture(name="temp_dir")
+async def temp_dir_fixture() -> AsyncGenerator[Path]:
+    """Return temp dir for IO operations."""
+
+    async with tempfile.TemporaryDirectory() as path:
+        yield Path(path)
 
 
 def pytest_sessionfinish() -> None:
