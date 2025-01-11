@@ -3,11 +3,11 @@
 from unittest.mock import AsyncMock, Mock, call, patch
 
 import pytest
+from gamercon_async.gamercon_async import TimeoutError as RCONTimeoutError
 
 from ark_operator.data import ArkServerSpec
 from ark_operator.exceptions import RCONError
 from ark_operator.rcon import send_cmd, send_cmd_all
-from gamercon_async.gamercon_async import TimeoutError as RCONTimeoutError
 
 SPEC = ArkServerSpec(
     maps=["BobsMissions_WP", "TheIsland_WP"],
@@ -196,6 +196,7 @@ async def test_send_cmd_all_exception_timeout(mock_rcon: Mock) -> None:
     assert call("test", 27021, "password", timeout=3) in mock_rcon.call_args_list
     assert mock_client.__aenter__.await_count == 2
     assert mock_client.__aexit__.await_count == 2
+
 
 @patch("ark_operator.rcon.GameRCON")
 @pytest.mark.asyncio
