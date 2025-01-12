@@ -46,8 +46,9 @@ arkctl server --host 127.0.0.1 --rcon-password password rcon DoExit
 
 ### Requirements
 
-* linux/amd64 Host -- Either via Docker Desktop/similar or an actual Linux machine. MacOS (ARM64) will **not** work (it might through Rosetta, but will likely give really bad performance)
-* 2 Volumes, at least 50GB each -- one for ARK server, one for save data
+* **A Container Engine** -- Docker, Podman, Containerd, whatever should work
+* **linux/amd64 Container Host** -- Either via Docker Desktop on Windows/WSL or similar or an actual Linux machine. MacOS (ARM64) will **not** work.
+* **2 Volumes, at least 50GB each** -- one for ARK server, one for save data
 
 ### Docker Compose
 
@@ -80,6 +81,8 @@ services:
       - ./data:/srv/ark/data
       - ./data/maps/BobsMissions_WP/saved:/srv/ark/server/ark/ShooterGame/Saved
       - ./data/maps/BobsMissions_WP/mods:/srv/ark/server/ark/ShooterGame/Binaries/Win64/ShooterGame
+    # should be the UID / GID of your current user
+    user: "1000:1000"
     ports:
       - "27020:27020"
       - "7777:7777"
@@ -98,10 +101,52 @@ services:
       - ./data:/srv/ark/data
       - ./data/maps/TheIsland_WP/saved:/srv/ark/server/ark/ShooterGame/Saved
       - ./data/maps/TheIsland_WP/mods:/srv/ark/server/ark/ShooterGame/Binaries/Win64/ShooterGame
+    # should be the UID / GID of your current user
+    user: "1000:1000"
     ports:
       - "27021:27021"
       - "7778:7778"
 ```
+
+#### Setup
+
+```bash
+# make all of the directories that will be bind mounted so they are not owned by root
+mkdir -p \
+    server/ark/ShooterGame/Saved \
+    server/ark/ShooterGame/Binaries/Win64/ShooterGame \
+    data/maps/BobsMissions_WP/saved \
+    data/maps/BobsMissions_WP/mods \
+    data/maps/TheIsland_WP/saved \
+    data/maps/TheIsland_WP/mods
+# let auto-update server initialize everything
+docker compose up -d club-ark
+# watch logs
+docker compose logs club-ark -f
+# and wait for it to say "Server: "ASA Club Ark" has successfully started!"
+
+# then start rest of servers
+docker compose up -d
+```
+
+#### Updating ARK
+
+```bash
+# stop all servers
+docker compose stop
+# run auto-update server
+docker compose up -d club-ark
+# watch logs
+docker compose logs club-ark -f
+# and wait for it to say "Server: "ASA Club Ark" has successfully started!"
+
+# then start rest of servers
+docker compose up -d
+```
+
+### Global GameUserSettings.ini
+
+For any server that is ran that is _not_ Club Ark (map=`BobsMissions_WP`), the container will automatically attempt to merge a `GameUserSettings.ini` that is located at `data/GameUserSettings.ini` with the one in the map specific `saved` directory. So you can set all of your common/shared settings in `data/GameUserSettings.ini` and then your map specific ones in `saved/Config/WindowsServer/GameUserSettings.ini`.
 
 ### Environment Variables
 
@@ -124,7 +169,7 @@ Below a list of available environment variables.
 | ARK_SERVER_PARAMS            |             | Comma list of additional params (?)              |
 | ARK_SERVER_OPTS              |             | Additional list of options (-)                   |
 | ARK_SERVER_MODS              |             | Additional list of mods (Club ARK mod automatically added if that is the map). |
-| ARK_OP_LOG_FORMAT            | auto        | Logging format. Choices: auto, rich, basic, json |
+| ARK_OP_LOG_FORMAT            | basic       | Logging format. Choices: auto, rich, basic, json |
 | ARK_OP_LOG_LEVEL             | INFO        | Log level. Choices: DEBUG, INFO, WARNING, ERROR  |
 
 ### Managed Parameters, Options and Settings

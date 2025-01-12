@@ -59,7 +59,7 @@ if [[ "${INITIALIZED}" == "false" ]]; then
     fi
 
     echo "Installing ARK ($ARK_SERVER_DIR) and setting up data volume ($ARK_DATA_DIR) for map $ARK_SERVER_MAP..."
-    ARK_CLUSTER_SPEC="{\"server\": {\"maps\": [\"${ARK_SERVER_MAP}\"]}}" arkctl cluster init-volumes --single-server /srv/ark
+    ARK_CLUSTER_SPEC="{\"server\": {\"maps\": [\"${ARK_SERVER_MAP}\"], \"load_balancer_ip\": \"127.0.0.1\"}}" arkctl cluster init-volumes --single-server /srv/ark
 fi
 
 if [[ "${ARK_SERVER_AUTO_UPDATE}" == "true" ]]; then
@@ -76,7 +76,11 @@ if [[ "${IS_READ_ONLY}" == "true" ]]; then
     EXTRA_ARGS="--immutable"
 fi
 if [[ "${ARK_SERVER_CLUSTER_MODE}" == "false" ]]; then
-    EXTRA_ARGS="$EXTRA_ARGS --global-gus=$ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/Config/WindowsServer/GameUserSettings.ini"
+    EXTRA_ARGS="$EXTRA_ARGS --map-gus=$ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/Config/WindowsServer/GameUserSettings.ini"
+    if [[ "${ARK_SERVER_MAP}" != "BobsMissions_WP" ]]; then
+        EXTRA_ARGS="$EXTRA_ARGS --global-gus=$ARK_DATA_DIR/GameUserSettings.ini"
+    fi
 fi
 
+echo "Running ARK: Survival Ascended server"
 arkctl server run $EXTRA_ARGS

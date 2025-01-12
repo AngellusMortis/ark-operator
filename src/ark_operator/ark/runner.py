@@ -400,8 +400,10 @@ class ArkServer:
         if await aos.path.exists(self.marker_file):
             await aos.remove(self.marker_file)
         await _make_sure_file_exists(self.log_file)
+        _LOGGER.debug("Writing configs")
         await self._write_config()
 
+        _LOGGER.debug("Starting server")
         task = asyncio.create_task(
             run_async(
                 self.make_run_command(),
