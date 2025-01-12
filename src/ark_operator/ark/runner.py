@@ -59,6 +59,7 @@ def _read_config(path: Path) -> ConfigParser:
     conf = ConfigParser()
     # make config parser case sensitive
     conf.optionxform = str  # type: ignore[method-assign,assignment]
+    _LOGGER.debug("Reading GameUserSettings.ini [thread] (%s)", path)
     conf.read(path)
 
     return conf
@@ -67,6 +68,7 @@ def _read_config(path: Path) -> ConfigParser:
 @asyncify
 def _write_config(conf: ConfigParser, path: Path) -> None:
     with path.open("w") as f:
+        _LOGGER.debug("Writing GameUserSettings.ini [thread] (%s)", path)
         conf.write(f)
 
 
