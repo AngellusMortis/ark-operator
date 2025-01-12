@@ -238,11 +238,14 @@ class ArkServer:
 
     async def _read_gus(self, path: Path) -> ConfigParser | None:
         if not await aos.path.exists(path):
+            _LOGGER.debug("GameUserSettings.ini (%s) does not exist", path)
             return None
 
+        _LOGGER.debug("Reading GameUserSettings.ini (%s)", path)
         async with aopen(path) as f:
             raw = await f.read()
 
+        _LOGGER.debug("Parsing GameUserSettings.ini")
         conf = ConfigParser()
         # make config parser case sensitive
         conf.optionxform = str  # type: ignore[method-assign,assignment]
