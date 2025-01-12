@@ -153,7 +153,9 @@ ServerAdminPassword = password
 
 [SessionSettings]
 Port = 7777
-SessionName = Test""",
+SessionName = Test
+
+""",
     )
 
 
@@ -209,7 +211,9 @@ ServerAdminPassword = password
 
 [SessionSettings]
 Port = 7777
-SessionName = Test""",
+SessionName = Test
+
+""",
     )
 
 
@@ -272,7 +276,9 @@ ServerAdminPassword = password
 
 [SessionSettings]
 Port = 7777
-SessionName = Test""",
+SessionName = Test
+
+""",
     )
 
 
@@ -332,7 +338,9 @@ SessionName = Test
 MultiHome = 127.0.0.1
 
 [MultiHome]
-Multihome = True""",
+Multihome = True
+
+""",
         map_name="BobsMissions_WP",
     )
 
@@ -389,7 +397,9 @@ ServerAdminPassword = password
 
 [SessionSettings]
 Port = 7777
-SessionName = Test""",
+SessionName = Test
+
+""",
     )
 
 
@@ -514,7 +524,9 @@ ServerAdminPassword = password
 
 [SessionSettings]
 Port = 7777
-SessionName = Test""",
+SessionName = Test
+
+""",
     )
 
 
@@ -578,7 +590,9 @@ ServerAdminPassword = password
 
 [SessionSettings]
 Port = 7777
-SessionName = Test""",
+SessionName = Test
+
+""",
     )
 
 
@@ -649,5 +663,7 @@ ServerAdminPassword = password
 
 [SessionSettings]
 Port = 7777
-SessionName = Test""",
+SessionName = Test
+
+""",
     )

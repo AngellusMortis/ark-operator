@@ -7,12 +7,12 @@ import logging
 from configparser import ConfigParser
 from contextlib import suppress
 from dataclasses import dataclass
-from io import StringIO
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal, overload
 
 from aiofiles import open as aopen
 from aiofiles import os as aos
+from asyncer import asyncify
 
 from ark_operator.command import run_async
 from ark_operator.utils import ensure_symlink, touch_file
@@ -52,6 +52,22 @@ async def _make_sure_file_exists(
 
     if not dry_run and not await aos.path.exists(path):
         await touch_file(path)
+
+
+@asyncify
+def _read_config(path: Path) -> ConfigParser:
+    conf = ConfigParser()
+    # make config parser case sensitive
+    conf.optionxform = str  # type: ignore[method-assign,assignment]
+    conf.read(path)
+
+    return conf
+
+
+@asyncify
+def _write_config(conf: ConfigParser, path: Path) -> None:
+    with path.open("w") as f:
+        conf.write(f)
 
 
 @dataclass
@@ -242,16 +258,7 @@ class ArkServer:
             return None
 
         _LOGGER.debug("Reading GameUserSettings.ini (%s)", path)
-        async with aopen(path) as f:
-            raw = await f.read()
-
-        _LOGGER.debug("Parsing GameUserSettings.ini")
-        conf = ConfigParser()
-        # make config parser case sensitive
-        conf.optionxform = str  # type: ignore[method-assign,assignment]
-        conf.read_string(raw)
-
-        return conf
+        return await _read_config(path)
 
     def _make_managed_gus(self) -> ConfigParser:
         conf = ConfigParser()
@@ -358,11 +365,7 @@ class ArkServer:
         conf = await self.make_game_user_settings()
         _LOGGER.debug("Writing merged GameUserSettings.ini")
         await aos.makedirs(self.config_dir, exist_ok=True)
-        with StringIO() as ss:
-            conf.write(ss)
-            ss.seek(0)
-            async with aopen(self.config_dir / "GameUserSettings.ini", "w") as f:
-                await f.write(ss.read().strip())
+        await _write_config(conf, self.config_dir / "GameUserSettings.ini")
 
     @overload
     async def run(
