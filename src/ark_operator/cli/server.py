@@ -55,6 +55,7 @@ server = App(
 
 _LOGGER = logging.getLogger(__name__)
 ERROR_FIELD_REQUIRED = "Error option {name} is required"
+ERROR_RUN_SERVER = "Error running server"
 
 
 def _get_context() -> ServerContext:
@@ -310,9 +311,14 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
         global_config=context.global_gus,
         map_config=context.map_gus,
     )
+    task = asyncio.create_task(server.run(dry_run=dry_run, read_only=immutable))
     with suppress(asyncio.CancelledError):
-        task = asyncio.create_task(server.run(dry_run=dry_run, read_only=immutable))
-        await asyncio.shield(task)
+        shield = asyncio.shield(task)
+        while not shield.done():  # noqa: ASYNC110
+            await asyncio.sleep(0.1)
+
+    if ex := shield.exception():
+        _LOGGER.exception(ERROR_RUN_SERVER, exc_info=ex)
 
     start_shutdown.set()
     await cleanup_task
