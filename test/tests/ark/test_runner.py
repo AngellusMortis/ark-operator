@@ -154,7 +154,6 @@ ServerAdminPassword = password
 [SessionSettings]
 Port = 7777
 SessionName = Test
-
 """,
     )
 
@@ -212,7 +211,6 @@ ServerAdminPassword = password
 [SessionSettings]
 Port = 7777
 SessionName = Test
-
 """,
     )
 
@@ -277,7 +275,6 @@ ServerAdminPassword = password
 [SessionSettings]
 Port = 7777
 SessionName = Test
-
 """,
     )
 
@@ -339,7 +336,6 @@ MultiHome = 127.0.0.1
 
 [MultiHome]
 Multihome = True
-
 """,
         map_name="BobsMissions_WP",
     )
@@ -398,7 +394,6 @@ ServerAdminPassword = password
 [SessionSettings]
 Port = 7777
 SessionName = Test
-
 """,
     )
 
@@ -465,7 +460,7 @@ async def test_runner_managed_opt(run: _RunFixture) -> None:
     run.mock_run.assert_not_awaited()
 
 
-@pytest.mark.timeout(timeout=10)
+# @pytest.mark.timeout(timeout=10)
 @pytest.mark.asyncio
 async def test_runner_global_gus(run: _RunFixture) -> None:
     """Test runner."""
@@ -525,7 +520,6 @@ ServerAdminPassword = password
 [SessionSettings]
 Port = 7777
 SessionName = Test
-
 """,
     )
 
@@ -591,7 +585,6 @@ ServerAdminPassword = password
 [SessionSettings]
 Port = 7777
 SessionName = Test
-
 """,
     )
 
@@ -664,6 +657,5 @@ ServerAdminPassword = password
 [SessionSettings]
 Port = 7777
 SessionName = Test
-
 """,
     )

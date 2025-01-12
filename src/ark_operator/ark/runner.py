@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from configparser import ConfigParser
 from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,8 +11,8 @@ from typing import TYPE_CHECKING, Literal, overload
 
 from aiofiles import open as aopen
 from aiofiles import os as aos
-from asyncer import asyncify
 
+from ark_operator.ark.conf import merge_conf, read_config, write_config
 from ark_operator.command import run_async
 from ark_operator.utils import ensure_symlink, touch_file
 
@@ -52,24 +51,6 @@ async def _make_sure_file_exists(
 
     if not dry_run and not await aos.path.exists(path):
         await touch_file(path)
-
-
-@asyncify
-def _read_config(path: Path) -> ConfigParser:
-    conf = ConfigParser()
-    # make config parser case sensitive
-    conf.optionxform = str  # type: ignore[method-assign,assignment]
-    _LOGGER.debug("Reading GameUserSettings.ini [thread] (%s)", path)
-    conf.read(path)
-
-    return conf
-
-
-@asyncify
-def _write_config(conf: ConfigParser, path: Path) -> None:
-    with path.open("w") as f:
-        _LOGGER.debug("Writing GameUserSettings.ini [thread] (%s)", path)
-        conf.write(f)
 
 
 @dataclass
@@ -254,26 +235,25 @@ class ArkServer:
             extra_params=params,
         )
 
-    async def _read_gus(self, path: Path) -> ConfigParser | None:
+    async def _read_gus(self, path: Path) -> dict[str, dict[str, str]] | None:
         if not await aos.path.exists(path):
             _LOGGER.debug("GameUserSettings.ini (%s) does not exist", path)
             return None
 
         _LOGGER.debug("Reading GameUserSettings.ini (%s)", path)
-        return await _read_config(path)
+        return await read_config(path)
 
-    def _make_managed_gus(self) -> ConfigParser:
-        conf = ConfigParser()
-        # make config parser case sensitive
-        conf.optionxform = str  # type: ignore[method-assign,assignment]
-        conf["ServerSettings"] = {
-            "RCONEnabled": "True",
-            "RCONPort": str(self.rcon_port),
-            "ServerAdminPassword": self.rcon_password,
-        }
-        conf["SessionSettings"] = {
-            "Port": str(self.game_port),
-            "SessionName": self.session_name,
+    def _make_managed_gus(self) -> dict[str, dict[str, str]]:
+        conf: dict[str, dict[str, str]] = {
+            "ServerSettings": {
+                "RCONEnabled": "True",
+                "RCONPort": str(self.rcon_port),
+                "ServerAdminPassword": self.rcon_password,
+            },
+            "SessionSettings": {
+                "Port": str(self.game_port),
+                "SessionName": self.session_name,
+            },
         }
 
         if self.multihome_ip:
@@ -282,92 +262,23 @@ class ArkServer:
 
         return conf
 
-    @overload
-    def _merge_conf(
-        self, parent: ConfigParser, child: ConfigParser | None, *, warn: bool = False
-    ) -> ConfigParser: ...  # pragma: no cover
-
-    @overload
-    def _merge_conf(
-        self, parent: ConfigParser | None, child: ConfigParser, *, warn: bool = False
-    ) -> ConfigParser: ...  # pragma: no cover
-
-    @overload
-    def _merge_conf(
-        self, parent: None, child: None, *, warn: bool = False
-    ) -> None: ...  # pragma: no cover
-
-    @overload
-    def _merge_conf(
-        self,
-        parent: ConfigParser | None,
-        child: ConfigParser | None,
-        *,
-        warn: bool = False,
-    ) -> ConfigParser | None: ...  # pragma: no cover
-
-    def _merge_conf(
-        self,
-        parent: ConfigParser | None,
-        child: ConfigParser | None,
-        *,
-        warn: bool = False,
-    ) -> ConfigParser | None:
-        if parent is None and child is None:
-            _LOGGER.debug("No configs to merge")
-            return None
-
-        if parent is None:
-            _LOGGER.debug("No parent config to merge")
-            return child
-
-        if child is None:  # pragma: no cover
-            _LOGGER.debug("No child config to merge")
-            return parent
-
-        for section in child.sections():
-            if section not in parent:
-                parent[section] = {}
-
-            for key, value in child[section].items():
-                old_value = parent[section].get(key, value)
-                if value != old_value:
-                    _log = _LOGGER.debug
-                    if warn:
-                        _log = _LOGGER.warning
-                    _log(
-                        "key %s: child value (%s) overwriting parent value (%s)",
-                        key,
-                        value,
-                        old_value,
-                    )
-                parent[section][key] = value
-
-        return parent
-
-    async def make_game_user_settings(self) -> ConfigParser:
+    async def make_game_user_settings(self) -> dict[str, dict[str, str]]:
         """GameUserSettings.ini file."""
 
-        conf: ConfigParser | None = None
+        conf: dict[str, dict[str, str]] | None = None
         if self.global_config:
             _LOGGER.debug("Reading global GameUserSettings.ini")
             conf = await self._read_gus(self.global_config)
 
         if self.map_config:
             _LOGGER.debug("Reading map GameUserSettings.ini")
-            conf = self._merge_conf(conf, await self._read_gus(self.map_config))
+            conf = merge_conf(conf, await self._read_gus(self.map_config))
 
         _log = _LOGGER.info
         if conf is None:
             _log = _LOGGER.debug
         _log("Merging managed GameUserSettings.ini onto user provided one")
-        return self._merge_conf(conf, self._make_managed_gus(), warn=True)
-
-    async def _write_config(self) -> None:
-        conf = await self.make_game_user_settings()
-        _LOGGER.debug("Writing merged GameUserSettings.ini")
-        await aos.makedirs(self.config_dir, exist_ok=True)
-        await _write_config(conf, self.config_dir / "GameUserSettings.ini")
+        return merge_conf(conf, self._make_managed_gus(), warn=True)
 
     @overload
     async def run(
@@ -413,7 +324,9 @@ class ArkServer:
             await aos.remove(self.marker_file)
         await _make_sure_file_exists(self.log_file)
         _LOGGER.debug("Writing configs")
-        await self._write_config()
+        conf = await self.make_game_user_settings()
+        await aos.makedirs(self.config_dir, exist_ok=True)
+        await write_config(conf, self.config_dir / "GameUserSettings.ini")
 
         _LOGGER.debug("Starting server")
         task = asyncio.create_task(
