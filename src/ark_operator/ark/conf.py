@@ -22,12 +22,19 @@ async def read_config(path: Path) -> dict[str, dict[str, str]]:
         section = None
         for line in await f.readlines():
             line = line.strip()  # noqa: PLW2901
+            if not line:
+                continue
+
             if line.startswith("[") and line.endswith("]"):
                 section = line.lstrip("[").rstrip("]")
                 conf[section] = {}
                 continue
 
-            key, value = line.split("=")
+            try:
+                key, value = line.split("=")
+            except Exception:
+                _LOGGER.debug(line)
+                raise
             conf[section or ""][key.strip()] = value.strip()
 
     return conf
