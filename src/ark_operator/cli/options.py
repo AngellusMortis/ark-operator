@@ -150,3 +150,11 @@ OPTION_SERVER_OPT = Annotated[
 OPTION_SERVER_MODS = Annotated[
     list[str] | None, Parameter("--mod", env_var=["ARK_SERVER_MODS"])
 ]
+
+OPTION_SERVER_GLOBAL_GUS = Annotated[
+    Path | None, Parameter("--global-gus", env_var=["ARK_SERVER_GLOBAL_GUS"])
+]
+
+OPTION_SERVER_MAP_GUS = Annotated[
+    Path | None, Parameter("--map-gus", env_var=["ARK_SERVER_GLOBAL_GUS"])
+]

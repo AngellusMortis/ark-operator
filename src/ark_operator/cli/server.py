@@ -24,7 +24,9 @@ from ark_operator.cli.options import (
     OPTION_SERVER_ALLOWED_PLATFORMS,
     OPTION_SERVER_BATTLEYE,
     OPTION_SERVER_CLUSTER_ID,
+    OPTION_SERVER_GLOBAL_GUS,
     OPTION_SERVER_MAP,
+    OPTION_SERVER_MAP_GUS,
     OPTION_SERVER_MAX_PLAYERS,
     OPTION_SERVER_MODS,
     OPTION_SERVER_MULTIHOME_IP,
@@ -127,6 +129,8 @@ def meta(  # noqa: PLR0913
     parameters: OPTION_SERVER_PARAM = None,
     options: OPTION_SERVER_OPT = None,
     mods: OPTION_SERVER_MODS = None,
+    global_gus: OPTION_SERVER_GLOBAL_GUS = None,
+    map_gus: OPTION_SERVER_MAP_GUS = None,
 ) -> int | None:
     """
     ARK Server CLI.
@@ -163,6 +167,8 @@ def meta(  # noqa: PLR0913
             parameters=parameters or [],
             options=options or [],
             mods=mods or [],
+            global_gus=global_gus,
+            map_gus=map_gus,
             parent=get_all_context("core"),  # type: ignore[arg-type]
         ),
     )
@@ -299,6 +305,8 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
         parameters=context.parameters,
         options=context.options,
         mods=context.mods,
+        global_config=context.global_gus,
+        map_config=context.map_gus,
     )
     try:
         await asyncio.shield(server.run(dry_run=dry_run, read_only=immutable))

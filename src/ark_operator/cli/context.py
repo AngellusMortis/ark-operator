@@ -55,6 +55,8 @@ class ServerContext:
     parameters: list[str]
     options: list[str]
     mods: list[str]
+    global_gus: Path | None
+    map_gus: Path | None
 
     parent: CoreContext
 

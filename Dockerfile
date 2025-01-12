@@ -76,6 +76,8 @@ ENV ARK_BASE_DIR=/srv/ark
 ENV ARK_SERVER_DIR=${ARK_BASE_DIR}/server/ark
 ENV ARK_STEAM_DIR=${ARK_BASE_DIR}/server/steam
 ENV ARK_DATA_DIR=${ARK_BASE_DIR}/data
+ENV ARK_OP_LOG_LEVEL=INFO
+ENV ARK_SERVER_CLUSTER_MODE=false
 
 COPY --chmod=755 .docker/server-entry.sh /entrypoint
 VOLUME [ "/srv/ark/server", "/srv/ark/data" ]

@@ -75,5 +75,8 @@ EXTRA_ARGS=""
 if [[ "${IS_READ_ONLY}" == "true" ]]; then
     EXTRA_ARGS="--immutable"
 fi
+if [[ "${ARK_SERVER_CLUSTER_MODE}" == "false" ]]; then
+    EXTRA_ARGS="$EXTRA_ARGS --global-gus=$ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/Config/WindowsServer/GameUserSettings.ini"
+fi
 
 arkctl server run $EXTRA_ARGS

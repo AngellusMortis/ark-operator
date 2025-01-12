@@ -24,6 +24,7 @@ services:
       ARK_SERVER_MAP: BobsMissions_WP
       ARK_SERVER_SESSION_NAME: Mortis - Test
       ARK_OP_LOG_FORMAT: rich
+      ARK_OP_LOG_LEVEL: DEBUG
     tty: true
     volumes:
       - ./server-a:/srv/ark/server

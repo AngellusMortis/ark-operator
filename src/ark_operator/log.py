@@ -9,7 +9,7 @@ from pythonjsonlogger import json
 from rich.console import Console
 from rich.logging import RichHandler
 
-LoggingFormat = Literal["rich", "json", "auto"]
+LoggingFormat = Literal["rich", "json", "basic", "auto"]
 LoggingLevel = Literal[
     "CRITICAL", "FATAL", "ERROR", "WARN", "WARNING", "INFO", "DEBUG", "NOTSET"
 ]
@@ -89,6 +89,13 @@ def init_logging(
             logging.basicConfig(
                 level=level,
                 format="%(message)s",
+                handlers=[handler],
+            )
+        case "basic":
+            handler = logging.StreamHandler()
+            logging.basicConfig(
+                level=level,
+                format="[%(levelname)-5.5s]  %(message)s",
                 handlers=[handler],
             )
 

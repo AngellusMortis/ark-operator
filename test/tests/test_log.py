@@ -60,6 +60,25 @@ def test_init_logging_json(
 
 
 @patch("ark_operator.log.logging")
+def test_init_logging_basic(mock_logging: Mock) -> None:
+    """Test init_logging with basic format handler"""
+
+    mock_handler = Mock()
+    mock_logging.StreamHandler = Mock(return_value=mock_handler)
+
+    init_logging(logging_format="basic")
+
+    mock_logging.basicConfig.assert_called_once()
+    assert "handlers" in mock_logging.basicConfig.call_args_list[0].kwargs
+
+    handlers = mock_logging.basicConfig.call_args_list[0].kwargs["handlers"]
+    assert len(handlers) == 1
+    assert handlers[0] == mock_handler
+
+    mock_handler.setFormatter.assert_not_called()
+
+
+@patch("ark_operator.log.logging")
 def test_init_logging_none(mock_logging: Mock) -> None:
     """Test init_logging with logging disabled"""
 

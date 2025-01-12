@@ -73,6 +73,8 @@ class ArkServer:
     parameters: list[str]
     options: list[str]
     mods: list[str]
+    global_config: Path | None = None
+    map_config: Path | None = None
 
     @property
     def list_dir(self) -> Path:
@@ -233,9 +235,21 @@ class ArkServer:
             extra_params=params,
         )
 
-    def make_game_user_settings(self) -> ConfigParser:
-        """GameUserSettings.ini file."""
+    async def _read_gus(self, path: Path) -> ConfigParser | None:
+        if not await aos.path.exists(path):
+            return None
 
+        async with aopen(path) as f:
+            raw = await f.read()
+
+        conf = ConfigParser()
+        # make config parser case sensitive
+        conf.optionxform = str  # type: ignore[method-assign,assignment]
+        conf.read_string(raw)
+
+        return conf
+
+    def _make_managed_gus(self) -> ConfigParser:
         conf = ConfigParser()
         # make config parser case sensitive
         conf.optionxform = str  # type: ignore[method-assign,assignment]
@@ -255,8 +269,89 @@ class ArkServer:
 
         return conf
 
+    @overload
+    def _merge_conf(
+        self, parent: ConfigParser, child: ConfigParser | None, *, warn: bool = False
+    ) -> ConfigParser: ...  # pragma: no cover
+
+    @overload
+    def _merge_conf(
+        self, parent: ConfigParser | None, child: ConfigParser, *, warn: bool = False
+    ) -> ConfigParser: ...  # pragma: no cover
+
+    @overload
+    def _merge_conf(
+        self, parent: None, child: None, *, warn: bool = False
+    ) -> None: ...  # pragma: no cover
+
+    @overload
+    def _merge_conf(
+        self,
+        parent: ConfigParser | None,
+        child: ConfigParser | None,
+        *,
+        warn: bool = False,
+    ) -> ConfigParser | None: ...  # pragma: no cover
+
+    def _merge_conf(
+        self,
+        parent: ConfigParser | None,
+        child: ConfigParser | None,
+        *,
+        warn: bool = False,
+    ) -> ConfigParser | None:
+        if parent is None and child is None:
+            _LOGGER.debug("No configs to merge")
+            return None
+
+        if parent is None:
+            _LOGGER.debug("No parent config to merge")
+            return child
+
+        if child is None:  # pragma: no cover
+            _LOGGER.debug("No child config to merge")
+            return parent
+
+        for section in child.sections():
+            if section not in parent:
+                parent[section] = {}
+
+            for key, value in child[section].items():
+                old_value = parent[section].get(key, value)
+                if value != old_value:
+                    _log = _LOGGER.debug
+                    if warn:
+                        _log = _LOGGER.warning
+                    _log(
+                        "key %s: child value (%s) overwriting parent value (%s)",
+                        key,
+                        value,
+                        old_value,
+                    )
+                parent[section][key] = value
+
+        return parent
+
+    async def make_game_user_settings(self) -> ConfigParser:
+        """GameUserSettings.ini file."""
+
+        conf: ConfigParser | None = None
+        if self.global_config:
+            _LOGGER.debug("Reading global GameUserSettings.ini")
+            conf = await self._read_gus(self.global_config)
+
+        if self.map_config:
+            _LOGGER.debug("Reading map GameUserSettings.ini")
+            conf = self._merge_conf(conf, await self._read_gus(self.map_config))
+
+        _log = _LOGGER.info
+        if conf is None:
+            _log = _LOGGER.debug
+        _log("Merging managed GameUserSettings.ini onto user provided one")
+        return self._merge_conf(conf, self._make_managed_gus(), warn=True)
+
     async def _write_config(self) -> None:
-        conf = self.make_game_user_settings()
+        conf = await self.make_game_user_settings()
         with StringIO() as ss:
             conf.write(ss)
             ss.seek(0)
