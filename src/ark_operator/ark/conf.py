@@ -31,7 +31,7 @@ async def read_config(path: Path) -> dict[str, dict[str, str]]:
                 continue
 
             try:
-                key, value = line.split("=")
+                key, value = line.split("=", 1)
             except Exception:
                 _LOGGER.debug(line)
                 raise
