@@ -62,6 +62,12 @@
             "type": "shell",
             "command": "arkctl server --install-dir ${workspaceFolder}/test/server/server-b/ark install --copy-from ${workspaceFolder}/test/server/server-a/ark",
             "problemMatcher": []
+        },
+        {
+            "label": "ARK Cluster: ListPlayers",
+            "type": "shell",
+            "command": "arkctl cluster rcon ListPlayers",
+            "problemMatcher": []
         }
     ]
 }

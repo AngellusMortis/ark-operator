@@ -41,7 +41,7 @@ fi
 
 ARK_SERVER_AUTO_UPDATE=${ARK_SERVER_AUTO_UPDATE:-true}
 set +e
-IS_READ_ONLY=$(touch $ARK_SERVER_DIR/.perm-test 2>/dev/null 1>&2 && echo "false" || echo "true")
+IS_READ_ONLY=$(touch $ARK_BASE_DIR/server/.perm-test 2>/dev/null 1>&2 && echo "false" || echo "true")
 INITIALIZED=$([[ -f ${ARK_SERVER_DIR}/steamapps/appmanifest_2430930.acf && -d ${ARK_DATA_DIR}/maps/${ARK_SERVER_MAP} ]] && echo "true" || echo "false")
 set -e
 
