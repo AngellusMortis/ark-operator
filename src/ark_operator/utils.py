@@ -31,14 +31,20 @@ def is_async() -> bool:
 async def ensure_symlink(target: Path, link: Path, *, is_dir: bool = True) -> None:
     """Ensure a symlink is setup correctly."""
 
-    if await aos.path.exists(link):
-        if await aos.path.islink(link):
-            if await aos.readlink(str(link)) == str(target):
-                _LOGGER.debug("Symlink exists %s -> %s", link, target)
-                return
-            _LOGGER.debug("Symlink %s exists, but mismatched", link)
-            await aos.remove(link)
-        elif not await aos.path.isdir(link):
+    if is_dir:
+        await aos.makedirs(target, exist_ok=True)
+    else:
+        await aos.makedirs(target.parent, exist_ok=True)
+    await aos.makedirs(link.parent, exist_ok=True)
+
+    if await aos.path.islink(link):
+        if await aos.readlink(str(link)) == str(target):
+            _LOGGER.debug("Symlink exists %s -> %s", link, target)
+            return
+        _LOGGER.debug("Symlink %s exists, but mismatched", link)
+        await aos.remove(link)
+    elif await aos.path.exists(link):
+        if not await aos.path.isdir(link):
             _LOGGER.debug("File %s is not symlink, deleting", link)
             await aos.remove(link)
         else:
@@ -47,7 +53,6 @@ async def ensure_symlink(target: Path, link: Path, *, is_dir: bool = True) -> No
             return
 
     _LOGGER.info("Creating symlink %s -> %s", link, target)
-    await aos.makedirs(link.parent, exist_ok=True)
     await aos.symlink(target, link, target_is_directory=is_dir)
 
 

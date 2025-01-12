@@ -85,7 +85,7 @@ VOLUME [ "/srv/ark/server", "/srv/ark/data" ]
 ENTRYPOINT [ "/entrypoint" ]
 
 # dev container
-FROM prod AS dev
+FROM base AS dev
 
 USER root
 # Python will not automatically write .pyc files

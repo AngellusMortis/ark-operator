@@ -282,7 +282,8 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
             await start_shutdown.wait()
 
         _LOGGER.info("Shutting down server...")
-        await _do_shutdown(host="127.0.0.1")
+        with suppress(Exception):
+            await _do_shutdown(host="127.0.0.1")
 
     cleanup_task = asyncio.create_task(_shutdown())
     loop.add_signal_handler(signal.SIGINT, start_shutdown.set)
@@ -310,7 +311,8 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
         map_config=context.map_gus,
     )
     with suppress(asyncio.CancelledError):
-        await asyncio.shield(server.run(dry_run=dry_run, read_only=immutable))
+        task = asyncio.create_task(server.run(dry_run=dry_run, read_only=immutable))
+        await asyncio.shield(task)
 
     start_shutdown.set()
     await cleanup_task
