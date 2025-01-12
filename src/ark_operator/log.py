@@ -95,7 +95,7 @@ def init_logging(
             handler = logging.StreamHandler()
             logging.basicConfig(
                 level=level,
-                format="[%(levelname)-5.5s]  %(message)s",
+                format="%(levelname)s\t%(message)s",
                 handlers=[handler],
             )
 

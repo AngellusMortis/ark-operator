@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
+from contextlib import suppress
 from typing import TYPE_CHECKING, Annotated, cast
 
 from aiofiles import os as aos
@@ -308,11 +309,10 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
         global_config=context.global_gus,
         map_config=context.map_gus,
     )
-    try:
+    with suppress(asyncio.CancelledError):
         await asyncio.shield(server.run(dry_run=dry_run, read_only=immutable))
-    except asyncio.CancelledError:
-        start_shutdown.set()
 
+    start_shutdown.set()
     await cleanup_task
     if await aos.path.exists(server.marker_file):
         await aos.remove(server.marker_file)

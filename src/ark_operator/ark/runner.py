@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from configparser import ConfigParser
+from contextlib import suppress
 from dataclasses import dataclass
 from io import StringIO
 from pathlib import Path
@@ -352,6 +353,8 @@ class ArkServer:
 
     async def _write_config(self) -> None:
         conf = await self.make_game_user_settings()
+        _LOGGER.debug("Writing merged GameUserSettings.ini")
+        await aos.makedirs(self.config_dir, exist_ok=True)
         with StringIO() as ss:
             conf.write(ss)
             ss.seek(0)
@@ -397,6 +400,7 @@ class ArkServer:
                 is_dir=False,
             )
 
+        await aos.makedirs(self.compatdata_dir, exist_ok=True)
         if await aos.path.exists(self.marker_file):
             await aos.remove(self.marker_file)
         await _make_sure_file_exists(self.log_file)
@@ -418,9 +422,13 @@ class ArkServer:
         await asyncio.sleep(0.01)
         async with aopen(self.log_file) as f:
             while True:
-                if line := await f.readline():
+                with suppress(TimeoutError):
+                    async with asyncio.timeout(5):
+                        line = await f.readline()
+
+                if line:
                     _LOGGER.info(line.strip())
-                    if line and "has successfully started" in line:  # pragma: no branch
+                    if "has successfully started" in line:  # pragma: no branch
                         _LOGGER.debug(
                             "Creating startup marker file %s", self.marker_file
                         )
