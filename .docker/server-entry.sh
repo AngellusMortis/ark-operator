@@ -40,10 +40,21 @@ if [[ -z "${ARK_SERVER_SESSION_NAME+x}" ]]; then
 fi
 
 ARK_SERVER_AUTO_UPDATE=${ARK_SERVER_AUTO_UPDATE:-true}
+ARK_SERVER_GAME_PORT=${ARK_SERVER_GAME_PORT:-7777}
 set +e
 IS_READ_ONLY=$(touch $ARK_BASE_DIR/server/.perm-test 2>/dev/null 1>&2 && echo "false" || echo "true")
 INITIALIZED=$([[ -f ${ARK_SERVER_DIR}/steamapps/appmanifest_2430930.acf && -d ${ARK_DATA_DIR}/maps/${ARK_SERVER_MAP} ]] && echo "true" || echo "false")
 set -e
+
+function shutdown() {
+    arkctl server --host 127.0.0.1 shutdown
+
+    # Server exit doesn't close pid for some reason, so lets check that the port is closed and then send SIGTERM to main pid
+    while netstat -aln | grep -q $ARK_SERVER_GAME_PORT; do
+        sleep 1
+    done
+    kill -15 $pid
+}
 
 rm -f $ARK_SERVER_DIR/.perm-test 2>/dev/null 1>&2
 echo "ark_dir: $ARK_SERVER_DIR"
@@ -82,5 +93,10 @@ if [[ "${ARK_SERVER_CLUSTER_MODE}" == "false" ]]; then
     fi
 fi
 
+trap 'shutdown' TERM
+
 echo "Running ARK: Survival Ascended server"
-arkctl server run $EXTRA_ARGS
+arkctl server run $EXTRA_ARGS &
+
+pid=&!
+wait $pid
