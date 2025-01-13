@@ -259,7 +259,7 @@ async def shutdown() -> None:
 
 
 @server.command
-async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> None:
+async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> None:  # noqa: C901
     """
     Run ARK server.
 
