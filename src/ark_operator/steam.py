@@ -24,7 +24,7 @@ from ark_operator.ark import ARK_SERVER_APP_ID, copy_ark, has_newer_version
 from ark_operator.command import run_async
 from ark_operator.decorators import sync_only
 from ark_operator.exceptions import SteamCMDError
-from ark_operator.utils import ensure_symlink, touch_file
+from ark_operator.utils import touch_file
 
 if TYPE_CHECKING:
     from ark_operator.data import ArkClusterSpec
@@ -389,7 +389,6 @@ class Steam:
         dry_run: bool,
         name: str,
     ) -> None:
-        list_dir = base_dir / "data" / "lists"
         _LOGGER.info("Initializing %s volume", name)
         if not dry_run:
             await aos.makedirs(base_dir / name / "steam", exist_ok=True)
@@ -398,20 +397,6 @@ class Steam:
         await steam.install_ark(
             base_dir / name / "ark", dry_run=dry_run, validate=False
         )
-        if not dry_run:
-            binary_a_dir = (
-                base_dir / name / "ark" / "ShooterGame" / "Binaries" / "Win64"
-            )
-            await ensure_symlink(
-                list_dir / "PlayersExclusiveJoinList.txt",
-                binary_a_dir / "PlayersExclusiveJoinList.txt",
-                is_dir=False,
-            )
-            await ensure_symlink(
-                list_dir / "PlayersJoinNoCheckList.txt",
-                binary_a_dir / "PlayersJoinNoCheckList.txt",
-                is_dir=False,
-            )
 
     async def _init_server_ab(
         self,
@@ -419,7 +404,6 @@ class Steam:
         *,
         dry_run: bool,
     ) -> None:
-        list_dir = base_dir / "data" / "lists"
         await self._init_server(base_dir, dry_run=dry_run, name="server-a")
 
         _LOGGER.info("Initializing server-b volume")
@@ -432,20 +416,6 @@ class Steam:
             base_dir / "server-b" / "ark",
             dry_run=dry_run,
         )
-        if not dry_run:
-            binary_b_dir = (
-                base_dir / "server-b" / "ark" / "ShooterGame" / "Binaries" / "Win64"
-            )
-            await ensure_symlink(
-                list_dir / "PlayersExclusiveJoinList.txt",
-                binary_b_dir / "PlayersExclusiveJoinList.txt",
-                is_dir=False,
-            )
-            await ensure_symlink(
-                list_dir / "PlayersJoinNoCheckList.txt",
-                binary_b_dir / "PlayersJoinNoCheckList.txt",
-                is_dir=False,
-            )
 
     async def init_volumes(
         self,

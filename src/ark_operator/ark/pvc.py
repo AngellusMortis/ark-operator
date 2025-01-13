@@ -1,6 +1,7 @@
 """ARK operator code for PVCs."""
 
 import asyncio
+import json
 import logging
 from http import HTTPStatus
 
@@ -109,6 +110,10 @@ async def create_init_job(
             instance_name=name,
             uid=spec.run_as_user,
             gid=spec.run_as_group,
+            node_selector=json.dumps(spec.node_selector)
+            if spec.node_selector
+            else None,
+            tolerations=json.dumps(spec.tolerations) if spec.tolerations else None,
             retries=JOB_RETRIES,
             spec=spec.model_dump_json(),
             dry_run=dry_run,

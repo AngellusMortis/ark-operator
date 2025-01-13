@@ -138,6 +138,14 @@ spec:
                 type: integer
                 description: |-
                   GID to run containers as. Affects GID of ownership of files. Defaults to 65535
+              nodeSelector:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              tolerations:
+                type: array
+                items:
+                  type: object
+                  x-kubernetes-preserve-unknown-fields: true
               cluster:
                 type: object
                 properties:

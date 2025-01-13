@@ -11,6 +11,12 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      {% if node_selector %}
+      nodeSelector: {{ node_selector }}
+      {% endif %}
+      {% if tolerations %}
+      tolerations: {{ tolerations }}
+      {% endif %}
       containers:
         - name: init-ark
           image: ghcr.io/angellusmortis/ark-server:master

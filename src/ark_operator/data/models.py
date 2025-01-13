@@ -6,7 +6,7 @@ import warnings
 from dataclasses import dataclass
 from ipaddress import IPv4Address, IPv6Address  # required for Pydantic # noqa: TC003
 from pathlib import Path  # required for Pydantic # noqa: TC003
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, computed_field
 from pydantic.alias_generators import to_camel
@@ -147,6 +147,8 @@ class ArkClusterSpec(BaseK8sModel):
     data: ArkDataSpec = ArkDataSpec()
     run_as_user: int = 65535
     run_as_group: int = 65535
+    node_selector: dict[str, Any] | None = None
+    tolerations: list[dict[str, Any]] | None = None
     cluster: ArkClusterSettings = ArkClusterSettings()
 
 

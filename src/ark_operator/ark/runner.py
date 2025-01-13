@@ -308,16 +308,6 @@ class ArkServer:
             await _make_sure_file_exists(self.bypass_file, force_delete=False)
             await ensure_symlink(self.saved_dir, self.ark_dir / "ShooterGame" / "Saved")
             await ensure_symlink(self.mod_dir, self.binary_dir / "ShooterGame")
-            await ensure_symlink(
-                self.whitelist_file,
-                self.binary_dir / "PlayersExclusiveJoinList.txt",
-                is_dir=False,
-            )
-            await ensure_symlink(
-                self.whitelist_file,
-                self.binary_dir / "PlayersJoinNoCheckList.txt",
-                is_dir=False,
-            )
 
         await aos.makedirs(self.compatdata_dir, exist_ok=True)
         if await aos.path.exists(self.marker_file):
