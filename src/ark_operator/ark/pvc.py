@@ -10,6 +10,7 @@ import yaml
 from environs import Env
 from kubernetes_asyncio.client import ApiException
 
+from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION
 from ark_operator.data import ArkClusterSpec, ArkDataSpec, ArkServerSpec
 from ark_operator.k8s import (
     check_pvc_exists,
@@ -117,6 +118,7 @@ async def create_init_job(
             retries=JOB_RETRIES,
             spec=spec.model_dump_json(),
             dry_run=dry_run,
+            image_version=ARK_SERVER_IMAGE_VERSION,
         )
     )
 
