@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
-from contextlib import suppress
 from typing import TYPE_CHECKING, Annotated, cast
 
 from aiofiles import os as aos
@@ -258,8 +257,39 @@ async def shutdown() -> None:
     await _do_shutdown()
 
 
+async def _run_server(*, dry_run: bool, immutable: bool) -> Path:
+    context = _get_context()
+    server = ArkServer(
+        server_dir=_require_install_dir().parent,
+        data_dir=_require_data_dir(),
+        map_name=_require_map_name(),
+        session_name=_require_session_name(),
+        rcon_port=context.rcon_port,
+        rcon_password=context.rcon_password,
+        game_port=context.game_port,
+        max_players=context.max_players,
+        cluster_id=context.cluster_id,
+        battleye=context.battleye,
+        allowed_platforms=context.allowed_platforms,
+        whitelist=context.whitelist,
+        multihome_ip=context.multihome_ip,
+        parameters=context.parameters,
+        options=context.options,
+        mods=context.mods,
+        global_config=context.global_gus,
+        map_config=context.map_gus,
+    )
+
+    try:
+        await server.run(dry_run=dry_run, read_only=immutable)
+    except Exception:
+        _LOGGER.exception(ERROR_RUN_SERVER)
+
+    return server.marker_file
+
+
 @server.command
-async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> None:  # noqa: C901
+async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> None:
     """
     Run ARK server.
 
@@ -303,40 +333,15 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
     loop.add_signal_handler(signal.SIGINT, start_shutdown.set)
     loop.add_signal_handler(signal.SIGTERM, start_shutdown.set)
 
-    context = _get_context()
-    server = ArkServer(
-        server_dir=_require_install_dir().parent,
-        data_dir=_require_data_dir(),
-        map_name=_require_map_name(),
-        session_name=_require_session_name(),
-        rcon_port=context.rcon_port,
-        rcon_password=context.rcon_password,
-        game_port=context.game_port,
-        max_players=context.max_players,
-        cluster_id=context.cluster_id,
-        battleye=context.battleye,
-        allowed_platforms=context.allowed_platforms,
-        whitelist=context.whitelist,
-        multihome_ip=context.multihome_ip,
-        parameters=context.parameters,
-        options=context.options,
-        mods=context.mods,
-        global_config=context.global_gus,
-        map_config=context.map_gus,
-    )
-    task = asyncio.create_task(server.run(dry_run=dry_run, read_only=immutable))
-    with suppress(asyncio.CancelledError):
-        shield = asyncio.shield(task)
-        while not shield.done():
-            await asyncio.sleep(0.1)
-            if shield.cancelled():
-                start_shutdown.set()
-
-    if ex := shield.exception():
-        _LOGGER.exception(ERROR_RUN_SERVER, exc_info=ex)
+    marker_file: Path | None = None
+    try:
+        task = asyncio.create_task(_run_server(dry_run=dry_run, immutable=immutable))
+        marker_file = await asyncio.shield(task)
+    except asyncio.CancelledError:
+        start_shutdown.set()
 
     if not start_shutdown.is_set():
         start_shutdown.set()
     await cleanup_task
-    if await aos.path.exists(server.marker_file):
-        await aos.remove(server.marker_file)
+    if marker_file and await aos.path.exists(marker_file):
+        await aos.remove(marker_file)
