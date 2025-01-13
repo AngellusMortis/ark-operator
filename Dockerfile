@@ -13,7 +13,7 @@ RUN addgroup --system --gid 1000 app \
 RUN --mount=type=cache,mode=0755,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,mode=0755,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     apt-get update -qq \
-    && apt-get install -yqq lib32stdc++6 dbus libfreetype6 locales \
+    && apt-get install -yqq lib32stdc++6 dbus libfreetype6 locales net-tools \
     # required for Steam/Proton
     && rm -f /etc/machine-id \
     && dbus-uuidgen --ensure=/etc/machine-id \
