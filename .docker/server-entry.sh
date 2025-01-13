@@ -57,7 +57,7 @@ function shutdown() {
     kill -15 $pid
 }
 
-rm -f $ARK_SERVER_DIR/.perm-test 2>/dev/null 1>&2
+rm -f $ARK_SERVER_DIR/.perm-test $ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/.started 2>/dev/null 1>&2
 echo "ark_dir: $ARK_SERVER_DIR"
 echo "steam_dir: $ARK_STEAM_DIR"
 echo "data_dir: $ARK_DATA_DIR"
