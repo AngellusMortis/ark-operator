@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated, Any, cast
 
 from aiofiles import os as aos
 from cyclopts import App, CycloptsError, Parameter
@@ -288,6 +288,33 @@ async def _run_server(*, dry_run: bool, immutable: bool) -> Path:
     return server.marker_file
 
 
+async def _shutdown(event: asyncio.Event, task: asyncio.Task[Any]) -> None:
+    try:
+        await asyncio.shield(event.wait())
+    except asyncio.CancelledError:
+        await event.wait()
+
+    _LOGGER.info("Shutting down server...")
+    retries = 10
+    while retries > 0:
+        try:
+            await _do_shutdown(host="127.0.0.1")
+        except Exception as ex:
+            if task.done():
+                _LOGGER.debug("Server is already shutdown")
+                break
+            retries - 1
+            if retries <= 0:
+                _LOGGER.exception("Failed to shutdown server")
+            else:
+                _LOGGER.warning(
+                    "Failed to shutdown server (retries: %s)", retries, exc_info=ex
+                )
+            await asyncio.sleep(0.5)
+        else:
+            break
+
+
 @server.command
 async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> None:
     """
@@ -306,36 +333,13 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
     start_shutdown = asyncio.Event()
     loop = asyncio.get_event_loop()
 
-    async def _shutdown() -> None:
-        try:
-            await asyncio.shield(start_shutdown.wait())
-        except asyncio.CancelledError:
-            await start_shutdown.wait()
-
-        _LOGGER.info("Shutting down server...")
-        retries = 10
-        while retries > 0:
-            try:
-                await _do_shutdown(host="127.0.0.1")
-            except Exception as ex:
-                retries - 1
-                if retries <= 0:
-                    _LOGGER.exception("Failed to shutdown server")
-                else:
-                    _LOGGER.warning(
-                        "Failed to shutdown server (retries: %s)", retries, exc_info=ex
-                    )
-                await asyncio.sleep(0.5)
-            else:
-                break
-
-    cleanup_task = asyncio.create_task(_shutdown())
+    marker_file: Path | None = None
+    task = asyncio.create_task(_run_server(dry_run=dry_run, immutable=immutable))
+    cleanup_task = asyncio.create_task(_shutdown(start_shutdown, task))
     loop.add_signal_handler(signal.SIGINT, start_shutdown.set)
     loop.add_signal_handler(signal.SIGTERM, start_shutdown.set)
 
-    marker_file: Path | None = None
     try:
-        task = asyncio.create_task(_run_server(dry_run=dry_run, immutable=immutable))
         marker_file = await asyncio.shield(task)
     except asyncio.CancelledError:
         start_shutdown.set()
