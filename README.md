@@ -81,6 +81,8 @@ services:
       - ./data:/srv/ark/data
       - ./data/maps/BobsMissions_WP/saved:/srv/ark/server/ark/ShooterGame/Saved
       - ./data/maps/BobsMissions_WP/mods:/srv/ark/server/ark/ShooterGame/Binaries/Win64/ShooterGame
+      - ./data/lists/PlayersExclusiveJoinList.txt:/srv/ark/server/ark/ShooterGame/Binaries/Win64/PlayersExclusiveJoinList.txt
+      - ./data/lists/PlayersJoinNoCheckList.txt:/srv/ark/server/ark/ShooterGame/Binaries/Win64/PlayersJoinNoCheckList.txt
     # should be the UID / GID of your current user
     user: "1000:1000"
     ports:
@@ -101,6 +103,8 @@ services:
       - ./data:/srv/ark/data
       - ./data/maps/TheIsland_WP/saved:/srv/ark/server/ark/ShooterGame/Saved
       - ./data/maps/TheIsland_WP/mods:/srv/ark/server/ark/ShooterGame/Binaries/Win64/ShooterGame
+      - ./data/lists/PlayersExclusiveJoinList.txt:/srv/ark/server/ark/ShooterGame/Binaries/Win64/PlayersExclusiveJoinList.txt
+      - ./data/lists/PlayersJoinNoCheckList.txt:/srv/ark/server/ark/ShooterGame/Binaries/Win64/PlayersJoinNoCheckList.txt
     # should be the UID / GID of your current user
     user: "1000:1000"
     ports:
