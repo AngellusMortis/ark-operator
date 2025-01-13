@@ -283,8 +283,13 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
             await start_shutdown.wait()
 
         _LOGGER.info("Shutting down server...")
-        with suppress(Exception):
-            await _do_shutdown(host="127.0.0.1")
+        while True:
+            try:
+                await _do_shutdown(host="127.0.0.1")
+            except Exception as ex:  # noqa: BLE001
+                _LOGGER.warning("Failed to shutdown server", exc_info=ex)
+            else:
+                break
 
     cleanup_task = asyncio.create_task(_shutdown())
     loop.add_signal_handler(signal.SIGINT, start_shutdown.set)
