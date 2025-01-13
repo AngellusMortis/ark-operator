@@ -83,6 +83,7 @@ ENV ARK_SERVER_CLUSTER_MODE=false
 COPY --chmod=755 .docker/server-entry.sh /entrypoint
 VOLUME [ "/srv/ark/server", "/srv/ark/data" ]
 ENTRYPOINT [ "/entrypoint" ]
+HEALTHCHECK --interval=5s --timeout=5s --start-period=10s --retries=5 CMD [ "sh", "-c", "arkctl server --host 127.0.0.1 rcon ListPlayers" ]
 
 # dev container
 FROM base AS dev

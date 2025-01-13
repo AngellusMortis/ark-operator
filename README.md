@@ -76,6 +76,13 @@ services:
       ARK_SERVER_GAME_PORT: "7777"
       # only enable auto-update on one server
       ARK_SERVER_AUTO_UPDATE: "true"
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "arkctl server --host 127.0.0.1 rcon ListPlayers" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 10s
     volumes:
       - ./server:/srv/ark/server
       - ./data:/srv/ark/data
@@ -96,6 +103,13 @@ services:
       ARK_SERVER_SESSION_NAME: ASA The Island
       ARK_SERVER_RCON_PORT: "27021"
       ARK_SERVER_GAME_PORT: "7778"
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "arkctl server --host 127.0.0.1 rcon ListPlayers" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 10s
     volumes:
       # server volume should be read-only on all
       # containers that do not have auto-update on

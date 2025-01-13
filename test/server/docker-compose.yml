@@ -26,6 +26,13 @@ services:
       ARK_OP_LOG_FORMAT: rich
       ARK_OP_LOG_LEVEL: DEBUG
     tty: true
+    healthcheck:
+      test: [ "CMD", "sh", "-c", "arkctl server --host 127.0.0.1 rcon ListPlayers" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 10s
     volumes:
       - ./server-a:/srv/ark/server
       - ./data:/srv/ark/data
