@@ -283,11 +283,19 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
             await start_shutdown.wait()
 
         _LOGGER.info("Shutting down server...")
-        while True:
+        retries = 10
+        while retries > 0:
             try:
                 await _do_shutdown(host="127.0.0.1")
-            except Exception as ex:  # noqa: BLE001
-                _LOGGER.warning("Failed to shutdown server", exc_info=ex)
+            except Exception as ex:
+                retries - 1
+                if retries <= 0:
+                    _LOGGER.exception("Failed to shutdown server")
+                else:
+                    _LOGGER.warning(
+                        "Failed to shutdown server (retries: %s)", retries, exc_info=ex
+                    )
+                await asyncio.sleep(0.5)
             else:
                 break
 
@@ -319,10 +327,10 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
     task = asyncio.create_task(server.run(dry_run=dry_run, read_only=immutable))
     with suppress(asyncio.CancelledError):
         shield = asyncio.shield(task)
-        while not (shield.cancelled() or shield.done()):
+        while not shield.done():
+            await asyncio.sleep(0.1)
             if shield.cancelled():
                 start_shutdown.set()
-            await asyncio.sleep(0.1)
 
     if ex := shield.exception():
         _LOGGER.exception(ERROR_RUN_SERVER, exc_info=ex)
