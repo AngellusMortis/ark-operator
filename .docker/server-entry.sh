@@ -47,6 +47,7 @@ INITIALIZED=$([[ -f ${ARK_SERVER_DIR}/steamapps/appmanifest_2430930.acf && -d ${
 set -e
 
 function shutdown() {
+    echo "Shutting down server"
     arkctl server --host 127.0.0.1 shutdown
 
     # Server exit doesn't close pid for some reason, so lets check that the port is closed and then send SIGTERM to main pid
@@ -93,10 +94,10 @@ if [[ "${ARK_SERVER_CLUSTER_MODE}" == "false" ]]; then
     fi
 fi
 
-trap 'shutdown' TERM
 
 echo "Running ARK: Survival Ascended server"
 arkctl server run $EXTRA_ARGS &
 
-pid=&!
+trap 'shutdown' TERM
+pid=$!
 wait $pid
