@@ -319,13 +319,16 @@ async def run(*, immutable: bool = False, dry_run: OPTION_DRY_RUN = False) -> No
     task = asyncio.create_task(server.run(dry_run=dry_run, read_only=immutable))
     with suppress(asyncio.CancelledError):
         shield = asyncio.shield(task)
-        while not shield.done():  # noqa: ASYNC110
+        while not (shield.cancelled() or shield.done()):
+            if shield.cancelled():
+                start_shutdown.set()
             await asyncio.sleep(0.1)
 
     if ex := shield.exception():
         _LOGGER.exception(ERROR_RUN_SERVER, exc_info=ex)
 
-    start_shutdown.set()
+    if not start_shutdown.is_set():
+        start_shutdown.set()
     await cleanup_task
     if await aos.path.exists(server.marker_file):
         await aos.remove(server.marker_file)
