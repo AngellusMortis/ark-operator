@@ -13,14 +13,18 @@ import vdf
 from aiofiles import open as aopen
 from aiofiles import os as aos
 from asyncer import asyncify
+from environs import Env
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from ark_operator.steam import Steam
 
-ARK_SERVER_APP_ID = 2430930
 _LOGGER = logging.getLogger(__name__)
+_ENV = Env()
+
+ARK_SERVER_APP_ID = 2430930
+ARK_SERVER_IMAGE_VERSION = _ENV.get("ARK_SERVER_IMAGE_VERSION", "v0.2.0")
 MAP_NAME_LOOKUP = {
     "Aberration_WP": "Aberration",
     "BobsMissions_WP": "Club Ark",

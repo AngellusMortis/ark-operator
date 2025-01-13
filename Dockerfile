@@ -118,6 +118,7 @@ ENV ARK_SERVER_DIR=/workspaces/ark-operator/test/server/server-a/ark
 ENV ARK_SERVER_A_DIR=/workspaces/ark-operator/test/server/server-a/ark
 ENV ARK_SERVER_B_DIR=/workspaces/ark-operator/test/server/server-b/ark
 ENV ARK_DATA_DIR=/workspaces/ark-operator/test/server/data
+ENV ARK_SERVER_IMAGE_VERSION=master
 
 USER app
 WORKDIR /workspaces/ark-operator/

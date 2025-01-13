@@ -207,3 +207,4 @@ markers = [
 ARK_OP_MIN_SERVER_SIZE = "1Mi"
 # do not actually install ARK or run servers for tests
 ARK_OP_KOPF_DRY_RUN = "True"
+ARK_SERVER_IMAGE_VERSION = "master"
