@@ -397,6 +397,11 @@ class Steam:
         await steam.install_ark(
             base_dir / name / "ark", dry_run=dry_run, validate=False
         )
+        if not dry_run:
+            binary_dir = base_dir / name / "ark" / "ShooterGame" / "Binaries" / "Win64"
+            await aos.makedirs(binary_dir, exist_ok=True)
+            await touch_file(binary_dir / "PlayersExclusiveJoinList.txt")
+            await touch_file(binary_dir / "PlayersJoinNoCheckList.txt")
 
     async def _init_server_ab(
         self,
