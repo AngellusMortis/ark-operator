@@ -98,3 +98,22 @@ class WebhookEvent(TypedDict):
     logger: Logger
     memo: Any
     param: Any
+
+
+class TimerEvent(TypedDict):
+    """Kopf timer event."""
+
+    annotations: Annotations
+    labels: Labels
+    body: Body
+    meta: Meta
+    spec: Spec
+    status: Status
+    resource: Resource
+    uid: str | None
+    name: str | None
+    namespace: str | None
+    patch: Patch
+    logger: Logger
+    memo: Any
+    param: Any

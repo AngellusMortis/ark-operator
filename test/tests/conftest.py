@@ -67,6 +67,10 @@ def k8s_namespace(marks: list[str]) -> Generator[str, None, None]:
 
     namespace = f"kubetest-{uuid4()}"
     run_sync(f"kubectl create namespace {namespace}")
+    run_sync(
+        f"jinja2 {(BASE_DIR / 'test' / 'manifests' / 'rbac.yml.j2')!s} -D namespace={namespace} -D instance_name=ark | kubectl apply -f -",
+        shell=True,
+    )
 
     try:
         yield namespace
@@ -129,6 +133,7 @@ async def k8s_v1_ext_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  
         mock_v1_client.read_custom_resource_definition = AsyncMock()
         mock_v1_client.delete_custom_resource_definition = AsyncMock()
         mock_v1_client.create_custom_resource_definition = AsyncMock()
+        mock_v1_client.patch_custom_resource_definition = AsyncMock()
 
         mock_v1_klass.ApiextensionsV1Api.return_value = mock_v1_client
 

@@ -1,0 +1,59 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ instance_name }}-update
+  labels:
+    app.kubernetes.io/name: ark-operator
+    app.kubernetes.io/component: update-job
+    app.kubernetes.io/part-of: {{ instance_name }}
+spec:
+  backoffLimit: {{ retries }}
+  template:
+    spec:
+      restartPolicy: Never
+      {% if node_selector %}
+      nodeSelector: {{ node_selector }}
+      {% endif %}
+      {% if tolerations %}
+      tolerations: {{ tolerations }}
+      {% endif %}
+      containers:
+        - name: job
+          image: ghcr.io/angellusmortis/ark-server:{{ image_version }}
+          imagePullPolicy: {% if image_version == "master" %}Always{% else %}IfNotPresent{% endif %}
+          command: ['arkctl', 'server', 'install']
+          volumeMounts:
+            - name: server
+              mountPath: /mnt/server
+          env:
+          {% if dry_run %}
+            - name: ARK_OP_DRY_RUN
+              value: "True"
+          {% endif %}
+            - name: ARK_CLUSTER_NAME
+              value: '{{ instance_name }}'
+            - name: ARK_CLUSTER_NAMESPACE
+              value: '{{ namespace }}'
+            - name: ARK_CLUSTER_SPEC
+              value: '{{ spec }}'
+            - name: ARK_STEAM_DIR
+              value: /mnt/server/steam
+            - name: ARK_SERVER_DIR
+              value: /mnt/server/ark
+            - name: ARK_SERVER_HOST
+              value: "127.0.0.1"
+            - name: ARK_SERVER_RCON_PASSWORD
+              value: "notactuallythepassword"
+          securityContext:
+            runAsUser: {{ uid }}
+            runAsGroup: {{ gid }}
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            seccompProfile:
+              type: "RuntimeDefault"
+            capabilities:
+              drop: ["ALL"]
+      volumes:
+        - name: server
+          persistentVolumeClaim:
+            claimName: {{ instance_name }}-{{ update_volume }}

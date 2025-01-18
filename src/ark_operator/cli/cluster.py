@@ -19,7 +19,7 @@ from ark_operator.cli.options import (
     OPTION_RCON_PASSWORD,
 )
 from ark_operator.data import ArkClusterSpec
-from ark_operator.k8s import are_crds_installed, close_k8s_client, update_cluster
+from ark_operator.k8s import are_crds_installed, close_k8s_client
 from ark_operator.k8s import install_crds as install_crds_api
 from ark_operator.k8s import uninstall_crds as uninstall_crds_api
 from ark_operator.rcon import send_cmd_all
@@ -131,32 +131,6 @@ async def init_volumes(
     steam = Steam(base_dir / "server-a" / "steam")
     await steam.init_volumes(
         base_dir, spec=context.spec, dry_run=dry_run, single_server=single_server
-    )
-    if not single_server:
-        version = await steam.get_ark_buildid(base_dir / "server-a" / "ark")
-        await update_cluster(
-            name=context.name,
-            namespace=context.namespace,
-            status={
-                "activeVolume": "server-a",
-                "activeBuildid": version,
-                "latestBuildid": version,
-            },
-        )
-
-
-@cluster.command
-async def check_updates(base_dir: Path) -> None:
-    """Check for updates volumes for cluster."""
-
-    context = _get_context()
-    steam = Steam(base_dir / "server" / "steam")
-    await update_cluster(
-        name=context.name,
-        namespace=context.namespace,
-        status={
-            "latestBuildid": await steam.get_latest_ark_buildid(),
-        },
     )
 
 

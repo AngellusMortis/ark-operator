@@ -1,0 +1,38 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+set -o nounset
+
+TAG=${1:-master}
+BASE_DIR=$( realpath $( dirname "${BASH_SOURCE[0]}" )/../ )
+source "$BASE_DIR/.bin/lib/common.sh"
+setRoot
+
+pushd "$ROOT_PATH" 2>&1 >/dev/null
+
+TARGET=dev
+IMAGE=ghcr.io/angellusmortis/ark-operator-dev:$TAG
+echo "Building $IMAGE..."
+docker buildx build . -f Dockerfile --target $TARGET --tag $IMAGE
+docker push $IMAGE
+
+TARGET=prod
+IMAGE=ghcr.io/angellusmortis/arkctl:$TAG
+echo "Building $IMAGE..."
+docker buildx build . -f Dockerfile --target $TARGET --tag $IMAGE
+docker push $IMAGE
+
+TARGET=server
+IMAGE=ghcr.io/angellusmortis/ark-server:$TAG
+echo "Building $IMAGE..."
+docker buildx build . -f Dockerfile --target $TARGET --tag $IMAGE
+docker push $IMAGE
+
+TARGET=operator
+IMAGE=ghcr.io/angellusmortis/ark-operator:$TAG
+echo "Building $IMAGE..."
+docker buildx build . -f Dockerfile --target $TARGET --tag $IMAGE
+docker push $IMAGE
+
+popd 2>&1 >/dev/null

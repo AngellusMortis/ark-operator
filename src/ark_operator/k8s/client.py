@@ -1,9 +1,12 @@
 """K8s resource client."""
 
+import logging
+
 from kubernetes_asyncio import client, config
 from kubernetes_asyncio.client.api_client import ApiClient
 
 _CLIENT: ApiClient | None = None
+_LOGGER = logging.getLogger(__name__)
 
 
 async def close_k8s_client() -> None:
@@ -27,7 +30,11 @@ async def get_k8s_client() -> ApiClient:
         _CLIENT = None
 
     if _CLIENT is None:
-        await config.load_kube_config()
+        try:
+            config.load_incluster_config()
+        except Exception as ex:  # noqa: BLE001
+            _LOGGER.warning("Failed to load incluster config", exc_info=ex)
+            await config.load_kube_config()
         _CLIENT = ApiClient()
 
     return _CLIENT

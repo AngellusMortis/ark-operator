@@ -91,13 +91,19 @@ async def test_install_crds(k8s_v1_ext_client: Mock) -> None:
     k8s_v1_ext_client.create_custom_resource_definition.assert_awaited_once_with(
         body=crds
     )
+    k8s_v1_ext_client.patch_custom_resource_definition.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_install_crds_installed(k8s_v1_ext_client: Mock) -> None:
     """Test install_crds."""
 
-    with pytest.raises(K8sError):
-        await install_crds()
+    async with aopen(CRD_FILE) as f:
+        crds = yaml.safe_load(await f.read())
+
+    await install_crds()
 
     k8s_v1_ext_client.create_custom_resource_definition.assert_not_awaited()
+    k8s_v1_ext_client.patch_custom_resource_definition.assert_awaited_once_with(
+        body=crds
+    )

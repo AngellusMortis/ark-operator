@@ -186,6 +186,11 @@ jinja2==3.1.5
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
+    #   jinja2-cli
+jinja2-cli==0.8.2
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 keyring==25.6.0
     # via
     #   hatch
@@ -407,7 +412,7 @@ rsa==4.9
     # via
     #   -c requirements.txt
     #   google-auth
-ruff==0.9.1
+ruff==0.9.2
     # via ark-operator (pyproject.toml)
 secretstorage==3.3.3
     # via keyring
@@ -433,11 +438,11 @@ steam @ git+https://github.com/solsticegamestudios/steam@c3f78074117691ef0ddf9a9
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
-tomli-w==1.1.0
+tomli-w==1.2.0
     # via hatch
 tomlkit==0.13.2
     # via hatch
-trove-classifiers==2025.1.10.15
+trove-classifiers==2025.1.15.22
     # via hatchling
 twine==6.0.1
     # via ark-operator (pyproject.toml)
@@ -465,14 +470,14 @@ urllib3==1.26.20
     #   twine
 userpath==1.9.2
     # via hatch
-uv==0.5.18
+uv==0.5.21
     # via hatch
 vdf==3.4
     # via
     #   -c requirements.txt
     #   ark-operator (pyproject.toml)
     #   steam
-virtualenv==20.28.1
+virtualenv==20.29.1
     # via hatch
 websocket-client==1.8.0
     # via

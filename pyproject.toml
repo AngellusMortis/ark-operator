@@ -33,6 +33,7 @@ dependencies = [
     "gamercon-async",
     "httpx",
     "jinja2",
+    "jinja2-cli",
     "kopf[full-auth]",
     "kubernetes_asyncio",
     "pydantic < 3",

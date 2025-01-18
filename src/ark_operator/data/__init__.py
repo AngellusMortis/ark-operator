@@ -12,6 +12,7 @@ from ark_operator.data.types import (
     ActivityEvent,
     ChangeEvent,
     ClusterStage,
+    TimerEvent,
     WebhookEvent,
 )
 
@@ -25,5 +26,6 @@ __all__ = [
     "ClusterStage",
     "Config",
     "GameServer",
+    "TimerEvent",
     "WebhookEvent",
 ]

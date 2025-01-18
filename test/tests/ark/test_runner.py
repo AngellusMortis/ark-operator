@@ -460,7 +460,7 @@ async def test_runner_managed_opt(run: _RunFixture) -> None:
     run.mock_run.assert_not_awaited()
 
 
-# @pytest.mark.timeout(timeout=10)
+@pytest.mark.timeout(timeout=10)
 @pytest.mark.asyncio
 async def test_runner_global_gus(run: _RunFixture) -> None:
     """Test runner."""

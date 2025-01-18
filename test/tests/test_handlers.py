@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any
 
@@ -19,6 +20,7 @@ if TYPE_CHECKING:
 
     from _pytest.monkeypatch import MonkeyPatch
 
+_LOGGER = logging.getLogger(__name__)
 GHA_CANNOT_RESIZE = "Github Actions cannot resize PVCs"
 CLUSTER_SPEC: dict[str, Any] = {
     "apiVersion": "mort.is/v1beta1",
@@ -57,6 +59,8 @@ def _run(cmd: str, shell: bool = False, check: bool = True) -> CompletedProcess[
 
 
 def _dump_namespace(namespace: str) -> None:
+    _LOGGER.warning("Dumping namespace %s", namespace)
+
     _run(f"kubectl -n {namespace} get arkcluster", check=False)
     _run(f"kubectl -n {namespace} get all", check=False)
     _run(f"kubectl -n {namespace} get pvc", check=False)
@@ -80,8 +84,10 @@ def _dump_namespace(namespace: str) -> None:
             continue
 
         _run(f"kubectl -n {namespace} describe pod/{pod}", check=False)
-        _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
-        _run(f"kubectl -n {namespace} logs -c job pod/{pod}", check=False)
+        if "-init" in pod:
+            _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
+        if "-job" in pod:
+            _run(f"kubectl -n {namespace} logs -c job pod/{pod}", check=False)
 
 
 def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
@@ -98,7 +104,7 @@ def _verify_startup(namespace: str) -> None:
     # PVC setup
     try:
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.state}}'='Initializing PVCs' arkcluster/ark --timeout=30s",
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.state}}'='Initializing PVCs' arkcluster/ark --timeout=60s",
         )
         result = _run(
             f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'"
@@ -110,9 +116,6 @@ def _verify_startup(namespace: str) -> None:
         _run(
             f"kubectl -n {namespace} wait --for=delete job/ark-init --timeout=300s",
         )
-        _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.spec.schedule}}'='*/15 * * * *' cronjob/ark-check-update --timeout=60s",
-        )
     except Exception:
         _dump_namespace(namespace)
         raise
@@ -121,13 +124,13 @@ def _verify_startup(namespace: str) -> None:
 
     try:
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=30s",
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-a --timeout=60s",
         )
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=30s",
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-server-b --timeout=60s",
         )
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=30s",
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=60s",
         )
     except Exception:
         _dump_namespace(namespace)
@@ -154,11 +157,6 @@ def _delete_cluster(
 
     result = _run(
         f"kubectl -n {namespace} get job --no-headers -o custom-columns=':metadata.name'",
-    )
-    assert result.stdout.strip() == ""
-
-    result = _run(
-        f"kubectl -n {namespace} get cronjob --no-headers -o custom-columns=':metadata.name'",
     )
     assert result.stdout.strip() == ""
 

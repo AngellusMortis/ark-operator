@@ -177,6 +177,9 @@ spec:
               state:
                 type: string
                 description: What operator is currently doing
+              initalized:
+                type: boolean
+                description: Has PVCs been initalized
               stages:
                 x-kubernetes-preserve-unknown-fields: true
                 type: object

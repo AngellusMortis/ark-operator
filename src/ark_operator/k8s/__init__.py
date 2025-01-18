@@ -13,7 +13,6 @@ from ark_operator.k8s.crds import (
     are_crds_installed,
     install_crds,
     uninstall_crds,
-    update_cluster,
 )
 from ark_operator.k8s.pvc import (
     check_pvc_exists,
@@ -41,5 +40,4 @@ __all__ = [
     "install_crds",
     "resize_pvc",
     "uninstall_crds",
-    "update_cluster",
 ]

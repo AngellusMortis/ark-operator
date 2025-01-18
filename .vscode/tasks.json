@@ -52,6 +52,18 @@
             "problemMatcher": []
         },
         {
+            "label": "Apply RBAC",
+            "type": "shell",
+            "command": "jinja2 ${workspaceFolder}/test/manifests/rbac.yml.j2 -D namespace=ark-dev -D instance_name=ark | kubectl apply -f -",
+            "problemMatcher": []
+        },
+        {
+            "label": "Delete RBAC",
+            "type": "shell",
+            "command": "jinja2 ${workspaceFolder}/test/manifests/rbac.yml.j2 -D namespace=ark-dev -D instance_name=ark | kubectl delete -f -",
+            "problemMatcher": []
+        },
+        {
             "label": "Install ARK (server-a)",
             "type": "shell",
             "command": "arkctl server --install-dir ${workspaceFolder}/test/server/server-a/ark install --copy-from ${workspaceFolder}/test/server/server-a/ark",

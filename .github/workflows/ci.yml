@@ -44,6 +44,8 @@ jobs:
             image: ghcr.io/angellusmortis/arkctl
           - target: server
             image: ghcr.io/angellusmortis/ark-server
+          - target: operator
+            image: ghcr.io/angellusmortis/ark-operator
 
     steps:
       - name: ⬇️ Checkout Repo

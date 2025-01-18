@@ -82,6 +82,10 @@ idna==3.10
 iso8601==2.1.0
     # via kopf
 jinja2==3.1.5
+    # via
+    #   ark-operator (pyproject.toml)
+    #   jinja2-cli
+jinja2-cli==0.8.2
     # via ark-operator (pyproject.toml)
 kopf==1.37.4
     # via ark-operator (pyproject.toml)

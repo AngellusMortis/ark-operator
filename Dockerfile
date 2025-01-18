@@ -85,6 +85,17 @@ VOLUME [ "/srv/ark/server", "/srv/ark/data" ]
 ENTRYPOINT [ "/entrypoint" ]
 HEALTHCHECK --interval=5s --timeout=5s --start-period=10s --retries=5 CMD [ "sh", "-c", "arkctl server --host 127.0.0.1 rcon ListPlayers" ]
 
+# ark-operator image
+FROM prod as operator
+
+ENV ARK_CLUSTER_NAMESPACE=default
+ENV ARK_OP_LOG_LEVEL=INFO
+ENV ARK_OP_LOG_FORMAT=basic
+
+HEALTHCHECK --interval=5s --timeout=5s --start-period=10s --retries=5 CMD [ "curl", "--slient", "--fail" "http://localhost:8080/healthz" ]
+CMD [ "sh", "-c", "kopf run -n ${ARK_CLUSTER_NAMESPACE} --standalone -m ark_operator.handlers --liveness=http://0.0.0.0:8080/healthz"]
+
+
 # dev container
 FROM base AS dev
 
