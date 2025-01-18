@@ -160,7 +160,7 @@ async def test_create_init_job(k8s_v1_batch_client: Mock) -> None:
                         "restartPolicy": "Never",
                         "containers": [
                             {
-                                "name": "init-ark",
+                                "name": "job",
                                 "image": "ghcr.io/angellusmortis/ark-server:master",
                                 "imagePullPolicy": "Always",
                                 "command": [
@@ -269,7 +269,7 @@ async def test_create_init_job_dry_run(k8s_v1_batch_client: Mock) -> None:
                         "restartPolicy": "Never",
                         "containers": [
                             {
-                                "name": "init-ark",
+                                "name": "job",
                                 "image": "ghcr.io/angellusmortis/ark-server:master",
                                 "imagePullPolicy": "Always",
                                 "command": [

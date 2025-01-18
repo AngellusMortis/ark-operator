@@ -26,6 +26,7 @@ JOB_RETRIES = 3
 ERROR_PVC_ALREADY_EXISTS = "Failed to create PVC because it already exists."
 ERROR_INIT_JOB = "Failed to create volume init job."
 ERROR_INIT_JOB_CHECK = "Failed to check on volume init job."
+ERROR_CHECK_UPDATE_JOB = "Failed to create check update cron job."
 ERROR_WAIT_INIT_POD = "Waiting for volume init pod to completed."
 ERROR_INIT_FAILED = "Failed to initialize PVCs."
 _LOGGER = logging.getLogger(__name__)
@@ -102,13 +103,14 @@ async def create_init_job(
     logger: kopf.Logger | None = None,
     dry_run: bool = False,
 ) -> None:
-    """Create pod to initialize PVCs."""
+    """Create job to initialize PVCs."""
 
     logger = logger or _LOGGER
     job_tmpl = loader.get_template("init-job.yml.j2")
     job = yaml.safe_load(
         await job_tmpl.render_async(
             instance_name=name,
+            namespace=namespace,
             uid=spec.run_as_user,
             gid=spec.run_as_group,
             node_selector=json.dumps(spec.node_selector)

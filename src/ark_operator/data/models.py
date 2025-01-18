@@ -41,7 +41,7 @@ States = Literal[
     "Creating PVCs",
     "Initializing PVCs",
     "Updating PVCs",
-    "Deleting PVCs",
+    "Creating Resources",
     "Running",
 ]
 
@@ -158,6 +158,9 @@ class ArkClusterStatus(BaseK8sModel):
     ready: bool = False
     state: States | str = "Initializing"
     stages: dict[ClusterStage, bool] | None = None
+    active_volume: Literal["server-a", "server-b"] | None = None
+    active_buildid: int | None = None
+    latest_buildid: int | None = None
 
     @property
     def is_error(self) -> bool:

@@ -28,6 +28,21 @@ spec:
         description: What operator is currently doing
         jsonPath: .status.state
         priority: 0
+      - name: Current Volume
+        type: string
+        description: Current active volume of ARK
+        jsonPath: .status.activeVolume
+        priority: 0
+      - name: Current Version
+        type: integer
+        description: Current active buildid of ARK
+        jsonPath: .status.activeBuildid
+        priority: 0
+      - name: Latest Version
+        type: integer
+        description: Latest buildid of ARK
+        jsonPath: .status.latestBuildid
+        priority: 0
     schema:
       openAPIV3Schema:
         type: object
@@ -166,3 +181,13 @@ spec:
                 x-kubernetes-preserve-unknown-fields: true
                 type: object
                 description: Internal field for tracking state/progress
+              activeVolume:
+                type: string
+                description: Current active volume of ARK that is running
+                enum: ["server-a", "server-b"]
+              activeBuildid:
+                type: integer
+                description: Current Steam buildid of ARK that is running
+              latestBuildid:
+                type: integer
+                description: Latest Steam buildid of ARK

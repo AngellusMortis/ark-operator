@@ -20,7 +20,13 @@ from aiofiles import os as aos
 from aiofiles.tempfile import TemporaryDirectory
 from asyncer import asyncify
 
-from ark_operator.ark import ARK_SERVER_APP_ID, copy_ark, has_newer_version
+from ark_operator.ark import (
+    ARK_SERVER_APP_ID,
+    copy_ark,
+    get_ark_buildid,
+    get_latest_ark_buildid,
+    has_newer_version,
+)
 from ark_operator.command import run_async
 from ark_operator.decorators import sync_only
 from ark_operator.exceptions import SteamCMDError
@@ -381,6 +387,16 @@ class Steam:
         """Check if ARK has newer version."""
 
         return await has_newer_version(self, ark_dir)
+
+    async def get_ark_buildid(self, ark_dir: Path) -> int | None:
+        """Get Current version of ARK."""
+
+        return await get_ark_buildid(ark_dir)
+
+    async def get_latest_ark_buildid(self) -> int:
+        """Get latest version of ARK."""
+
+        return await get_latest_ark_buildid(self)
 
     async def _init_server(
         self,

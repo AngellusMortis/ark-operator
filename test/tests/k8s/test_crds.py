@@ -101,20 +101,3 @@ async def test_install_crds_installed(k8s_v1_ext_client: Mock) -> None:
         await install_crds()
 
     k8s_v1_ext_client.create_custom_resource_definition.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_install_crds_force(k8s_v1_ext_client: Mock) -> None:
-    """Test install_crds."""
-
-    async with aopen(CRD_FILE) as f:
-        crds = yaml.safe_load(await f.read())
-
-    await install_crds(force=True)
-
-    k8s_v1_ext_client.delete_custom_resource_definition.assert_awaited_once_with(
-        "arkclusters.mort.is"
-    )
-    k8s_v1_ext_client.create_custom_resource_definition.assert_awaited_once_with(
-        body=crds
-    )

@@ -49,3 +49,9 @@ async def get_v1_ext_client() -> client.ApiextensionsV1Api:
     """Get v1 k8s client."""
 
     return client.ApiextensionsV1Api(await get_k8s_client())
+
+
+async def get_crd_client() -> client.CustomObjectsApi:
+    """Get crd k8s client."""
+
+    return client.CustomObjectsApi(await get_k8s_client())

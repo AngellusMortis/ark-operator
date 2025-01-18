@@ -41,7 +41,7 @@ click==8.1.8
     # via kopf
 colorama==0.4.6
     # via ark-operator (pyproject.toml)
-cyclopts @ git+https://github.com/BrianPugh/cyclopts@2a944b99b5e49b76bac9e45c03533afe43cc192f
+cyclopts @ git+https://github.com/BrianPugh/cyclopts@4aa51b9bbfa98b627ab66ff1e08e798a68b79266
     # via ark-operator (pyproject.toml)
 docstring-parser==0.16
     # via cyclopts
@@ -49,7 +49,7 @@ docutils==0.21.2
     # via rich-rst
 durationpy==0.9
     # via kubernetes
-environs==14.0.0
+environs==14.1.0
     # via ark-operator (pyproject.toml)
 frozenlist==1.5.0
     # via
@@ -93,7 +93,7 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via jinja2
-marshmallow==3.25.0
+marshmallow==3.25.1
     # via environs
 mdurl==0.1.2
     # via markdown-it-py

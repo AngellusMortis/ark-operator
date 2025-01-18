@@ -81,7 +81,7 @@ def _dump_namespace(namespace: str) -> None:
 
         _run(f"kubectl -n {namespace} describe pod/{pod}", check=False)
         _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
-        _run(f"kubectl -n {namespace} logs -c init-ark pod/{pod}", check=False)
+        _run(f"kubectl -n {namespace} logs -c job pod/{pod}", check=False)
 
 
 def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
@@ -109,6 +109,9 @@ def _verify_startup(namespace: str) -> None:
         )
         _run(
             f"kubectl -n {namespace} wait --for=delete job/ark-init --timeout=300s",
+        )
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.spec.schedule}}'='*/15 * * * *' cronjob/ark-check-update --timeout=60s",
         )
     except Exception:
         _dump_namespace(namespace)
@@ -148,6 +151,16 @@ def _delete_cluster(
         f"kubectl -n {namespace} get pvc --no-headers -o custom-columns=':metadata.name'",
     )
     _assert_output(result, [f"ark-{p}" for p in persist_pvcs])
+
+    result = _run(
+        f"kubectl -n {namespace} get job --no-headers -o custom-columns=':metadata.name'",
+    )
+    assert result.stdout.strip() == ""
+
+    result = _run(
+        f"kubectl -n {namespace} get cronjob --no-headers -o custom-columns=':metadata.name'",
+    )
+    assert result.stdout.strip() == ""
 
 
 @pytest.fixture(autouse=True)

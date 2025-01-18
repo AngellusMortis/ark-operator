@@ -71,8 +71,14 @@ async def get_ark_buildid(src: Path) -> int | None:
 
 
 @asyncify
-def _get_steam_build_id(steam: Steam, app_id: int) -> int:
+def _get_latest_buildid(steam: Steam, app_id: int) -> int:
     return int(steam.cdn.get_app_depot_info(app_id)["branches"]["public"]["buildid"])
+
+
+async def get_latest_ark_buildid(steam: Steam) -> int:
+    """Get latest version of ARK."""
+
+    return await _get_latest_buildid(steam, ARK_SERVER_APP_ID)
 
 
 async def has_newer_version(steam: Steam, src: Path) -> bool:
@@ -83,7 +89,7 @@ async def has_newer_version(steam: Steam, src: Path) -> bool:
     if not src_buildid:
         return True
 
-    latest_buildid = await _get_steam_build_id(steam, ARK_SERVER_APP_ID)
+    latest_buildid = await get_latest_ark_buildid(steam)
 
     _LOGGER.debug("latest: %s, src: %s", latest_buildid, src_buildid)
     return latest_buildid > src_buildid

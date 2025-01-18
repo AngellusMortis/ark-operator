@@ -65,6 +65,8 @@ class ServerContext:
 class ClusterContext:
     """Cluster commands context object."""
 
+    name: str
+    namespace: str
     spec: ArkClusterSpec
     selected_maps: list[str]
     host: IPv4Address | IPv6Address | str

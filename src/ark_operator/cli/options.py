@@ -88,6 +88,14 @@ OPTION_RCON_PASSWORD = Annotated[
     ),
 ]
 
+OPTION_ARK_CLUSTER_NAME = Annotated[
+    str, Parameter(("--name"), env_var=["ARK_CLUSTER_NAME"])
+]
+
+OPTION_ARK_CLUSTER_NAMESPACE = Annotated[
+    str, Parameter(("--namespace"), env_var=["ARK_CLUSTER_NAMESPACE"])
+]
+
 OPTION_ARK_SPEC = Annotated[
     ArkClusterSpec,
     Parameter(("--spec"), env_var=["ARK_CLUSTER_SPEC"]),

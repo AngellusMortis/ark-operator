@@ -7,6 +7,6 @@ spec:
     size: 50Gi
     persist: true
     maps:
-      - "@canonical"
+      - BobsMissions_WP
   data:
     persist: true

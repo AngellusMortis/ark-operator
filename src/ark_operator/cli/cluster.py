@@ -10,6 +10,8 @@ from cyclopts import App, CycloptsError, Parameter
 from ark_operator.ark import expand_maps
 from ark_operator.cli.context import ClusterContext, get_all_context, set_context
 from ark_operator.cli.options import (
+    OPTION_ARK_CLUSTER_NAME,
+    OPTION_ARK_CLUSTER_NAMESPACE,
     OPTION_ARK_SELECTOR,
     OPTION_ARK_SPEC,
     OPTION_DRY_RUN,
@@ -17,7 +19,7 @@ from ark_operator.cli.options import (
     OPTION_RCON_PASSWORD,
 )
 from ark_operator.data import ArkClusterSpec
-from ark_operator.k8s import are_crds_installed, close_k8s_client
+from ark_operator.k8s import are_crds_installed, close_k8s_client, update_cluster
 from ark_operator.k8s import install_crds as install_crds_api
 from ark_operator.k8s import uninstall_crds as uninstall_crds_api
 from ark_operator.rcon import send_cmd_all
@@ -51,8 +53,10 @@ def _require_host(spec: ArkClusterSpec | None) -> IPv4Address | IPv6Address:
 
 
 @cluster.meta.default
-def meta(
+def meta(  # noqa: PLR0913
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
+    name: OPTION_ARK_CLUSTER_NAME = "ark",
+    namespace: OPTION_ARK_CLUSTER_NAMESPACE = "default",
     spec: OPTION_ARK_SPEC,
     selector: OPTION_ARK_SELECTOR = ["@all"],  # noqa: B006\
     host: OPTION_OPTIONAL_HOST = None,
@@ -69,6 +73,8 @@ def meta(
     set_context(
         "cluster",
         ClusterContext(
+            name=name,
+            namespace=namespace,
             spec=spec,
             selected_maps=selected_maps,
             host=host or _require_host(spec),
@@ -80,11 +86,11 @@ def meta(
 
 
 @cluster.command
-async def install_crds(*, force: bool = False) -> None:
+async def install_crds() -> None:
     """Install ArkCluster CRDs."""
 
     try:
-        await install_crds_api(force=force)
+        await install_crds_api()
     finally:
         await close_k8s_client()
 
@@ -114,7 +120,10 @@ async def check_crds() -> int:
 
 @cluster.command
 async def init_volumes(
-    base_dir: Path, *, dry_run: OPTION_DRY_RUN = False, single_server: bool = False
+    base_dir: Path,
+    *,
+    dry_run: OPTION_DRY_RUN = False,
+    single_server: bool = False,
 ) -> None:
     """Initialize volumes for cluster."""
 
@@ -122,6 +131,32 @@ async def init_volumes(
     steam = Steam(base_dir / "server-a" / "steam")
     await steam.init_volumes(
         base_dir, spec=context.spec, dry_run=dry_run, single_server=single_server
+    )
+    if not single_server:
+        version = await steam.get_ark_buildid(base_dir / "server-a" / "ark")
+        await update_cluster(
+            name=context.name,
+            namespace=context.namespace,
+            status={
+                "activeVolume": "server-a",
+                "activeBuildid": version,
+                "latestBuildid": version,
+            },
+        )
+
+
+@cluster.command
+async def check_updates(base_dir: Path) -> None:
+    """Check for updates volumes for cluster."""
+
+    context = _get_context()
+    steam = Steam(base_dir / "server" / "steam")
+    await update_cluster(
+        name=context.name,
+        namespace=context.namespace,
+        status={
+            "latestBuildid": await steam.get_latest_ark_buildid(),
+        },
     )
 
 
@@ -141,7 +176,7 @@ async def rcon(*cmd: str) -> None:
 
 @cluster.command
 async def save() -> None:
-    """Run save rcon command for ARK server."""
+    """Run save RCON command for ARK server."""
 
     context = _get_context()
     await send_cmd_all(
