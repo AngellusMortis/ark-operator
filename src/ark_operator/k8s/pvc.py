@@ -12,6 +12,7 @@ from environs import Env
 from ark_operator.k8s.client import get_v1_client
 from ark_operator.k8s.utils import convert_k8s_size
 from ark_operator.templates import loader
+from ark_operator.utils import VERSION
 
 if TYPE_CHECKING:
     from kubernetes_asyncio.client.models import V1PersistentVolumeClaim
@@ -128,6 +129,7 @@ async def create_pvc(  # noqa: PLR0913
             storage_class=storage_class,
             size=size,
             access_mode=_force_pvc_mode() or access_mode,
+            operator_version=VERSION,
         )
     )
 

@@ -76,7 +76,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ namespace }}-operator-rolebinding-cluster
+  name: {{ instance_name }}-operator-rolebinding-cluster
   labels:
     app.kubernetes.io/name: ark-operator
     app.kubernetes.io/component: cluster-role-binding
@@ -87,14 +87,14 @@ roleRef:
   name: ark-operator-role-cluster
 subjects:
   - kind: ServiceAccount
-    name: {{ namespace }}-operator
+    name: {{ instance_name }}-operator
     namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   namespace: {{ namespace }}
-  name: {{ namespace }}-operator-rolebinding-namespaced
+  name: {{ instance_name }}-operator-rolebinding-namespaced
   labels:
     app.kubernetes.io/name: ark-operator
     app.kubernetes.io/component: role-binding
@@ -102,7 +102,7 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: {{ namespace }}-operator-role-namespaced
+  name: {{ instance_name }}-operator-role-namespaced
 subjects:
   - kind: ServiceAccount
-    name: {{ namespace }}-operator
+    name: {{ instance_name }}-operator

@@ -15,6 +15,7 @@ from ark_operator.k8s import (
     get_v1_batch_client,
 )
 from ark_operator.templates import loader
+from ark_operator.utils import VERSION
 
 JOB_RETRIES = 3
 
@@ -54,6 +55,7 @@ async def _create_job(  # noqa: PLR0913
             spec=spec.model_dump_json(),
             dry_run=dry_run,
             image_version=ARK_SERVER_IMAGE_VERSION,
+            operator_version=VERSION,
             **extra_context,
         )
     )

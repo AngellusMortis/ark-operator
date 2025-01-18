@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from importlib.metadata import version
 from typing import TYPE_CHECKING, overload
 
 from aiofiles import open as aopen
@@ -14,6 +15,7 @@ if TYPE_CHECKING:
 
 
 _LOGGER = logging.getLogger(__name__)
+VERSION = version("ark_operator")
 
 
 def is_async() -> bool:

@@ -3,9 +3,12 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ instance_name }}-{{ name }}
   labels:
-    app.kubernetes.io/name: ark-operator
+    app.kubernetes.io/name: pvc
+    app.kubernetes.io/instance: {{ instance_name }}
+    app.kubernetes.io/version: {{ operator_version | replace("+", "-") }}
     app.kubernetes.io/component: {{ name }}
-    app.kubernetes.io/part-of: {{ instance_name }}
+    app.kubernetes.io/part-of: ark-operator
+    app.kubernetes.io/managed-by: ark-operator
 spec:
 {% if storage_class %}
   storageClassName: {{ storage_class }}
