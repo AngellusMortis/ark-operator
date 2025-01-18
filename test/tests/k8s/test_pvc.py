@@ -13,6 +13,7 @@ from ark_operator.k8s import (
     delete_pvc,
     resize_pvc,
 )
+from ark_operator.utils import VERSION
 
 
 @pytest.mark.asyncio(loop_scope="function")
@@ -200,9 +201,12 @@ async def test_create_pvc(k8s_v1_client: Mock) -> None:
             "metadata": {
                 "name": "testing-test",
                 "labels": {
-                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/name": "pvc",
+                    "app.kubernetes.io/instance": "testing",
+                    "app.kubernetes.io/version": VERSION.replace("+", "-"),
                     "app.kubernetes.io/component": "test",
-                    "app.kubernetes.io/part-of": "testing",
+                    "app.kubernetes.io/part-of": "ark-operator",
+                    "app.kubernetes.io/managed-by": "ark-operator",
                 },
             },
             "spec": {
@@ -246,9 +250,12 @@ async def test_create_pvc_storage_class(k8s_v1_client: Mock) -> None:
             "metadata": {
                 "name": "testing-test",
                 "labels": {
-                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/name": "pvc",
+                    "app.kubernetes.io/instance": "testing",
+                    "app.kubernetes.io/version": VERSION.replace("+", "-"),
                     "app.kubernetes.io/component": "test",
-                    "app.kubernetes.io/part-of": "testing",
+                    "app.kubernetes.io/part-of": "ark-operator",
+                    "app.kubernetes.io/managed-by": "ark-operator",
                 },
             },
             "spec": {
@@ -304,9 +311,12 @@ async def test_create_pvc_error(k8s_v1_client: Mock) -> None:
             "metadata": {
                 "name": "testing-test",
                 "labels": {
-                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/name": "pvc",
+                    "app.kubernetes.io/instance": "testing",
+                    "app.kubernetes.io/version": VERSION.replace("+", "-"),
                     "app.kubernetes.io/component": "test",
-                    "app.kubernetes.io/part-of": "testing",
+                    "app.kubernetes.io/part-of": "ark-operator",
+                    "app.kubernetes.io/managed-by": "ark-operator",
                 },
             },
             "spec": {

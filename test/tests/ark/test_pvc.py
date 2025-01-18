@@ -9,6 +9,7 @@ from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark import check_init_job, create_init_job
 from ark_operator.data import ArkClusterSpec
+from ark_operator.utils import VERSION
 
 
 @pytest.mark.asyncio
@@ -148,9 +149,12 @@ async def test_create_init_job(k8s_v1_batch_client: Mock) -> None:
             "metadata": {
                 "name": "test-init",
                 "labels": {
-                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/name": "arkctl",
+                    "app.kubernetes.io/instance": "test",
+                    "app.kubernetes.io/version": VERSION.replace("+", "-"),
                     "app.kubernetes.io/component": "init-job",
-                    "app.kubernetes.io/part-of": "test",
+                    "app.kubernetes.io/part-of": "ark-operator",
+                    "app.kubernetes.io/managed-by": "ark-operator",
                 },
             },
             "spec": {
@@ -265,9 +269,12 @@ async def test_create_init_job_dry_run(k8s_v1_batch_client: Mock) -> None:
             "metadata": {
                 "name": "test-init",
                 "labels": {
-                    "app.kubernetes.io/name": "ark-operator",
+                    "app.kubernetes.io/name": "arkctl",
+                    "app.kubernetes.io/instance": "test",
+                    "app.kubernetes.io/version": VERSION.replace("+", "-"),
                     "app.kubernetes.io/component": "init-job",
-                    "app.kubernetes.io/part-of": "test",
+                    "app.kubernetes.io/part-of": "ark-operator",
+                    "app.kubernetes.io/managed-by": "ark-operator",
                 },
             },
             "spec": {
