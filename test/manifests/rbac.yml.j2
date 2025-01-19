@@ -84,7 +84,7 @@ rules:
     resources: [jobs]
     verbs: ["*"]
   - apiGroups: [""]
-    resources: [pods, persistentvolumeclaims]
+    resources: [pods, persistentvolumeclaims, configmaps, secrets]
     verbs: ["*"]
   - apiGroups: [mort.is]
     resources: ["*"]

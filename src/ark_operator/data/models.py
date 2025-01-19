@@ -92,11 +92,6 @@ class ArkServerSpec(BaseK8sModel):
     persist: bool = False
     game_port_start: int = 7777
     rcon_port_start: int = 27020
-    max_players: int = 70
-    battleye: bool = True
-    allowed_platforms: list[str] = ["ALL"]
-    whitelist: bool = False
-    multihome_ip: str | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -138,7 +133,46 @@ class ArkDataSpec(BaseK8sModel):
 class ArkClusterSettings(BaseK8sModel):
     """ArkCluster.spec.cluster CRD spec."""
 
+    session_name_format: str = "ASA - {map_name}"
+    multihome_ip: str | None = None
+    max_players: int = 70
     cluster_id: str = "ark-cluster"
+    battleye: bool = True
+    allowed_platforms: list[str] = ["ALL"]
+    whitelist: bool = False
+    params: list[str] = []
+    opts: list[str] = []
+    mods: list[int] = []
+
+    def get_envs(self, map_id: str) -> dict[str, str]:
+        """Get envs for given map."""
+
+        from ark_operator.ark import get_map_name
+
+        map_name = get_map_name(map_id)
+        envs = {
+            "ARK_SERVER_MAP": map_id,
+            "ARK_SERVER_SESSION_NAME": self.session_name_format.format(
+                map_name=map_name
+            ),
+            "ARK_SERVER_AUTO_UPDATE": "false",
+            "ARK_SERVER_MAX_PLAYERS": str(self.max_players),
+            "ARK_SERVER_CLUSTER_ID": self.cluster_id,
+            "ARK_SERVER_BATTLEYE": str(self.battleye).lower(),
+            "ARK_SERVER_ALLOWED_PLATFORMS": ",".join(self.allowed_platforms),
+            "ARK_SERVER_WHITELIST": str(self.whitelist).lower(),
+        }
+
+        if self.multihome_ip:
+            envs["ARK_SERVER_MULTIHOME"] = self.multihome_ip
+        if map_id != "BobsMissions_WP" and self.params:
+            envs["ARK_SERVER_PARAMS"] = ",".join(self.params)
+        if map_id != "BobsMissions_WP" and self.opts:
+            envs["ARK_SERVER_OPTS"] = ",".join(self.opts)
+        if map_id != "BobsMissions_WP" and self.mods:
+            envs["ARK_SERVER_MODS"] = ",".join(str(m) for m in self.mods)
+
+        return envs
 
 
 class ArkClusterSpec(BaseK8sModel):
@@ -150,7 +184,7 @@ class ArkClusterSpec(BaseK8sModel):
     run_as_group: int = 65535
     node_selector: dict[str, Any] | None = None
     tolerations: list[dict[str, Any]] | None = None
-    cluster: ArkClusterSettings = ArkClusterSettings()
+    global_settings: ArkClusterSettings = ArkClusterSettings()
 
 
 class ArkClusterStatus(BaseK8sModel):

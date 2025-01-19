@@ -452,7 +452,8 @@ class Steam:
         list_dir = base_dir / "data" / "lists"
         if not dry_run:
             await aos.makedirs(
-                base_dir / "data" / "clusters" / spec.cluster.cluster_id, exist_ok=True
+                base_dir / "data" / "clusters" / spec.global_settings.cluster_id,
+                exist_ok=True,
             )
             await aos.makedirs(base_dir / "data" / "maps", exist_ok=True)
 

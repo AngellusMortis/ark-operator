@@ -100,29 +100,6 @@ spec:
                     description: |-
                       Starting port for server cluster. The first server will be this port and each
                       additional server will be +1. Default is 27020.
-                  maxPlayers:
-                    type: integer
-                    description: |-
-                      Max number of players per server/map. Defaults to 70.
-                  battleye:
-                    type: boolean
-                    description: |-
-                      Enable BattleEye on the servers. Defaults to true.
-                  allowedPlatforms:
-                    type: array
-                    items:
-                      type: string
-                      pattern: ^(ALL|PC|PS5|XSX|WINGDK)$
-                    description: |-
-                      Platforms allowed for server. Defaults to ALL.
-                  whitelist:
-                    type: boolean
-                    description: |-
-                      Whether server should have whitelist or not. Defaults to false.
-                  multihomeIP:
-                    type: string
-                    description: |-
-                      External IP address for users to join server from.
               data:
                 type: object
                 properties:
@@ -161,13 +138,71 @@ spec:
                 items:
                   type: object
                   x-kubernetes-preserve-unknown-fields: true
-              cluster:
+              globalSettings:
                 type: object
                 properties:
+                  sessionNameFormat:
+                    type: string
+                    description: |-
+                      The format string to use for making session names. Can use `{map_name}` in place
+                      of map. Default to `ASA - {map_name}`. Can be overwritten in the per map config
+                      using the env `ARK_SERVER_SESSION_NAME`
+                  multihomeIP:
+                    type: string
+                    description: |-
+                      External IP address for users to join server from. Can be overwritten in the per map
+                      config using the env `ARK_SERVER_MULTIHOME`
+                  maxPlayers:
+                    type: integer
+                    description: |-
+                      Max number of players per server/map. Defaults to 70. Can be overwritten in the per map
+                      config using the env `ARK_SERVER_MAX_PLAYERS`
                   clusterID:
                     type: string
                     description: |-
-                      Cluster ID for ARK server cluster. Defaults to ark-cluster.
+                      Cluster ID for ARK server cluster. Defaults to ark-cluster. Can be overwritten in the
+                      per map config using the env `ARK_SERVER_CLUSTER_ID`
+                  battleye:
+                    type: boolean
+                    description: |-
+                      Enable BattleEye on the servers. Defaults to true. Can be overwritten in the per map
+                      config using the env `ARK_SERVER_BATTLEYE`
+                  allowedPlatforms:
+                    type: array
+                    items:
+                      type: string
+                      pattern: ^(ALL|PC|PS5|XSX|WINGDK)$
+                    description: |-
+                      Platforms allowed for server. Defaults to ALL. Can be overwritten in the per map config
+                      using the env `ARK_SERVER_BATTLEYE`
+                  whitelist:
+                    type: boolean
+                    description: |-
+                      Whether server should have whitelist or not. Defaults to false. Can be overwritten in
+                      the per map config using the env `ARK_SERVER_WHITELIST`
+                  params:
+                    type: array
+                    items:
+                      type: string
+                    description: |-
+                      List of additional params for the server (? seperated values). Ignored for
+                      `BobsMissions_WP` map. Can be overwritten in the per map config using the env
+                      `ARK_SERVER_PARAMS`
+                  opts:
+                    type: array
+                    items:
+                      type: string
+                    description: |-
+                      List of additional options for the server (- seperated values). Ignored for
+                      `BobsMissions_WP` map. Can be overwritten in the per map config using the env
+                      `ARK_SERVER_OPTS`
+                  mods:
+                    type: array
+                    items:
+                      type: integer
+                    description: |-
+                      List of mods to install on server. Ignored for `BobsMissions_WP` map. Can be overwritten
+                      in the per map config using the env `ARK_SERVER_MODS`
           status:
             type: object
             properties:
