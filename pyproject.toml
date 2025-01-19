@@ -26,14 +26,15 @@ classifiers = [
 dependencies = [
     "aiofiles",
     "aioshutil",
+    "asyncache",
     "asyncer",
     "colorama",
     "cyclopts @ git+https://github.com/BrianPugh/cyclopts@json-data",
     "environs",
     "gamercon-async",
     "httpx",
-    "jinja2",
     "jinja2-cli",
+    "jinja2",
     "kopf[full-auth]",
     "kubernetes_asyncio",
     "pydantic < 3",
@@ -158,6 +159,8 @@ check_untyped_defs = false
 
 [[tool.mypy.overrides]]
 module = [
+    "asyncache",
+    "cachetools",
     "gamercon_async",
     "gamercon_async.gamercon_async",
     "kubernetes_asyncio.client.api_client",
@@ -209,3 +212,4 @@ ARK_OP_MIN_SERVER_SIZE = "1Mi"
 # do not actually install ARK or run servers for tests
 ARK_OP_KOPF_DRY_RUN = "True"
 ARK_SERVER_IMAGE_VERSION = "master"
+ARK_OP_TTL_CACHE = "0"

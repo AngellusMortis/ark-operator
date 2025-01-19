@@ -4,16 +4,15 @@ import asyncio
 import logging
 
 import kopf
-from environs import Env
 
+from ark_operator.ark.utils import ENV
 from ark_operator.data import ArkDataSpec, ArkServerSpec
 from ark_operator.k8s import (
     check_pvc_exists,
     create_pvc,
 )
 
-_ENV = Env()
-MIN_SIZE_SERVER = _ENV("ARK_OP_MIN_SERVER_SIZE", "50Gi")
+MIN_SIZE_SERVER = ENV("ARK_OP_MIN_SERVER_SIZE", "50Gi")
 _LOGGER = logging.getLogger(__name__)
 
 

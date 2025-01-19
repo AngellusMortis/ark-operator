@@ -1,6 +1,7 @@
 """ARK Operator data."""
 
 from ark_operator.data.models import (
+    ArkClusterSettings,
     ArkClusterSpec,
     ArkClusterStatus,
     ArkDataSpec,
@@ -18,6 +19,7 @@ from ark_operator.data.types import (
 
 __all__ = [
     "ActivityEvent",
+    "ArkClusterSettings",
     "ArkClusterSpec",
     "ArkClusterStatus",
     "ArkDataSpec",

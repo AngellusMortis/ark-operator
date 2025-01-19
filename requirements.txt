@@ -18,6 +18,8 @@ anyio==4.8.0
     # via
     #   asyncer
     #   httpx
+asyncache==0.3.1
+    # via ark-operator (pyproject.toml)
 asyncer==0.0.8
     # via ark-operator (pyproject.toml)
 attrs==24.3.0
@@ -26,6 +28,7 @@ attrs==24.3.0
     #   cyclopts
 cachetools==5.5.0
     # via
+    #   asyncache
     #   google-auth
     #   steam
 certifi==2024.12.14

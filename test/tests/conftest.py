@@ -120,6 +120,10 @@ async def k8s_v1_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # no
         mock_v1_client.delete_namespaced_persistent_volume_claim = AsyncMock()
         mock_v1_client.patch_namespaced_persistent_volume_claim = AsyncMock()
         mock_v1_client.read_namespaced_persistent_volume_claim = AsyncMock()
+        mock_v1_client.read_namespaced_secret = AsyncMock()
+        mock_v1_client.create_namespaced_secret = AsyncMock()
+        mock_v1_client.delete_namespaced_secret = AsyncMock()
+        mock_v1_client.read_namespaced_config_map = AsyncMock()
 
         mock_v1_klass.CoreV1Api.return_value = mock_v1_client
 

@@ -35,6 +35,10 @@ asn1crypto==1.5.1
     #   certbuilder
     #   certvalidator
     #   oscrypto
+asyncache==0.3.1
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 asyncer==0.0.8
     # via
     #   -c requirements.txt
@@ -49,6 +53,7 @@ build==1.2.2.post1
 cachetools==5.5.0
     # via
     #   -c requirements.txt
+    #   asyncache
     #   google-auth
     #   steam
 certbuilder==0.14.2

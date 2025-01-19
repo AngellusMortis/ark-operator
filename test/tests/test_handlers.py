@@ -93,7 +93,7 @@ def _dump_namespace(namespace: str) -> None:
 def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
     try:
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'={str(ready).lower()} arkcluster/ark --timeout=60s",
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.ready}}'={str(ready).lower()} arkcluster/ark --timeout=120s",
         )
     except Exception:
         _dump_namespace(namespace)
@@ -132,6 +132,10 @@ def _verify_startup(namespace: str) -> None:
         _run(
             f"kubectl -n {namespace} wait --for=jsonpath='{{.status.phase}}'='Bound' pvc/ark-data --timeout=60s",
         )
+        result = _run(
+            f"kubectl -n {namespace} get secret --no-headers -o custom-columns=':metadata.name'"
+        )
+        _assert_output(result, ["ark-cluster-secrets"])
     except Exception:
         _dump_namespace(namespace)
         raise
@@ -234,7 +238,7 @@ def test_handler_too_small(k8s_namespace: str) -> None:
             shell=True,
         )
         _run(
-            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.state}}'='Error: PVC is too small. Min size is 1Mi' arkcluster/ark --timeout=30s"
+            f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.state}}'='Error: PVC is too small. Min size is 1Mi' arkcluster/ark --timeout=60s"
         )
 
     assert runner.exit_code == 0

@@ -1,5 +1,6 @@
 """ARK operator code."""
 
+from ark_operator.ark.conf import create_secrets, delete_secrets, get_map_envs
 from ark_operator.ark.jobs import (
     check_init_job,
     check_update_job,
@@ -31,10 +32,13 @@ __all__ = [
     "check_update_job",
     "copy_ark",
     "create_init_job",
+    "create_secrets",
     "create_update_job",
+    "delete_secrets",
     "expand_maps",
     "get_ark_buildid",
     "get_latest_ark_buildid",
+    "get_map_envs",
     "get_map_name",
     "has_newer_version",
     "is_ark_newer",

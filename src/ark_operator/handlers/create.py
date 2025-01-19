@@ -10,6 +10,7 @@ import kopf
 from ark_operator.ark import (
     check_init_job,
     create_init_job,
+    create_secrets,
     update_data_pvc,
     update_server_pvc,
 )
@@ -204,14 +205,16 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     if not (status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC)):
         raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=1)
 
-    logger = kwargs["logger"]  # noqa: F841
-    name = kwargs["name"] or DEFAULT_NAME  # noqa: F841
-    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE  # noqa: F841
+    logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])  # noqa: F841
 
     try:
         # TODO: Create servers
-        await asyncio.sleep(5)
+        await asyncio.gather(
+            create_secrets(name=name, namespace=namespace, logger=logger)
+        )
     except kopf.PermanentError as ex:
         kwargs["patch"].status["state"] = f"Error: {ex!s}"
         raise

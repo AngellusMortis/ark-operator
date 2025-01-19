@@ -3,12 +3,30 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, overload
+import secrets
+import string
+from http import HTTPStatus
+from typing import TYPE_CHECKING, cast, overload
 
+import yaml
 from aiofiles import open as aopen
+from asyncache import cached
+from cachetools import TTLCache
+from kubernetes_asyncio.client import ApiException
+
+from ark_operator.ark.utils import ENV
+from ark_operator.data import ArkClusterSpec
+from ark_operator.k8s import get_v1_client
+from ark_operator.templates import loader
+from ark_operator.utils import VERSION
 
 if TYPE_CHECKING:
     from pathlib import Path
+
+    import kopf
+    from kubernetes_asyncio.client.models import V1ConfigMap
+
+    from ark_operator.data import ArkClusterSpec
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -132,3 +150,90 @@ def merge_conf(
             parent[section][key] = value
 
     return parent
+
+
+async def create_secrets(
+    *, name: str, namespace: str, logger: kopf.Logger | None = None
+) -> bool:
+    """Create secrets for ARK Cluster."""
+
+    logger = logger or _LOGGER
+    secret_name = f"{name}-cluster-secrets"
+    v1 = await get_v1_client()
+    try:
+        await v1.read_namespaced_secret(name=secret_name, namespace=namespace)
+    except ApiException as ex:
+        if ex.status != HTTPStatus.NOT_FOUND:
+            raise
+    else:
+        _LOGGER.warning("Secret %s already exists, skipping creation", secret_name)
+        return False
+
+    alphabet = string.ascii_letters + string.digits
+    secret_tmpl = loader.get_template("secret.yml.j2")
+    _LOGGER.info("Create secret %s with new RCON password", secret_name)
+    secret = yaml.safe_load(
+        await secret_tmpl.render_async(
+            instance_name=name,
+            namespace=namespace,
+            operator_version=VERSION,
+            rcon_password="".join(secrets.choice(alphabet) for _ in range(32)),
+        )
+    )
+    await v1.create_namespaced_secret(namespace=namespace, body=secret)
+    return True
+
+
+async def delete_secrets(
+    *, name: str, namespace: str, logger: kopf.Logger | None = None
+) -> None:
+    """Delete secrets for ARK cluster."""
+
+    secret_name = f"{name}-cluster-secrets"
+    logger = logger or _LOGGER
+    logger.info("Deleting secrets %s", secret_name)
+    v1 = await get_v1_client()
+    try:
+        await v1.delete_namespaced_secret(name=secret_name, namespace=namespace)
+    except Exception:  # noqa: BLE001
+        logger.warning("Failed to delete secret %s", secret_name)
+
+
+async def _get_config_map(name: str, namespace: str) -> dict[str, str]:
+    v1 = await get_v1_client()
+    try:
+        global_cm: V1ConfigMap = await v1.read_namespaced_config_map(
+            name=name, namespace=namespace
+        )
+    except ApiException as ex:
+        if ex.status == HTTPStatus.NOT_FOUND:
+            return {}
+        raise
+
+    return cast(dict[str, str], global_cm.data)
+
+
+@cached(TTLCache(8, ENV.int("ARK_OP_TTL_CACHE", 30)))  # type: ignore[misc]
+async def _get_global_config(name: str, namespace: str) -> dict[str, str]:
+    return await _get_config_map(f"{name}-global-envs", namespace)
+
+
+async def _get_map_config(name: str, namespace: str, map_id: str) -> dict[str, str]:
+    return await _get_config_map(f"{name}-map-envs-{map_id}", namespace)
+
+
+async def get_map_envs(
+    *, name: str, namespace: str, spec: ArkClusterSpec, map_id: str
+) -> dict[str, str]:
+    """Get envs for a given map."""
+
+    envs = spec.global_settings.get_envs(map_id)
+    global_envs = await _get_global_config(name, namespace)
+    if map_id == "BobsMissions_WP":
+        global_envs.pop("ARK_SERVER_PARAMS", None)
+        global_envs.pop("ARK_SERVER_OPTS", None)
+        global_envs.pop("ARK_SERVER_MODS", None)
+    envs.update(**global_envs)
+    envs.update(**await _get_map_config(name, namespace, map_id))
+
+    return envs
