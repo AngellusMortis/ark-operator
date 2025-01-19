@@ -94,13 +94,15 @@ _SERVER_POD = {
                 "readinessProbe": {
                     "exec": {
                         "command": [
-                            "sh",
-                            "-c",
-                            "arkctl server --host 127.0.0.1 rcon ListPlayers",
+                            "arkctl",
+                            "server",
+                            "--host=127.0.0.1",
+                            "rcon",
+                            "ListPlayers",
                         ],
                     },
                     "initialDelaySeconds": 20,
-                    "timeoutSeconds": 5,
+                    "timeoutSeconds": 10,
                     "periodSeconds": 5,
                     "failureThreshold": 3,
                     "successThreshold": 1,

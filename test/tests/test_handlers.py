@@ -61,7 +61,7 @@ def _run(cmd: str, shell: bool = False, check: bool = True) -> CompletedProcess[
 def _dump_namespace(namespace: str) -> None:
     _LOGGER.warning("Dumping namespace %s", namespace)
 
-    _run(f"kubectl -n {namespace} get arkcluster", check=False)
+    _run(f"kubectl -n {namespace} get arkcluster -o yaml", check=False)
     _run(f"kubectl -n {namespace} get all", check=False)
     _run(f"kubectl -n {namespace} get pvc", check=False)
 
@@ -88,6 +88,8 @@ def _dump_namespace(namespace: str) -> None:
             _run(f"kubectl -n {namespace} logs -c init-perms pod/{pod}", check=False)
         if "-job" in pod:
             _run(f"kubectl -n {namespace} logs -c job pod/{pod}", check=False)
+        else:
+            _run(f"kubectl -n {namespace} logs pod/{pod}", check=False)
 
 
 def _verify_cluster_ready(namespace: str, ready: bool = True) -> None:
@@ -136,6 +138,9 @@ def _verify_startup(namespace: str) -> None:
             f"kubectl -n {namespace} get secret --no-headers -o custom-columns=':metadata.name'"
         )
         _assert_output(result, ["ark-cluster-secrets"])
+        _run(
+            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.readyPods}}'=1 arkcluster/ark --timeout=120s",
+        )
     except Exception:
         _dump_namespace(namespace)
         raise

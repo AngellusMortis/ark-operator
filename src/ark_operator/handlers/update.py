@@ -1,13 +1,11 @@
 """Main handlers for kopf."""
 
+import asyncio
 from typing import Unpack
 
 import kopf
 
-from ark_operator.ark import (
-    update_data_pvc,
-    update_server_pvc,
-)
+from ark_operator.ark import create_server_pod, update_data_pvc, update_server_pvc
 from ark_operator.data import (
     ArkClusterSpec,
     ArkClusterStatus,
@@ -17,6 +15,7 @@ from ark_operator.data import (
 from ark_operator.handlers.utils import (
     DEFAULT_NAME,
     DEFAULT_NAMESPACE,
+    DRY_RUN,
     ERROR_WAIT_PVC,
 )
 
@@ -41,7 +40,12 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(**status.model_dump(include={"state", "ready"}))
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
 
-    status.ready = True
+    if not status.ready:
+        status.state = "Updating Resources"
+        patch = kwargs["patch"]
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
+
     status.state = "Running"
     patch = kwargs["patch"]
     patch.status.update(**status.model_dump(include={"state", "ready"}))
@@ -103,3 +107,39 @@ async def on_update_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         raise
 
     kwargs["patch"].status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+
+
+@kopf.on.update("arkcluster")  # type: ignore[arg-type]
+async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
+    """Update an ARKCluster."""
+
+    status = ArkClusterStatus(**kwargs["status"])
+    if status.ready:
+        return
+
+    logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+    spec = ArkClusterSpec(**kwargs["spec"])
+
+    try:
+        await asyncio.gather(
+            *[
+                create_server_pod(
+                    name=name,
+                    namespace=namespace,
+                    map_id=m,
+                    active_volume=status.active_volume or "server-a",
+                    spec=spec,
+                    logger=logger,
+                    force_create=True,
+                    dry_run=DRY_RUN,
+                )
+                for m in spec.server.all_maps
+            ]
+        )
+    except kopf.PermanentError as ex:
+        kwargs["patch"].status["state"] = f"Error: {ex!s}"
+        raise
+
+    kwargs["patch"].status["ready"] = status.mark_stage_complete(ClusterStage.DATA_PVC)

@@ -301,7 +301,7 @@ async def test_create_init_job_dry_run(k8s_v1_batch_client: Mock) -> None:
                                 "env": [
                                     {
                                         "name": "ARK_OP_DRY_RUN",
-                                        "value": "True",
+                                        "value": "true",
                                     },
                                     {
                                         "name": "ARK_CLUSTER_NAME",

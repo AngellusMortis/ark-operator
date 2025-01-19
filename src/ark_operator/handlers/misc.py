@@ -138,13 +138,17 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     """Check for ARK server updates."""
 
     status = ArkClusterStatus(**kwargs["status"])
+    spec = ArkClusterSpec(**kwargs["spec"])
+
     if not status.ready or not status.state or not status.state.startswith("Running"):
+        kwargs["patch"].status["createdPods"] = 0
+        kwargs["patch"].status["readyPods"] = 0
+        kwargs["patch"].status["totalPods"] = len(spec.server.all_maps)
         return
 
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
-    spec = ArkClusterSpec(**kwargs["spec"])
 
     created = await asyncio.gather(
         *[
@@ -155,6 +159,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                 active_volume=status.active_volume or "server-a",
                 spec=spec,
                 logger=logger,
+                dry_run=DRY_RUN,
             )
             for m in spec.server.all_maps
         ]
@@ -163,6 +168,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     if any(created):
         return
 
+    containers = 0
     ready = 0
     total = len(spec.server.all_maps)
     for map_id in spec.server.all_maps:
@@ -170,8 +176,12 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         if not obj:
             continue
 
-        for container_status in obj.status.container_statuses:
-            if container_status.ready:
-                ready += 1
+        containers += 1
+        container_ready = [s.ready for s in obj.status.container_statuses]
+        if all(container_ready):
+            ready += 1
 
-    kwargs["patch"].status["state"] = f"Running ({ready}/{total})"
+    kwargs["patch"].status["createdPods"] = containers
+    kwargs["patch"].status["readyPods"] = ready
+    kwargs["patch"].status["totalPods"] = total
+    kwargs["patch"].status["state"] = f"Running ({ready}/{containers}/{total})"

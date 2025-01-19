@@ -40,7 +40,7 @@ spec:
     env:
       {% if dry_run %}
       - name: ARK_OP_DRY_RUN
-        value: "True"
+        value: "true"
       {% endif %}
       - name: ARK_CLUSTER_NAME
         value: '{{ instance_name }}'
@@ -54,6 +54,7 @@ spec:
       - name: {{ key }}
         value: "{{ value }}"
       {% endfor %}
+    {% if not dry_run %}
     volumeMounts:
       - mountPath: /srv/ark/server
         name: server
@@ -92,14 +93,16 @@ spec:
         name: map-config
         subPath: GameUserSettings.ini
       {% endif %}
+    {% endif %}
     {% if resources %}
     resources: {{ resources }}
     {% endif %}
+    {% if not dry_run %}
     readinessProbe:
       exec:
-        command: [ sh, -c, arkctl server --host 127.0.0.1 rcon ListPlayers ]
+        command: [ arkctl, server, --host=127.0.0.1, rcon, ListPlayers ]
       initialDelaySeconds: 20
-      timeoutSeconds: 5
+      timeoutSeconds: 10
       periodSeconds: 5
       failureThreshold: 3
       successThreshold: 1
@@ -109,7 +112,9 @@ spec:
       initialDelaySeconds: 5
       failureThreshold: 360
       periodSeconds: 10
+    {% endif %}
 
+  {% if not dry_run %}
   volumes:
   - name: server
     persistentVolumeClaim:
@@ -126,4 +131,5 @@ spec:
   - name: map-config
     configMap:
       name: {{ instance_name }}-map-ark-config-{{ map_id }}
+  {% endif %}
   {% endif %}

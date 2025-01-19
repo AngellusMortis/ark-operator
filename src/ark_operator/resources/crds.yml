@@ -229,3 +229,12 @@ spec:
               latestBuildid:
                 type: integer
                 description: Latest Steam buildid of ARK
+              createdPods:
+                type: integer
+                description: Number of created server pods
+              readyPods:
+                type: integer
+                description: Number of ready server pods
+              totalPods:
+                type: integer
+                description: Total number of server pods

@@ -31,7 +31,7 @@ spec:
           env:
           {% if dry_run %}
             - name: ARK_OP_DRY_RUN
-              value: "True"
+              value: "true"
           {% endif %}
             - name: ARK_CLUSTER_NAME
               value: '{{ instance_name }}'

@@ -41,7 +41,7 @@ async def test_create_secrets(k8s_v1_client: Mock) -> None:
                 },
             },
             "type": "Opaque",
-            "stringdata": {
+            "data": {
                 "ARK_SERVER_RCON_PASSWORD": ANY,
             },
         },

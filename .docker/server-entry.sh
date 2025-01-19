@@ -48,6 +48,9 @@ set -e
 
 function shutdown() {
     echo "Shutting down server"
+    if [[ "$ARK_OP_DRY_RUN" == "true" ]]; then
+        return
+    fi
     arkctl server --host 127.0.0.1 shutdown
 
     # Server exit doesn't close pid for some reason, so lets check that the port is closed and then send SIGTERM to main pid
@@ -67,7 +70,7 @@ echo "read_only: $IS_READ_ONLY"
 echo "initialized: $INITIALIZED"
 echo "map_id: $ARK_SERVER_MAP"
 
-if [[ "${INITIALIZED}" == "false" ]]; then
+if [[ "$ARK_OP_DRY_RUN" != "true" && "${INITIALIZED}" == "false" ]]; then
     if [[ "${IS_READ_ONLY}" == "true" ]]; then
         echo "Server is not initalized and server file system is read-only."
 
@@ -111,7 +114,13 @@ fi
 
 
 echo "Running ARK: Survival Ascended server"
-arkctl server run $EXTRA_ARGS &
+if [[ "$ARK_OP_DRY_RUN" == "true" ]]; then
+    echo "DRY RUN"
+    echo arkctl server run $EXTRA_ARGS &
+    sleep infinity
+else
+    arkctl server run $EXTRA_ARGS &
+fi
 
 trap 'shutdown' TERM
 pid=$!
