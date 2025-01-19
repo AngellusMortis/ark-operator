@@ -58,6 +58,9 @@ def read_config_from_lines(lines: list[str]) -> IniConf:
 
         value = value.strip()
         section = section or ""
+        if section == "":
+            _LOGGER.warning("Found config setting without section %s", key)
+        conf[section] = conf.get(section, {})
         key = key.strip()
         if key in conf[section]:
             existing_value = conf[section][key]
@@ -84,7 +87,7 @@ async def write_config(conf: IniConf, path: Path) -> None:
     async with aopen(path, "w") as f:
         first_section = True
         if "" in conf:
-            for key, value in conf.pop("None").items():
+            for key, value in conf.pop("").items():
                 await f.write(f"{key} = {value}\n")
 
         for section, values in conf.items():

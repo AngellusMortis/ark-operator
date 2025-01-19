@@ -270,6 +270,7 @@ class ArkServer:
             conf["SessionSettings"]["MultiHome"] = self.multihome_ip
 
         if self.global_config_secrets:
+            _LOGGER.debug("Merging secrets info GameUserSettings.ini")
             conf = merge_conf(
                 conf, read_config_from_lines(self.global_config_secrets.split("\n"))
             )
