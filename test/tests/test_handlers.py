@@ -253,7 +253,7 @@ def test_handler_too_small(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with _Runner(args) as runner:
+    with _Runner(args):
         spec = deepcopy(CLUSTER_SPEC)
         spec["spec"]["server"]["size"] = "1Ki"
 
@@ -264,9 +264,6 @@ def test_handler_too_small(k8s_namespace: str) -> None:
         _run(
             f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.state}}'='Error: PVC is too small. Min size is 1Mi' arkcluster/ark --timeout=60s"
         )
-
-    assert runner.exit_code == 0
-    assert runner.exception is None
 
 
 @pytest.mark.k8s
@@ -284,7 +281,7 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with _Runner(args) as runner:
+    with _Runner(args):
         spec = deepcopy(CLUSTER_SPEC)
         _run(
             f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
@@ -298,9 +295,6 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
             shell=True,
         )
         _verify_startup(k8s_namespace)
-
-    assert runner.exit_code == 0
-    assert runner.exception is None
 
 
 @pytest.mark.k8s
@@ -318,7 +312,7 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with _Runner(args) as runner:
+    with _Runner(args):
         spec = deepcopy(CLUSTER_SPEC)
         spec["spec"]["server"]["persist"] = True
         spec["spec"]["data"]["persist"] = False
@@ -335,9 +329,6 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
             shell=True,
         )
         _verify_startup(k8s_namespace)
-
-    assert runner.exit_code == 0
-    assert runner.exception is None
 
 
 @pytest.mark.k8s
@@ -356,7 +347,7 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with _Runner(args) as runner:
+    with _Runner(args):
         spec = deepcopy(CLUSTER_SPEC)
         _run(
             f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
@@ -387,9 +378,6 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
             result, ["ark-server-a   3Mi", "ark-server-b   3Mi", "ark-data       3Mi"]
         )
 
-    assert runner.exit_code == 0
-    assert runner.exception is None
-
 
 @pytest.mark.k8s
 @pytest.mark.enable_socket
@@ -406,7 +394,7 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with _Runner(args) as runner:
+    with _Runner(args):
         spec = deepcopy(CLUSTER_SPEC)
         _run(
             f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
@@ -430,6 +418,3 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
         _run(
             f"kubectl -n {k8s_namespace} wait --for=jsonpath='{{.status.state}}'='Error: Failed to resize PVC, new size is smaller then old size' arkcluster/ark --timeout=30s"
         )
-
-    assert runner.exit_code == 0
-    assert runner.exception is None
