@@ -170,25 +170,26 @@ For any server that is ran that is _not_ Club Ark (map=`BobsMissions_WP`), the c
 
 Below a list of available environment variables.
 
-| env                          | default     | description                                      |
-|------------------------------|-------------|--------------------------------------------------|
-| ARK_SERVER_RCON_PASSWORD     |             | Required. RCON / Admin password for the server.  |
-| ARK_SERVER_MAP               |             | Required. The map for the server.                |
-| ARK_SERVER_SESSION_NAME      |             | Required. Session name for server.               |
-| ARK_SERVER_AUTO_UPDATE       | true        | If server should auto-update (Steam) or not.     |
-| ARK_SERVER_RCON_PORT         | 27020       | The RCON port for server.                        |
-| ARK_SERVER_GAME_PORT         | 7777        | The game port for the server.                    |
-| ARK_SERVER_MULTIHOME         |             | Multihome IP for the server. Use when you public IP does not match the IP players should connect to. |
-| ARK_SERVER_MAX_PLAYERS       | 70          | Max number of players allowed.                   |
-| ARK_SERVER_CLUSTER_ID        | ark-cluster | Cluster ID for server cluster.                   |
-| ARK_SERVER_BATTLEYE          | true        | If BattlEye should be enabled.                   |
-| ARK_SERVER_ALLOWED_PLATFORMS | ALL         | Allow platforms for server. Comma list.          |
-| ARK_SERVER_WHITELIST         | false       | If server should have whitelist.                 |
-| ARK_SERVER_PARAMS            |             | Comma list of additional params (?)              |
-| ARK_SERVER_OPTS              |             | Additional list of options (-)                   |
-| ARK_SERVER_MODS              |             | Additional list of mods (Club ARK mod automatically added if that is the map). |
-| ARK_OP_LOG_FORMAT            | basic       | Logging format. Choices: auto, rich, basic, json |
-| ARK_OP_LOG_LEVEL             | INFO        | Log level. Choices: DEBUG, INFO, WARNING, ERROR  |
+| env                           | default     | description                                      |
+|-------------------------------|-------------|--------------------------------------------------|
+| ARK_SERVER_RCON_PASSWORD      |             | Required. RCON / Admin password for the server.  |
+| ARK_SERVER_MAP                |             | Required. The map for the server.                |
+| ARK_SERVER_SESSION_NAME       |             | Required. Session name for server.               |
+| ARK_SERVER_AUTO_UPDATE        | true        | If server should auto-update (Steam) or not.     |
+| ARK_SERVER_RCON_PORT          | 27020       | The RCON port for server.                        |
+| ARK_SERVER_GAME_PORT          | 7777        | The game port for the server.                    |
+| ARK_SERVER_MULTIHOME          |             | Multihome IP for the server. Use when you public IP does not match the IP players should connect to. |
+| ARK_SERVER_MAX_PLAYERS        | 70          | Max number of players allowed.                   |
+| ARK_SERVER_CLUSTER_ID         | ark-cluster | Cluster ID for server cluster.                   |
+| ARK_SERVER_BATTLEYE           | true        | If BattlEye should be enabled.                   |
+| ARK_SERVER_ALLOWED_PLATFORMS  | ALL         | Allow platforms for server. Comma list.          |
+| ARK_SERVER_WHITELIST          | false       | If server should have whitelist.                 |
+| ARK_SERVER_PARAMS             |             | Comma list of additional params (?)              |
+| ARK_SERVER_OPTS               |             | Additional list of options (-)                   |
+| ARK_SERVER_MODS               |             | Additional list of mods (Club ARK mod automatically added if that is the map). |
+| ARK_SERVER_GLOBAL_GUS_SECRETS |             | Extra values for GameUserSettings.ini to load in |
+| ARK_OP_LOG_FORMAT             | basic       | Logging format. Choices: auto, rich, basic, json |
+| ARK_OP_LOG_LEVEL              | INFO        | Log level. Choices: DEBUG, INFO, WARNING, ERROR  |
 
 ### Managed Parameters, Options and Settings
 
