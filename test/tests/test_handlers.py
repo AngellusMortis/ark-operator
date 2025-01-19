@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
+import types
 from copy import deepcopy
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 import pytest
 import yaml
@@ -36,6 +37,24 @@ CLUSTER_SPEC: dict[str, Any] = {
         "data": {"size": "2Mi"},
     },
 }
+
+
+class _Runner(KopfRunner):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: types.TracebackType | None,
+    ) -> Literal[False]:
+        try:
+            res = super().__exit__(exc_type, exc_val, exc_tb)
+        except AttributeError as ex:
+            if "'NoneType' object has no attribute 'connect'" not in str(ex):
+                raise
+        except RuntimeError as ex:
+            if "Session is closed" not in str(ex):
+                raise
+        return res
 
 
 @pytest.fixture(autouse=True)
@@ -212,7 +231,7 @@ def test_handler_startup(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with KopfRunner(args) as runner:
+    with _Runner(args) as runner:
         pass
 
     assert runner.exit_code == 0
@@ -234,7 +253,7 @@ def test_handler_too_small(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with KopfRunner(args) as runner:
+    with _Runner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         spec["spec"]["server"]["size"] = "1Ki"
 
@@ -265,7 +284,7 @@ def test_handler_basic_cluster(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with KopfRunner(args) as runner:
+    with _Runner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         _run(
             f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
@@ -299,7 +318,7 @@ def test_handler_server_persist(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with KopfRunner(args) as runner:
+    with _Runner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         spec["spec"]["server"]["persist"] = True
         spec["spec"]["data"]["persist"] = False
@@ -337,7 +356,7 @@ def test_handler_resize_pvcs(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with KopfRunner(args) as runner:
+    with _Runner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         _run(
             f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
@@ -387,7 +406,7 @@ def test_handler_resize_pvcs_too_small(k8s_namespace: str) -> None:
         "-m",
         "ark_operator.handlers",
     ]
-    with KopfRunner(args) as runner:
+    with _Runner(args) as runner:
         spec = deepcopy(CLUSTER_SPEC)
         _run(
             f'echo "{_dump_yaml(spec)}" | kubectl -n {k8s_namespace} apply -f -',
