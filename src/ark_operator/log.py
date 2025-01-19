@@ -30,6 +30,9 @@ DEFAULT_LOG_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
     "loggers": {
+        "aiohttp.access": {
+            "level": "WARNING",
+        },
         "asyncio": {
             "level": "WARNING",
         },

@@ -12,7 +12,7 @@ metadata:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: ark-operator-role-cluster
+  name: {{ instance_name }}-operator-{{ namespace }}-role-cluster
   labels:
     app.kubernetes.io/name: ark-operator
     app.kubernetes.io/component: cluster-role
@@ -35,6 +35,23 @@ rules:
   - apiGroups: [mort.is]
     resources: [arkclusters]
     verbs: [list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ instance_name }}-operator-{{ namespace }}-rolebinding-cluster
+  labels:
+    app.kubernetes.io/name: ark-operator
+    app.kubernetes.io/component: cluster-role-binding
+    app.kubernetes.io/part-of: {{ instance_name }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ instance_name }}-operator-{{ namespace }}-role-cluster
+subjects:
+  - kind: ServiceAccount
+    name: {{ instance_name }}-operator
+    namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -72,23 +89,6 @@ rules:
   - apiGroups: [mort.is]
     resources: ["*"]
     verbs: ["*"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ instance_name }}-operator-rolebinding-cluster
-  labels:
-    app.kubernetes.io/name: ark-operator
-    app.kubernetes.io/component: cluster-role-binding
-    app.kubernetes.io/part-of: {{ instance_name }}
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: ark-operator-role-cluster
-subjects:
-  - kind: ServiceAccount
-    name: {{ instance_name }}-operator
-    namespace: {{ namespace }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding

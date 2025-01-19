@@ -75,6 +75,10 @@ def k8s_namespace(marks: list[str]) -> Generator[str, None, None]:
     try:
         yield namespace
     finally:
+        run_sync(
+            f"jinja2 {(BASE_DIR / 'test' / 'manifests' / 'rbac.yml.j2')!s} -D namespace={namespace} -D instance_name=ark | kubectl delete -f -",
+            shell=True,
+        )
         run_sync(f"kubectl delete namespace {namespace}")
 
 
