@@ -104,6 +104,17 @@ jobs:
           images: |
             ${{ matrix.image }}
 
+      - name: 🔧 Set Docker Build Args
+        id: build_args
+        run: |
+          RELEASE_VERSION=""
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            RELEASE_VERSION=${{ github.ref_name }}
+          fi
+
+          echo "release_version=$RELEASE_VERSION"
+          echo "release_version=$RELEASE_VERSION" > $GITHUB_OUTPUT
+
       - name: 🔨 Build Docker
         uses: docker/build-push-action@v6
         id: docker_build
@@ -112,6 +123,8 @@ jobs:
           file: ./Dockerfile
           target: ${{ matrix.target }}
           platforms: linux/amd64
+          build-args: |
+            RELEASE_VERSION=${{ steps.build_args.outputs.release_version }}
           push: true
           cache-from: type=gha,scope=buildkit-${{ matrix.target }}
           cache-to: type=gha,mode=max,scope=buildkit-${{ matrix.target }}

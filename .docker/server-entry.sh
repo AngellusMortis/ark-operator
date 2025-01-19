@@ -59,15 +59,29 @@ function shutdown() {
 
 rm -f $ARK_SERVER_DIR/.perm-test $ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/.started 2>/dev/null 1>&2
 echo arkctl version: $(arkctl --version)
+echo "log_level: $ARK_OP_LOG_LEVEL"
 echo "ark_dir: $ARK_SERVER_DIR"
 echo "steam_dir: $ARK_STEAM_DIR"
 echo "data_dir: $ARK_DATA_DIR"
 echo "read_only: $IS_READ_ONLY"
 echo "initialized: $INITIALIZED"
+echo "map_id: $ARK_SERVER_MAP"
 
 if [[ "${INITIALIZED}" == "false" ]]; then
     if [[ "${IS_READ_ONLY}" == "true" ]]; then
         echo "Server is not initalized and server file system is read-only."
+
+        echo "ARK_SERVER_DIR"
+        ls -la ${ARK_SERVER_DIR}
+
+        echo ARK_SERVER_DIR/steamapps/appmanifest_2430930.acf
+        ls -la ${ARK_SERVER_DIR}/steamapps/appmanifest_2430930.acf
+
+        echo "ARK_DATA_DIR"
+        ls -la ${ARK_DATA_DIR}
+
+        echo ARK_DATA_DIR/maps/ARK_SERVER_MAP
+        ls -la ${ARK_DATA_DIR}/maps/${ARK_SERVER_MAP}
         exit 1
     fi
 

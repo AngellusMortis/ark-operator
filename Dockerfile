@@ -53,6 +53,9 @@ FROM base AS prod
 COPY --from=builder-prod /usr/local/bin/ /usr/local/bin/
 COPY --from=builder-prod /usr/local/lib/python3.12/ /usr/local/lib/python3.12/
 
+ARG RELEASE_VERSION=""
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${RELEASE_VERSION}
+
 RUN --mount=source=./,target=/tmp/ark-operator,type=bind \
     --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \

@@ -11,12 +11,6 @@ setRoot
 
 pushd "$ROOT_PATH" 2>&1 >/dev/null
 
-TARGET=dev
-IMAGE=ghcr.io/angellusmortis/ark-operator-dev:$TAG
-echo "Building $IMAGE..."
-docker buildx build . -f Dockerfile --target $TARGET --tag $IMAGE
-docker push $IMAGE
-
 TARGET=prod
 IMAGE=ghcr.io/angellusmortis/arkctl:$TAG
 echo "Building $IMAGE..."
@@ -31,6 +25,12 @@ docker push $IMAGE
 
 TARGET=operator
 IMAGE=ghcr.io/angellusmortis/ark-operator:$TAG
+echo "Building $IMAGE..."
+docker buildx build . -f Dockerfile --target $TARGET --tag $IMAGE
+docker push $IMAGE
+
+TARGET=dev
+IMAGE=ghcr.io/angellusmortis/ark-operator-dev:$TAG
 echo "Building $IMAGE..."
 docker buildx build . -f Dockerfile --target $TARGET --tag $IMAGE
 docker push $IMAGE

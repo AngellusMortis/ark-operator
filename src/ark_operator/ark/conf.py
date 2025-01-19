@@ -32,15 +32,18 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-async def read_config(path: Path) -> dict[str, dict[str, str]]:
+IniConf = dict[str, dict[str, str | list[str]]]
+
+
+async def read_config(path: Path) -> IniConf:
     """Read ARK config file."""
 
-    conf: dict[str, dict[str, str]] = {}
+    conf: IniConf = {}
     async with aopen(path) as f:
         section = None
         for line in await f.readlines():
             line = line.strip()  # noqa: PLW2901
-            if not line:
+            if not line or line.startswith(";"):
                 continue
 
             if line.startswith("[") and line.endswith("]"):
@@ -53,12 +56,23 @@ async def read_config(path: Path) -> dict[str, dict[str, str]]:
             except Exception:
                 _LOGGER.debug(line)
                 raise
-            conf[section or ""][key.strip()] = value.strip()
+
+            value = value.strip()
+            section = section or ""
+            key = key.strip()
+            if key in conf[section]:
+                existing_value = conf[section][key]
+                if isinstance(existing_value, str):
+                    existing_value = [existing_value]
+                existing_value.append(value)
+                conf[section][key] = existing_value
+            else:
+                conf[section][key] = value
 
     return conf
 
 
-async def write_config(conf: dict[str, dict[str, str]], path: Path) -> None:
+async def write_config(conf: IniConf, path: Path) -> None:
     """Write ARK config file."""
 
     async with aopen(path, "w") as f:
@@ -75,25 +89,28 @@ async def write_config(conf: dict[str, dict[str, str]], path: Path) -> None:
             await f.write(f"[{section}]\n")
 
             for key, value in values.items():
-                await f.write(f"{key} = {value}\n")
+                if isinstance(value, str):
+                    value = [value]  # noqa: PLW2901
+                for item in value:
+                    await f.write(f"{key} = {item}\n")
 
 
 @overload
 def merge_conf(
-    parent: dict[str, dict[str, str]],
-    child: dict[str, dict[str, str]] | None,
+    parent: IniConf,
+    child: IniConf | None,
     *,
     warn: bool = False,
-) -> dict[str, dict[str, str]]: ...  # pragma: no cover
+) -> IniConf: ...  # pragma: no cover
 
 
 @overload
 def merge_conf(
-    parent: dict[str, dict[str, str]] | None,
-    child: dict[str, dict[str, str]],
+    parent: IniConf | None,
+    child: IniConf,
     *,
     warn: bool = False,
-) -> dict[str, dict[str, str]]: ...  # pragma: no cover
+) -> IniConf: ...  # pragma: no cover
 
 
 @overload
@@ -104,19 +121,19 @@ def merge_conf(
 
 @overload
 def merge_conf(
-    parent: dict[str, dict[str, str]] | None,
-    child: dict[str, dict[str, str]] | None,
+    parent: IniConf | None,
+    child: IniConf | None,
     *,
     warn: bool = False,
-) -> dict[str, dict[str, str]] | None: ...  # pragma: no cover
+) -> IniConf | None: ...  # pragma: no cover
 
 
 def merge_conf(
-    parent: dict[str, dict[str, str]] | None,
-    child: dict[str, dict[str, str]] | None,
+    parent: IniConf | None,
+    child: IniConf | None,
     *,
     warn: bool = False,
-) -> dict[str, dict[str, str]] | None:
+) -> IniConf | None:
     """Merge two ARK configs."""
 
     if parent is None and child is None:

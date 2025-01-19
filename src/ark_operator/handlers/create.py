@@ -55,6 +55,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status["stages"] = None
         raise kopf.PermanentError
 
+    status.ready = False
     server_done = status.initalized or status.is_stage_completed(
         ClusterStage.SERVER_PVC
     )

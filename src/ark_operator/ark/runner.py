@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Literal, overload
 from aiofiles import open as aopen
 from aiofiles import os as aos
 
-from ark_operator.ark.conf import merge_conf, read_config, write_config
+from ark_operator.ark.conf import IniConf, merge_conf, read_config, write_config
 from ark_operator.command import run_async
 from ark_operator.utils import ensure_symlink, touch_file
 
@@ -237,16 +237,16 @@ class ArkServer:
             extra_params=params,
         )
 
-    async def _read_gus(self, path: Path) -> dict[str, dict[str, str]] | None:
+    async def _read_gus(self, path: Path) -> IniConf | None:
         if not await aos.path.exists(path):
-            _LOGGER.debug("GameUserSettings.ini (%s) does not exist", path)
+            _LOGGER.debug("%s (%s) does not exist", path.name, path)
             return None
 
-        _LOGGER.debug("Reading GameUserSettings.ini (%s)", path)
+        _LOGGER.debug("Reading %s (%s)", path.name, path)
         return await read_config(path)
 
-    def _make_managed_gus(self) -> dict[str, dict[str, str]]:
-        conf: dict[str, dict[str, str]] = {
+    def _make_managed_gus(self) -> IniConf:
+        conf: IniConf = {
             "ServerSettings": {
                 "RCONEnabled": "True",
                 "RCONPort": str(self.rcon_port),
@@ -264,10 +264,10 @@ class ArkServer:
 
         return conf
 
-    async def make_game_user_settings(self) -> dict[str, dict[str, str]]:
+    async def make_game_user_settings(self) -> IniConf:
         """GameUserSettings.ini file."""
 
-        conf: dict[str, dict[str, str]] | None = None
+        conf: IniConf | None = None
         if self.global_config:
             _LOGGER.debug("Reading global GameUserSettings.ini")
             conf = await self._read_gus(self.global_config)
@@ -282,10 +282,10 @@ class ArkServer:
         _log("Merging managed GameUserSettings.ini onto user provided one")
         return merge_conf(conf, self._make_managed_gus(), warn=True)
 
-    async def make_game(self) -> dict[str, dict[str, str]] | None:
+    async def make_game(self) -> IniConf | None:
         """Game.ini file."""
 
-        conf: dict[str, dict[str, str]] | None = None
+        conf: IniConf | None = None
         if self.global_ark_config:
             _LOGGER.debug("Reading global Game.ini")
             conf = await self._read_gus(self.global_ark_config)
