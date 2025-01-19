@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import types
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Literal
 
@@ -16,6 +15,7 @@ from ark_operator.k8s import CRD_FILE, get_v1_ext_client
 from tests.conftest import remove_cluster_finalizers
 
 if TYPE_CHECKING:
+    import types
     from collections.abc import Generator
     from subprocess import CompletedProcess
 
