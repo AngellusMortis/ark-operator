@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 from pathlib import Path
@@ -10,7 +11,12 @@ from typing import TYPE_CHECKING, Unpack
 
 import kopf
 
-from ark_operator.ark import check_update_job, create_update_job
+from ark_operator.ark import (
+    check_update_job,
+    create_server_pod,
+    create_update_job,
+    get_server_pod,
+)
 from ark_operator.data import (
     ActivityEvent,
     ArkClusterSpec,
@@ -123,3 +129,49 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
             status=ArkClusterStatus(**kwargs["status"]),
             patch=kwargs["patch"],
         )
+
+
+@kopf.timer(  # type: ignore[arg-type]
+    "arkcluster", interval=15
+)
+async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
+    """Check for ARK server updates."""
+
+    status = ArkClusterStatus(**kwargs["status"])
+    if not status.ready or not status.state or not status.state.startswith("Running"):
+        return
+
+    logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+    spec = ArkClusterSpec(**kwargs["spec"])
+
+    created = await asyncio.gather(
+        *[
+            create_server_pod(
+                name=name,
+                namespace=namespace,
+                map_id=m,
+                active_volume=status.active_volume or "server-a",
+                spec=spec,
+                logger=logger,
+            )
+            for m in spec.server.all_maps
+        ]
+    )
+
+    if any(created):
+        return
+
+    ready = 0
+    total = len(spec.server.all_maps)
+    for map_id in spec.server.all_maps:
+        obj = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        if not obj:
+            continue
+
+        for container_status in obj.status.container_statuses:
+            if container_status.ready:
+                ready += 1
+
+    kwargs["patch"].status["state"] = f"Running ({ready}/{total})"

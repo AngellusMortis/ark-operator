@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
+from base64 import b64encode
 from http import HTTPStatus
 from typing import TYPE_CHECKING, cast, overload
 
@@ -30,6 +31,7 @@ if TYPE_CHECKING:
 
 
 _LOGGER = logging.getLogger(__name__)
+PASSWORD_CHARS = string.ascii_letters + string.digits
 
 
 IniConf = dict[str, dict[str, str | list[str]]]
@@ -195,7 +197,7 @@ async def create_secrets(
         _LOGGER.warning("Secret %s already exists, skipping creation", secret_name)
         return False
 
-    alphabet = string.ascii_letters + string.digits
+    password = "".join(secrets.choice(PASSWORD_CHARS) for _ in range(32))
     secret_tmpl = loader.get_template("secret.yml.j2")
     _LOGGER.info("Create secret %s with new RCON password", secret_name)
     secret = yaml.safe_load(
@@ -203,7 +205,7 @@ async def create_secrets(
             instance_name=name,
             namespace=namespace,
             operator_version=VERSION,
-            rcon_password="".join(secrets.choice(alphabet) for _ in range(32)),
+            rcon_password=b64encode(password.encode("utf-8")).decode("utf-8"),
         )
     )
     await v1.create_namespaced_secret(namespace=namespace, body=secret)

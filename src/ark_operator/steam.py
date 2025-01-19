@@ -414,8 +414,11 @@ class Steam:
             base_dir / name / "ark", dry_run=dry_run, validate=False
         )
         if not dry_run:
-            binary_dir = base_dir / name / "ark" / "ShooterGame" / "Binaries" / "Win64"
-            await aos.makedirs(binary_dir, exist_ok=True)
+            ark_dir = base_dir / name / "ark" / "ShooterGame"
+            await aos.makedirs(ark_dir / "Saved", exist_ok=True)
+
+            binary_dir = ark_dir / "Binaries" / "Win64"
+            await aos.makedirs(binary_dir / "ShooterGame", exist_ok=True)
             await touch_file(binary_dir / "PlayersExclusiveJoinList.txt")
             await touch_file(binary_dir / "PlayersJoinNoCheckList.txt")
 

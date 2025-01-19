@@ -209,13 +209,10 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
-    spec = ArkClusterSpec(**kwargs["spec"])  # noqa: F841
+    tasks = [create_secrets(name=name, namespace=namespace, logger=logger)]
 
     try:
-        # TODO: Create servers
-        await asyncio.gather(
-            create_secrets(name=name, namespace=namespace, logger=logger)
-        )
+        await asyncio.gather(*tasks)
     except kopf.PermanentError as ex:
         kwargs["patch"].status["state"] = f"Error: {ex!s}"
         raise

@@ -92,6 +92,7 @@ class ArkServerSpec(BaseK8sModel):
     persist: bool = False
     game_port_start: int = 7777
     rcon_port_start: int = 27020
+    resources: dict[str, Any] | None = None
 
     @computed_field  # type: ignore[prop-decorator]
     @property

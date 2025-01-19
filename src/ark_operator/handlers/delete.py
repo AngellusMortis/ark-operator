@@ -5,7 +5,7 @@ from typing import Unpack
 
 import kopf
 
-from ark_operator.ark import check_init_job, delete_secrets
+from ark_operator.ark import check_init_job, delete_secrets, delete_server_pod
 from ark_operator.data import (
     ArkClusterSpec,
     ChangeEvent,
@@ -32,6 +32,10 @@ async def on_delete_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         ),
         delete_secrets(name=name, namespace=namespace, logger=logger),
     ]
+    tasks.extend(
+        delete_server_pod(name=name, namespace=namespace, map_id=m, logger=logger)
+        for m in spec.server.all_maps
+    )
 
     if not spec.server.persist:
         tasks.append(

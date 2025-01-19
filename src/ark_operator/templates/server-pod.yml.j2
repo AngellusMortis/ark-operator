@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ instance_name }}-{{ map_name | replace(" ", "-") | lower }}
+  labels:
+    app.kubernetes.io/name: {{ map_name | replace(" ", "-") | lower }}
+    app.kubernetes.io/instance: {{ instance_name }}
+    app.kubernetes.io/version: {{ operator_version | replace("+", "-") }}
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: ark-operator
+    app.kubernetes.io/managed-by: ark-operator
+spec:
+  {% if node_selector %}
+  nodeSelector: {{ node_selector }}
+  {% endif %}
+  {% if tolerations %}
+  tolerations: {{ tolerations }}
+  {% endif %}
+  restartPolicy: Always
+  containers:
+  - name: ark
+    image: ghcr.io/angellusmortis/ark-server:{{ image_version }}
+    imagePullPolicy: {% if image_version == "master" %}Always{% else %}IfNotPresent{% endif %}
+    command: [ "/entrypoint" ]
+    securityContext:
+      runAsUser: {{ uid }}
+      runAsGroup: {{ gid }}
+      fsGroup: {{ uid }}
+      allowPrivilegeEscalation: false
+    ports:
+    - containerPort: {{ game_port }}
+      name: ark-{{ map_name | replace(" ", "-") | lower }}
+      protocol: UDP
+    - containerPort: {{ rcon_port }}
+      name: rcon-{{ map_name | replace(" ", "-") | lower }}
+      protocol: TCP
+    envFrom:
+      - secretRef:
+          name: {{ instance_name }}-cluster-secrets
+    env:
+      {% if dry_run %}
+      - name: ARK_OP_DRY_RUN
+        value: "True"
+      {% endif %}
+      - name: ARK_CLUSTER_NAME
+        value: '{{ instance_name }}'
+      - name: ARK_CLUSTER_NAMESPACE
+        value: '{{ namespace }}'
+      - name: ARK_CLUSTER_SPEC
+        value: '{{ spec }}'
+      - name: ARK_SERVER_HOST
+        value: "127.0.0.1"
+      {% for key, value in envs.items() %}
+      - name: {{ key }}
+        value: "{{ value }}"
+      {% endfor %}
+    volumeMounts:
+      - mountPath: /srv/ark/server
+        name: server
+        readOnly: true
+      - mountPath: /srv/ark/data
+        name: data
+      - mountPath: /srv/ark/server/ark/ShooterGame/Saved
+        name: data
+        subPath: maps/{{ map_id }}/saved
+      - mountPath: /srv/ark/server/ark/ShooterGame/Binaries/Win64/ShooterGame
+        name: data
+        subPath: maps/{{ map_id }}/mods
+      - mountPath: /srv/ark/server/ark/ShooterGame/Binaries/Win64/PlayersExclusiveJoinList.txt
+        name: data
+        subPath: lists/PlayersExclusiveJoinList.txt
+      - mountPath: /srv/ark/server/ark/ShooterGame/Binaries/Win64/PlayersJoinNoCheckList.txt
+        name: data
+        subPath: lists/PlayersJoinNoCheckList.txt
+      {% if has_global_game %}
+      - mountPath: /srv/ark/conf/global/Game.ini
+        name: config
+        subPath: Game.ini
+      {% endif %}
+      {% if has_global_gus %}
+      - mountPath: /srv/ark/conf/global/GameUserSettings.ini
+        name: config
+        subPath: GameUserSettings.ini
+      {% endif %}
+      {% if has_map_game %}
+      - mountPath: /srv/ark/conf/map/Game.ini
+        name: map-config
+        subPath: Game.ini
+      {% endif %}
+      {% if has_map_gus %}
+      - mountPath: /srv/ark/conf/map/GameUserSettings.ini
+        name: map-config
+        subPath: GameUserSettings.ini
+      {% endif %}
+    {% if resources %}
+    resources: {{ resources }}
+    {% endif %}
+    readinessProbe:
+      exec:
+        command: [ sh, -c, arkctl server --host 127.0.0.1 rcon ListPlayers ]
+      initialDelaySeconds: 20
+      timeoutSeconds: 5
+      periodSeconds: 5
+      failureThreshold: 3
+      successThreshold: 1
+    startupProbe:
+      exec:
+        command: [ sh, -c, test -f "/srv/ark/server/ark/ShooterGame/Saved/.started" ]
+      initialDelaySeconds: 5
+      failureThreshold: 360
+      periodSeconds: 10
+
+  volumes:
+  - name: server
+    persistentVolumeClaim:
+      claimName: {{ instance_name }}-{{ active_volume }}
+  - name: data
+    persistentVolumeClaim:
+      claimName: {{ instance_name }}-data
+  {% if has_global_game or has_global_gus %}
+  - name: config
+    configMap:
+      name: {{ instance_name }}-global-ark-config
+  {% endif %}
+  {% if has_map_game or has_map_gus %}
+  - name: map-config
+    configMap:
+      name: {{ instance_name }}-map-ark-config-{{ map_id }}
+  {% endif %}
