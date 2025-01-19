@@ -12,7 +12,13 @@ from typing import TYPE_CHECKING, Literal, overload
 from aiofiles import open as aopen
 from aiofiles import os as aos
 
-from ark_operator.ark.conf import IniConf, merge_conf, read_config, write_config
+from ark_operator.ark.conf import (
+    IniConf,
+    merge_conf,
+    read_config,
+    read_config_from_lines,
+    write_config,
+)
 from ark_operator.command import run_async
 from ark_operator.utils import ensure_symlink, touch_file
 
@@ -77,6 +83,7 @@ class ArkServer:
     map_config: Path | None = None
     global_ark_config: Path | None = None
     map_ark_config: Path | None = None
+    global_config_secrets: str | None = None
 
     @property
     def list_dir(self) -> Path:
@@ -261,6 +268,11 @@ class ArkServer:
         if self.multihome_ip:
             conf["MultiHome"] = {"Multihome": "True"}
             conf["SessionSettings"]["MultiHome"] = self.multihome_ip
+
+        if self.global_config_secrets:
+            conf = merge_conf(
+                conf, read_config_from_lines(self.global_config_secrets.split("\n"))
+            )
 
         return conf
 

@@ -59,6 +59,7 @@ class ServerContext:
     map_gus: Path | None
     global_game: Path | None
     map_game: Path | None
+    global_gus_secrets: str | None
 
     parent: CoreContext
 

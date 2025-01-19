@@ -26,6 +26,7 @@ from ark_operator.cli.options import (
     OPTION_SERVER_CLUSTER_ID,
     OPTION_SERVER_GLOBAL_GAME,
     OPTION_SERVER_GLOBAL_GUS,
+    OPTION_SERVER_GLOBAL_GUS_SECRETS,
     OPTION_SERVER_MAP,
     OPTION_SERVER_MAP_GAME,
     OPTION_SERVER_MAP_GUS,
@@ -136,6 +137,7 @@ def meta(  # noqa: PLR0913
     map_gus: OPTION_SERVER_MAP_GUS = None,
     global_game: OPTION_SERVER_GLOBAL_GAME = None,
     map_game: OPTION_SERVER_MAP_GAME = None,
+    global_gus_secrets: OPTION_SERVER_GLOBAL_GUS_SECRETS = None,
 ) -> int | None:
     """
     ARK Server CLI.
@@ -176,6 +178,7 @@ def meta(  # noqa: PLR0913
             map_gus=map_gus,
             global_game=global_game,
             map_game=map_game,
+            global_gus_secrets=global_gus_secrets,
             parent=get_all_context("core"),  # type: ignore[arg-type]
         ),
     )
@@ -286,6 +289,7 @@ async def _run_server(*, dry_run: bool, immutable: bool) -> Path:
         map_config=context.map_gus,
         global_ark_config=context.global_game,
         map_ark_config=context.map_game,
+        global_config_secrets=context.global_gus_secrets,
     )
 
     try:

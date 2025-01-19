@@ -35,41 +35,47 @@ _LOGGER = logging.getLogger(__name__)
 IniConf = dict[str, dict[str, str | list[str]]]
 
 
+def read_config_from_lines(lines: list[str]) -> IniConf:
+    """Read ARK config from string."""
+
+    conf: IniConf = {}
+    section = None
+    for line in lines:
+        line = line.strip()  # noqa: PLW2901
+        if not line or line.startswith(";"):
+            continue
+
+        if line.startswith("[") and line.endswith("]"):
+            section = line.lstrip("[").rstrip("]")
+            conf[section] = {}
+            continue
+
+        try:
+            key, value = line.split("=", 1)
+        except Exception:
+            _LOGGER.debug(line)
+            raise
+
+        value = value.strip()
+        section = section or ""
+        key = key.strip()
+        if key in conf[section]:
+            existing_value = conf[section][key]
+            if isinstance(existing_value, str):
+                existing_value = [existing_value]
+            existing_value.append(value)
+            conf[section][key] = existing_value
+        else:
+            conf[section][key] = value
+
+    return conf
+
+
 async def read_config(path: Path) -> IniConf:
     """Read ARK config file."""
 
-    conf: IniConf = {}
     async with aopen(path) as f:
-        section = None
-        for line in await f.readlines():
-            line = line.strip()  # noqa: PLW2901
-            if not line or line.startswith(";"):
-                continue
-
-            if line.startswith("[") and line.endswith("]"):
-                section = line.lstrip("[").rstrip("]")
-                conf[section] = {}
-                continue
-
-            try:
-                key, value = line.split("=", 1)
-            except Exception:
-                _LOGGER.debug(line)
-                raise
-
-            value = value.strip()
-            section = section or ""
-            key = key.strip()
-            if key in conf[section]:
-                existing_value = conf[section][key]
-                if isinstance(existing_value, str):
-                    existing_value = [existing_value]
-                existing_value.append(value)
-                conf[section][key] = existing_value
-            else:
-                conf[section][key] = value
-
-    return conf
+        return read_config_from_lines(await f.readlines())
 
 
 async def write_config(conf: IniConf, path: Path) -> None:

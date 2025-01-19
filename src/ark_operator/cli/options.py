@@ -163,6 +163,11 @@ OPTION_SERVER_GLOBAL_GUS = Annotated[
     Path | None, Parameter("--global-gus", env_var=["ARK_SERVER_GLOBAL_GUS"])
 ]
 
+OPTION_SERVER_GLOBAL_GUS_SECRETS = Annotated[
+    str | None,
+    Parameter("--global-gus-secrets", env_var=["ARK_SERVER_GLOBAL_GUS_SECRETS"]),
+]
+
 OPTION_SERVER_MAP_GUS = Annotated[
     Path | None, Parameter("--map-gus", env_var=["ARK_SERVER_MAP_GUS"])
 ]

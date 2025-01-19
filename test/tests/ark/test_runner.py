@@ -790,3 +790,69 @@ EggHatchSpeedMultiplier = 9.0
 """,
         filename="Game.ini",
     )
+
+
+@pytest.mark.timeout(timeout=10)
+@pytest.mark.asyncio
+async def test_runner_gus_secrets(run: _RunFixture) -> None:
+    """Test runner."""
+
+    saved_dir = run.base_dir / "data" / "maps" / "TheIsland_WP" / "saved"
+    compatdata_dir = run.base_dir / "data" / "maps" / "TheIsland_WP" / "compatdata"
+
+    async with aopen(run.base_dir / "mapgus.ini", "w") as f:
+        await f.write("""[ServerSettings]
+ServerPVE = True
+RCONEnabled = False""")
+
+    server = ArkServer(
+        server_dir=run.base_dir / "ark",
+        data_dir=run.base_dir / "data",
+        map_name="TheIsland_WP",
+        session_name="Test",
+        rcon_port=27020,
+        rcon_password="password",
+        game_port=7777,
+        max_players=10,
+        cluster_id="ark-cluster",
+        battleye=True,
+        allowed_platforms=["ALL"],
+        whitelist=False,
+        multihome_ip=None,
+        parameters=[],
+        options=[],
+        mods=[],
+        global_config=run.base_dir / "globalgus.ini",
+        map_config=run.base_dir / "mapgus.ini",
+        global_config_secrets="[ServerSettings]\nServerPVE=False",
+    )
+
+    await server.run()
+
+    run.mock_run.assert_awaited_once_with(
+        f'{run.base_dir!s}/ark/steam/.steam/root/compatibilitytools.d/GE-Proton9-22/proton run {run.base_dir!s}/ark/ark/ShooterGame/Binaries/Win64/ArkAscendedServer.exe TheIsland_WP?SessionName="Test"?RCONEnabled=True?RCONPort=27020?ServerAdminPassword=password -port=7777 -WinLiveMaxPlayers=10 -clusterid=ark-cluster -ClusterDirOverride={run.base_dir!s}/data -NoTransferFromFiltering -ServerPlatform=ALL',
+        dry_run=False,
+        env={
+            "STEAM_COMPAT_CLIENT_INSTALL_PATH": str(compatdata_dir),
+            "STEAM_COMPAT_DATA_PATH": str(compatdata_dir),
+        },
+        echo=True,
+    )
+
+    assert await aos.path.exists(saved_dir / ".started") is True
+    await _assert_file_contents(
+        saved_dir / "Logs" / "ShooterGame.log", "has successfully started"
+    )
+    await _assert_config(
+        run.base_dir,
+        """[ServerSettings]
+ServerPVE = False
+RCONEnabled = True
+RCONPort = 27020
+ServerAdminPassword = password
+
+[SessionSettings]
+Port = 7777
+SessionName = Test
+""",
+    )
