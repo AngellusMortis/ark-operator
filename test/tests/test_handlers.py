@@ -47,14 +47,14 @@ class _Runner(KopfRunner):
         exc_tb: types.TracebackType | None,
     ) -> Literal[False]:
         try:
-            res = super().__exit__(exc_type, exc_val, exc_tb)
+            super().__exit__(exc_type, exc_val, exc_tb)
         except AttributeError as ex:
             if "'NoneType' object has no attribute 'connect'" not in str(ex):
                 raise
         except RuntimeError as ex:
             if "Session is closed" not in str(ex):
                 raise
-        return res
+        return False
 
 
 @pytest.fixture(autouse=True)
