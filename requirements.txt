@@ -44,7 +44,7 @@ click==8.1.8
     # via kopf
 colorama==0.4.6
     # via ark-operator (pyproject.toml)
-cyclopts @ git+https://github.com/BrianPugh/cyclopts@4aa51b9bbfa98b627ab66ff1e08e798a68b79266
+cyclopts @ git+https://github.com/BrianPugh/cyclopts@037fffcc50cd960805589dc15409d8c6118a7a90
     # via ark-operator (pyproject.toml)
 docstring-parser==0.16
     # via cyclopts

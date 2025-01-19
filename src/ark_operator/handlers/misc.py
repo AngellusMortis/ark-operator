@@ -57,11 +57,15 @@ async def startup(**kwargs: Unpack[ActivityEvent]) -> None:
 
 
 @kopf.on.cleanup()  # type: ignore[arg-type]
-async def cleanup(**_: Unpack[ActivityEvent]) -> None:
+async def cleanup(**kwargs: Unpack[ActivityEvent]) -> None:
     """Kopf cleanup handler."""
 
+    logger = kwargs["logger"]
     client = await get_k8s_client()
-    await client.close()
+    try:
+        await client.close()
+    except Exception as ex:  # noqa: BLE001
+        logger.warning("Failed to close k8s client", exc_info=ex)
 
 
 async def _update_server(  # noqa: PLR0913
@@ -150,20 +154,24 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
 
-    created = await asyncio.gather(
-        *[
-            create_server_pod(
-                name=name,
-                namespace=namespace,
-                map_id=m,
-                active_volume=status.active_volume or "server-a",
-                spec=spec,
-                logger=logger,
-                dry_run=DRY_RUN,
-            )
-            for m in spec.server.all_maps
-        ]
-    )
+    try:
+        created = await asyncio.gather(
+            *[
+                create_server_pod(
+                    name=name,
+                    namespace=namespace,
+                    map_id=m,
+                    active_volume=status.active_volume or "server-a",
+                    spec=spec,
+                    logger=logger,
+                    dry_run=DRY_RUN,
+                )
+                for m in spec.server.all_maps
+            ]
+        )
+    except Exception as ex:  # noqa: BLE001
+        logger.warning("Failed to create server pods", exc_info=ex)
+        return
 
     if any(created):
         return
@@ -172,7 +180,12 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     ready = 0
     total = len(spec.server.all_maps)
     for map_id in spec.server.all_maps:
-        obj = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        try:
+            obj = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        except Exception as ex:  # noqa: BLE001
+            logger.warning("Failed to get server pod", exc_info=ex)
+            return
+
         if not obj:
             continue
 
