@@ -164,5 +164,13 @@ OPTION_SERVER_GLOBAL_GUS = Annotated[
 ]
 
 OPTION_SERVER_MAP_GUS = Annotated[
-    Path | None, Parameter("--map-gus", env_var=["ARK_SERVER_GLOBAL_GUS"])
+    Path | None, Parameter("--map-gus", env_var=["ARK_SERVER_MAP_GUS"])
+]
+
+OPTION_SERVER_GLOBAL_GAME = Annotated[
+    Path | None, Parameter("--global-game", env_var=["ARK_SERVER_GLOBAL_GAME"])
+]
+
+OPTION_SERVER_MAP_GAME = Annotated[
+    Path | None, Parameter("--map-game", env_var=["ARK_SERVER_MAP_GAME"])
 ]

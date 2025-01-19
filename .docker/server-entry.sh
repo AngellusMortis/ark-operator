@@ -58,6 +58,7 @@ function shutdown() {
 }
 
 rm -f $ARK_SERVER_DIR/.perm-test $ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/.started 2>/dev/null 1>&2
+echo arkctl version: $(arkctl --version)
 echo "ark_dir: $ARK_SERVER_DIR"
 echo "steam_dir: $ARK_STEAM_DIR"
 echo "data_dir: $ARK_DATA_DIR"

@@ -218,8 +218,17 @@ async def _get_global_config(name: str, namespace: str) -> dict[str, str]:
     return await _get_config_map(f"{name}-global-envs", namespace)
 
 
+@cached(TTLCache(8, ENV.int("ARK_OP_TTL_CACHE", 30)))  # type: ignore[misc]
+async def _get_global_ark_config(name: str, namespace: str) -> dict[str, str]:
+    return await _get_config_map(f"{name}-global-ark-config", namespace)
+
+
 async def _get_map_config(name: str, namespace: str, map_id: str) -> dict[str, str]:
     return await _get_config_map(f"{name}-map-envs-{map_id}", namespace)
+
+
+async def _get_map_ark_config(name: str, namespace: str, map_id: str) -> dict[str, str]:
+    return await _get_config_map(f"{name}-map-ark-config-{map_id}", namespace)
 
 
 async def get_map_envs(
@@ -228,6 +237,10 @@ async def get_map_envs(
     """Get envs for a given map."""
 
     envs = spec.global_settings.get_envs(map_id)
+    server = spec.server.all_servers[map_id]
+    envs["ARK_SERVER_GAME_PORT"] = str(server.port)
+    envs["ARK_SERVER_RCON_PORT"] = str(server.rcon_port)
+
     global_envs = await _get_global_config(name, namespace)
     if map_id == "BobsMissions_WP":
         global_envs.pop("ARK_SERVER_PARAMS", None)
@@ -235,5 +248,18 @@ async def get_map_envs(
         global_envs.pop("ARK_SERVER_MODS", None)
     envs.update(**global_envs)
     envs.update(**await _get_map_config(name, namespace, map_id))
+
+    global_ark_config = await _get_global_ark_config(name, namespace)
+    if map_id != "BobsMissions_WP":
+        if "GameUserSettings.ini" in global_ark_config:
+            envs["ARK_SERVER_GLOBAL_GUS"] = "/srv/ark/conf/global/GameUserSettings.ini"
+        if "Game.ini" in global_ark_config:
+            envs["ARK_SERVER_GLOBAL_GAME"] = "/srv/ark/conf/global/Game.ini"
+
+    map_ark_config = await _get_map_ark_config(name, namespace, map_id)
+    if "GameUserSettings.ini" in map_ark_config:
+        envs["ARK_SERVER_MAP_GUS"] = "/srv/ark/conf/map/GameUserSettings.ini"
+    if "Game.ini" in map_ark_config:
+        envs["ARK_SERVER_MAP_GAME"] = "/srv/ark/conf/map/Game.ini"
 
     return envs

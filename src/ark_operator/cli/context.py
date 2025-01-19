@@ -57,6 +57,8 @@ class ServerContext:
     mods: list[str]
     global_gus: Path | None
     map_gus: Path | None
+    global_game: Path | None
+    map_game: Path | None
 
     parent: CoreContext
 

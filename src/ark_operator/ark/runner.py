@@ -75,6 +75,8 @@ class ArkServer:
     mods: list[str]
     global_config: Path | None = None
     map_config: Path | None = None
+    global_ark_config: Path | None = None
+    map_ark_config: Path | None = None
 
     @property
     def list_dir(self) -> Path:
@@ -280,6 +282,20 @@ class ArkServer:
         _log("Merging managed GameUserSettings.ini onto user provided one")
         return merge_conf(conf, self._make_managed_gus(), warn=True)
 
+    async def make_game(self) -> dict[str, dict[str, str]] | None:
+        """Game.ini file."""
+
+        conf: dict[str, dict[str, str]] | None = None
+        if self.global_ark_config:
+            _LOGGER.debug("Reading global Game.ini")
+            conf = await self._read_gus(self.global_ark_config)
+
+        if self.map_ark_config:
+            _LOGGER.debug("Reading map Game.ini")
+            conf = merge_conf(conf, await self._read_gus(self.map_ark_config))
+
+        return conf
+
     @overload
     async def run(
         self, *, read_only: bool = False, dry_run: Literal[False] = False
@@ -317,6 +333,9 @@ class ArkServer:
         conf = await self.make_game_user_settings()
         await aos.makedirs(self.config_dir, exist_ok=True)
         await write_config(conf, self.config_dir / "GameUserSettings.ini")
+        game_conf = await self.make_game()
+        if game_conf:
+            await write_config(game_conf, self.config_dir / "Game.ini")
 
         _LOGGER.debug("Starting server")
         task = asyncio.create_task(

@@ -156,6 +156,7 @@ class ArkClusterSettings(BaseK8sModel):
                 map_name=map_name
             ),
             "ARK_SERVER_AUTO_UPDATE": "false",
+            "ARK_SERVER_CLUSTER_MODE": "true",
             "ARK_SERVER_MAX_PLAYERS": str(self.max_players),
             "ARK_SERVER_CLUSTER_ID": self.cluster_id,
             "ARK_SERVER_BATTLEYE": str(self.battleye).lower(),
