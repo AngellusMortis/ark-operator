@@ -253,7 +253,7 @@ async def broadcast(*message: str) -> None:
 
 
 @cluster.command
-async def shutdown(*reason: str, force: bool = False) -> None:
+async def shutdown(*reason: str, force: bool = False, suspend: bool = False) -> None:
     """Run shutdown server via rcon."""
 
     context = _get_context()
@@ -261,6 +261,13 @@ async def shutdown(*reason: str, force: bool = False) -> None:
         name=context.name, namespace=context.namespace
     )
     if force:
+        if suspend:
+            for map_id in context.selected_maps:
+                context.spec.server.suspend.add(map_id)
+
+            await update_cluster(
+                name=context.name, namespace=context.namespace, spec=context.spec
+            )
         await send_cmd_all(
             "SaveWorld",
             host=context.host,
@@ -286,6 +293,7 @@ async def shutdown(*reason: str, force: bool = False) -> None:
             host=str(context.host) if context.host else None,
             password=password,
             reason=" ".join(reason),
+            suspend=suspend,
         )
 
 

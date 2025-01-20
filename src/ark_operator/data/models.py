@@ -165,6 +165,9 @@ class ArkServerSpec(BaseK8sModel):
         """Intervals to notify players."""
 
         seconds = self.graceful_shutdown.total_seconds()
+        if seconds <= 0:
+            return []
+
         intervals = [seconds]
         if seconds > _INTERVALS["1h"]:
             intervals.append(_INTERVALS["1h"])

@@ -14,7 +14,7 @@ from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark.conf import get_map_envs, get_rcon_password
 from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION, get_map_name, get_map_slug
-from ark_operator.k8s import get_v1_client
+from ark_operator.k8s import get_v1_client, update_cluster
 from ark_operator.rcon import close_client, send_cmd_all
 from ark_operator.templates import loader
 from ark_operator.utils import VERSION, human_format
@@ -230,6 +230,7 @@ async def shutdown_server_pods(  # noqa: PLR0913
     logger: kopf.Logger | None = None,
     host: str | None = None,
     password: str | None = None,
+    suspend: bool = False,
 ) -> None:
     """Gracefully shutdown ARK Cluster pods for restart."""
 
@@ -251,6 +252,10 @@ async def shutdown_server_pods(  # noqa: PLR0913
         rolling=False,
     )
     await _close_clients(spec=spec, servers=online_servers, host=host)
+    if suspend:
+        spec.server.suspend |= set(online_servers)
+        logger.info("Suspending servers %s", online_servers)
+        await update_cluster(name=name, namespace=namespace, spec=spec)
     await asyncio.gather(
         *[
             delete_server_pod(name=name, namespace=namespace, map_id=m, logger=logger)

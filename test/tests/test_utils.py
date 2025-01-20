@@ -68,6 +68,7 @@ def test_comma_list(in_: list[str] | None, out: list[str] | None) -> None:
     ("in_", "out"),
     [
         ("nomatch", "nomatch"),
+        (0, timedelta(seconds=0)),
         (100, timedelta(minutes=1, seconds=40)),
         ("3h", timedelta(hours=3)),
         ("5m", timedelta(minutes=5)),
@@ -86,6 +87,7 @@ def test_convert_timedelta(in_: str | int, out: str) -> None:
 @pytest.mark.parametrize(
     ("out", "in_"),
     [
+        ("0s", timedelta(seconds=0)),
         ("3h", timedelta(hours=3)),
         ("5m", timedelta(minutes=5)),
         ("30s", timedelta(seconds=30)),

@@ -25,9 +25,9 @@ from ark_operator.handlers.utils import (
     DEFAULT_NAME,
     DEFAULT_NAMESPACE,
     DRY_RUN,
+    ERROR_WAIT_INIT_JOB,
     ERROR_WAIT_INIT_RESOURCES,
     ERROR_WAIT_PVC,
-    ERROR_WAIT_UPDATE_JOB,
 )
 from ark_operator.steam import Steam
 
@@ -186,7 +186,7 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
                 logger=logger,
                 dry_run=DRY_RUN,
             )
-            raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=30)
+            raise kopf.TemporaryError(ERROR_WAIT_INIT_JOB, delay=30)
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
         raise
@@ -213,7 +213,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         return
 
     if not (status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC)):
-        raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=1)
+        raise kopf.TemporaryError(ERROR_WAIT_INIT_JOB, delay=1)
 
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME

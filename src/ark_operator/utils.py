@@ -118,6 +118,9 @@ def serialize_timedelta(interval: timedelta) -> str:
     """Serialize timedelta."""
 
     seconds = interval.total_seconds()
+    if seconds <= 0:
+        return "0s"
+
     dt_string = ""
     if seconds > 3600:  # noqa: PLR2004
         hours = int(seconds // 3600)
