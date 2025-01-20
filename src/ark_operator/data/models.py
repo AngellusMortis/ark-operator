@@ -4,15 +4,23 @@ from __future__ import annotations
 
 import warnings
 from dataclasses import dataclass
+from datetime import timedelta
 from ipaddress import IPv4Address, IPv6Address  # required for Pydantic # noqa: TC003
 from pathlib import Path  # required for Pydantic # noqa: TC003
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, computed_field
+from pydantic import (
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    PlainSerializer,
+    computed_field,
+)
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
 
 from ark_operator.data.types import ClusterStage  # required for Pydantic # noqa: TC001
+from ark_operator.utils import convert_timedelta, serialize_timedelta
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
@@ -45,6 +53,21 @@ States = Literal[
     "Updating Resources",
     "Running",
     "Updating Server",
+]
+
+_INTERVALS = {
+    "1h": timedelta(hours=1).total_seconds(),
+    "30m": timedelta(minutes=30).total_seconds(),
+    "5m": timedelta(minutes=5).total_seconds(),
+    "1m": 60,
+    "30s": 30,
+    "10s": 10,
+}
+
+TimedeltaStr = Annotated[
+    timedelta,
+    BeforeValidator(convert_timedelta),
+    PlainSerializer(serialize_timedelta, return_type=str),
 ]
 
 
@@ -95,6 +118,11 @@ class ArkServerSpec(BaseK8sModel):
     game_port_start: int = 7777
     rcon_port_start: int = 27020
     resources: dict[str, Any] | None = None
+    graceful_shutdown: TimedeltaStr = timedelta(minutes=30)
+    shutdown_message_format: str = "Server shutting down in {interval} for {reason}"
+    restart_message_format: str = "Rolling server restart in {interval} for {reason}"
+    restart_start_message: str = "Starting rolling restart"
+    rolling_restart_format: str = "Restarting server for {map_name}"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -130,6 +158,28 @@ class ArkServerSpec(BaseK8sModel):
             rcon_port += 1
 
         return servers
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def notify_intervals(self) -> list[float]:
+        """Intervals to notify players."""
+
+        seconds = self.graceful_shutdown.total_seconds()
+        intervals = [seconds]
+        if seconds > _INTERVALS["1h"]:
+            intervals.append(_INTERVALS["1h"])
+        if seconds > _INTERVALS["30m"]:
+            intervals.append(_INTERVALS["30m"])
+        if seconds > _INTERVALS["5m"]:
+            intervals.append(_INTERVALS["5m"])
+        if seconds > _INTERVALS["1m"]:
+            intervals.append(_INTERVALS["1m"])
+        if seconds > _INTERVALS["30s"]:
+            intervals.append(_INTERVALS["30s"])
+        if seconds > _INTERVALS["10s"]:
+            intervals.append(_INTERVALS["10s"])
+
+        return intervals
 
 
 class ArkDataSpec(BaseK8sModel):

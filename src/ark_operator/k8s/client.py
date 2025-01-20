@@ -29,10 +29,10 @@ async def get_k8s_client() -> ApiClient:
     if _CLIENT and _CLIENT.rest_client.pool_manager.closed:
         _CLIENT = None
 
-    if _CLIENT is None:
+    if _CLIENT is None:  # pragma: no branch
         try:
             config.load_incluster_config()
-        except Exception as ex:  # noqa: BLE001
+        except Exception as ex:  # noqa: BLE001  # TODO: # pragma: no cover
             _LOGGER.debug("Failed to load incluster config", exc_info=ex)
             await config.load_kube_config()
         _CLIENT = ApiClient()

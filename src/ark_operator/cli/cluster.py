@@ -4,22 +4,28 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path  # required for cyclopts  # noqa: TC003
-from typing import TYPE_CHECKING, Annotated, cast
+from typing import TYPE_CHECKING, Annotated, Literal, cast
 
 from cyclopts import App, CycloptsError, Parameter
 
-from ark_operator.ark import expand_maps
+from ark_operator.ark import (
+    expand_maps,
+    get_rcon_password,
+    restart_server_pods,
+    shutdown_server_pods,
+)
 from ark_operator.cli.context import ClusterContext, get_all_context, set_context
 from ark_operator.cli.options import (
     OPTION_ARK_CLUSTER_NAME,
     OPTION_ARK_CLUSTER_NAMESPACE,
     OPTION_ARK_SELECTOR,
     OPTION_ARK_SPEC,
+    OPTION_ARK_STATUS,
     OPTION_DRY_RUN,
     OPTION_OPTIONAL_HOST,
-    OPTION_RCON_PASSWORD,
+    OPTION_RCON_PASSWORD_OPTIONAL,
 )
-from ark_operator.data import ArkClusterSpec
+from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.k8s import (
     are_crds_installed,
     close_k8s_client,
@@ -46,6 +52,7 @@ cluster = App(
 
 ERROR_HOST_REQUIRED = "Host is required from the option or from loadBalancerIP on spec."
 ERROR_NOT_SUSPENDED = "Map {map_id} is not suspended."
+ERROR_REASON_REQUIRED = "Reason for shutdown is required"
 
 
 def _get_context() -> ClusterContext:
@@ -59,9 +66,16 @@ def _require_host(spec: ArkClusterSpec | None) -> IPv4Address | IPv6Address:
     return spec.server.load_balancer_ip
 
 
-def _get_cluster(*, name: str, namespace: str) -> ArkClusterSpec:
-    loop = asyncio.new_event_loop()
-    return loop.run_until_complete(get_cluster(name=name, namespace=namespace))
+def _get_cluster(
+    *, name: str, namespace: str
+) -> tuple[ArkClusterSpec, ArkClusterStatus]:
+    async def _run() -> tuple[ArkClusterSpec, ArkClusterStatus]:
+        try:
+            return await get_cluster(name=name, namespace=namespace)
+        finally:
+            await close_k8s_client()
+
+    return asyncio.run(_run())
 
 
 @cluster.meta.default
@@ -70,9 +84,10 @@ def meta(  # noqa: PLR0913
     name: OPTION_ARK_CLUSTER_NAME = "ark",
     namespace: OPTION_ARK_CLUSTER_NAMESPACE = "default",
     spec: OPTION_ARK_SPEC = None,
+    status: OPTION_ARK_STATUS = None,
     selector: OPTION_ARK_SELECTOR = ["@all"],  # noqa: B006\
     host: OPTION_OPTIONAL_HOST = None,
-    rcon_password: OPTION_RCON_PASSWORD,
+    rcon_password: OPTION_RCON_PASSWORD_OPTIONAL = None,
 ) -> int | None:
     """
     ARK k8s Cluster CLI.
@@ -80,7 +95,9 @@ def meta(  # noqa: PLR0913
     Helpful commands for managing an ARK: Survival Ascended k8s server cluster.
     """
 
-    spec = spec or _get_cluster(name=name, namespace=namespace)
+    if not spec or not status:
+        spec, status = _get_cluster(name=name, namespace=namespace)
+
     selector = comma_list(selector)
     selected_maps = expand_maps(selector.copy(), all_maps=spec.server.all_maps)
     set_context(
@@ -89,6 +106,7 @@ def meta(  # noqa: PLR0913
             name=name,
             namespace=namespace,
             spec=spec,
+            status=status,
             selected_maps=selected_maps,
             host=host or _require_host(spec),
             rcon_password=rcon_password,
@@ -185,10 +203,13 @@ async def rcon(*cmd: str) -> None:
     """Run rcon command for ARK server."""
 
     context = _get_context()
+    password = context.rcon_password or await get_rcon_password(
+        name=context.name, namespace=context.namespace
+    )
     await send_cmd_all(
         " ".join(cmd),
         host=context.host,
-        password=context.rcon_password,
+        password=password,
         spec=context.spec.server,
         servers=context.selected_maps,
     )
@@ -199,10 +220,13 @@ async def save() -> None:
     """Run save RCON command for ARK server."""
 
     context = _get_context()
+    password = context.rcon_password or await get_rcon_password(
+        name=context.name, namespace=context.namespace
+    )
     await send_cmd_all(
         "SaveWorld",
         host=context.host,
-        password=context.rcon_password,
+        password=password,
         spec=context.spec.server,
         servers=context.selected_maps,
     )
@@ -213,32 +237,75 @@ async def broadcast(*message: str) -> None:
     """Run send message via rcon to ARK server."""
 
     context = _get_context()
+    password = context.rcon_password or await get_rcon_password(
+        name=context.name, namespace=context.namespace
+    )
     await send_cmd_all(
         f"ServerChat {' '.join(message)}",
         host=context.host,
-        password=context.rcon_password,
+        password=password,
         spec=context.spec.server,
         servers=context.selected_maps,
     )
 
 
 @cluster.command
-async def shutdown() -> None:
+async def shutdown(*reason: str, force: bool = False) -> None:
     """Run shutdown server via rcon."""
 
     context = _get_context()
-    await send_cmd_all(
-        "SaveWorld",
-        host=context.host,
-        password=context.rcon_password,
-        spec=context.spec.server,
-        servers=context.selected_maps,
-        close=False,
+    password = context.rcon_password or await get_rcon_password(
+        name=context.name, namespace=context.namespace
     )
-    await send_cmd_all(
-        "DoExit",
-        host=context.host,
-        password=context.rcon_password,
-        spec=context.spec.server,
-        servers=context.selected_maps,
+    if force:
+        await send_cmd_all(
+            "SaveWorld",
+            host=context.host,
+            password=password,
+            spec=context.spec.server,
+            servers=context.selected_maps,
+            close=False,
+        )
+        await send_cmd_all(
+            "DoExit",
+            host=context.host,
+            password=password,
+            spec=context.spec.server,
+            servers=context.selected_maps,
+        )
+    else:
+        if not reason:
+            raise CycloptsError(msg=ERROR_REASON_REQUIRED)
+        await shutdown_server_pods(
+            name=context.name,
+            namespace=context.namespace,
+            spec=context.spec,
+            host=str(context.host) if context.host else None,
+            password=password,
+            reason=" ".join(reason),
+        )
+
+
+@cluster.command
+async def restart(
+    *reason: str, active_volume: Literal["server-a", "server-b"] | None = None
+) -> None:
+    """Do rolling restart on ARK cluster."""
+
+    if not reason:
+        raise CycloptsError(msg=ERROR_REASON_REQUIRED)
+
+    context = _get_context()
+    password = context.rcon_password or await get_rcon_password(
+        name=context.name, namespace=context.namespace
+    )
+    active_volume = active_volume or context.status.active_volume
+    await restart_server_pods(
+        name=context.name,
+        namespace=context.namespace,
+        spec=context.spec,
+        active_volume=active_volume,  # type: ignore[arg-type]
+        reason=" ".join(reason),
+        host=str(context.host) if context.host else None,
+        password=password,
     )

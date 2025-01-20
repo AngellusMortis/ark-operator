@@ -169,6 +169,21 @@ async def k8s_v1_batch_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:
         yield mock_v1_client
 
 
+@pytest_asyncio.fixture(name="k8s_crd_client")
+async def k8s_crd_client_fixture(k8s_client: Mock) -> AsyncGenerator[Mock]:  # noqa: ARG001
+    """k8s client fixture."""
+
+    with (
+        patch("ark_operator.k8s.client.client") as mock_v1_klass,
+    ):
+        mock_v1_client = Mock()
+        mock_v1_client.get_namespaced_custom_object = AsyncMock()
+
+        mock_v1_klass.CustomObjectsApi.return_value = mock_v1_client
+
+        yield mock_v1_client
+
+
 @pytest_asyncio.fixture(name="temp_dir")
 async def temp_dir_fixture() -> AsyncGenerator[Path]:
     """Return temp dir for IO operations."""

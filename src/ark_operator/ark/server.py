@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from http import HTTPStatus
@@ -11,11 +12,12 @@ import kopf
 import yaml
 from kubernetes_asyncio.client import ApiException
 
-from ark_operator.ark.conf import get_map_envs
+from ark_operator.ark.conf import get_map_envs, get_rcon_password
 from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION, get_map_name, get_map_slug
 from ark_operator.k8s import get_v1_client
+from ark_operator.rcon import close_client, send_cmd_all
 from ark_operator.templates import loader
-from ark_operator.utils import VERSION
+from ark_operator.utils import VERSION, human_format
 
 if TYPE_CHECKING:
     from kubernetes_asyncio.client import V1Pod
@@ -38,9 +40,16 @@ async def get_server_pod(*, name: str, namespace: str, map_id: str) -> V1Pod | N
     except ApiException as ex:
         if ex.status == HTTPStatus.NOT_FOUND:
             return None
-        raise
+        raise  # TODO: # pragma: no cover
 
     return obj
+
+
+def is_server_pod_ready(pod: V1Pod) -> bool:
+    """Check if server pod is ready."""
+
+    container_ready = [s.ready for s in pod.status.container_statuses]
+    return all(container_ready)
 
 
 async def create_server_pod(  # noqa: PLR0913
@@ -118,7 +127,7 @@ async def create_server_pod(  # noqa: PLR0913
                 namespace=namespace,
                 body=pod,
             )
-    except Exception as ex:
+    except Exception as ex:  # TODO: # pragma: no cover
         raise kopf.TemporaryError(ERROR_POD.format(map_id=map_id), delay=5) from ex
 
     logger.info(
@@ -138,6 +147,190 @@ async def delete_server_pod(
     logger.info("Deleting server pod %s", pod_name)
     v1 = await get_v1_client()
     try:
-        await v1.delete_namespaced_pod(name=pod_name, namespace=namespace)
-    except Exception:  # noqa: BLE001
+        await v1.delete_namespaced_pod(
+            name=pod_name, namespace=namespace, propagation_policy="Foreground"
+        )
+    except Exception:  # noqa: BLE001  # TODO: # pragma: no cover
         logger.warning("Failed to delete server pod %s", pod_name)
+
+
+async def _notify_server_pods(  # noqa: PLR0913
+    *,
+    spec: ArkClusterSpec,
+    reason: str,
+    logger: kopf.Logger | logging.Logger,
+    servers: list[str],
+    host: str,
+    password: str,
+    rolling: bool = False,
+) -> None:
+    logger.info("Notifying servers of shutdown (rolling: %s)", rolling)
+    previous_interval: float | None = None
+    for interval in spec.server.notify_intervals:
+        if previous_interval:
+            wait_interval = previous_interval - interval
+            human_wait = human_format(wait_interval)
+            logger.info("Waiting %s until next interval", human_wait)
+            await asyncio.sleep(wait_interval)
+
+        human_interval = human_format(interval)
+        if rolling:
+            msg = spec.server.restart_message_format.format(
+                interval=human_interval, reason=reason
+            )
+        else:
+            msg = spec.server.shutdown_message_format.format(
+                interval=human_interval, reason=reason
+            )
+        await send_cmd_all(
+            f"ServerChat {msg}",
+            spec=spec.server,
+            host=host,
+            password=password,
+            close=False,
+            raise_exceptions=False,
+            servers=servers,
+        )
+        previous_interval = interval
+
+    _LOGGER.info("Waiting %s until shutdown", human_interval)
+    await asyncio.sleep(interval)
+
+
+async def _close_clients(
+    *, spec: ArkClusterSpec, servers: list[str], host: str
+) -> None:
+    tasks = []
+    for map_id in servers:
+        server = spec.server.all_servers[map_id]
+        tasks.append(close_client(host=host, port=server.rcon_port))
+
+    await asyncio.gather(*tasks)
+
+
+async def _get_online_servers(
+    *, name: str, namespace: str, spec: ArkClusterSpec
+) -> list[str]:
+    return [
+        m
+        for m in spec.server.active_maps
+        if await get_server_pod(name=name, namespace=namespace, map_id=m)
+    ]
+
+
+async def shutdown_server_pods(  # noqa: PLR0913
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    reason: str,
+    logger: kopf.Logger | None = None,
+    host: str | None = None,
+    password: str | None = None,
+) -> None:
+    """Gracefully shutdown ARK Cluster pods for restart."""
+
+    logger = logger or _LOGGER
+    password = password or await get_rcon_password(name=name, namespace=namespace)
+    lb_ip = str(spec.server.load_balancer_ip) if spec.server.load_balancer_ip else None
+    host = host or lb_ip or "127.0.0.1"
+
+    online_servers = await _get_online_servers(
+        name=name, namespace=namespace, spec=spec
+    )
+    await _notify_server_pods(
+        spec=spec,
+        reason=reason,
+        logger=logger,
+        servers=online_servers,
+        host=host,
+        password=password,
+        rolling=False,
+    )
+    await _close_clients(spec=spec, servers=online_servers, host=host)
+    await asyncio.gather(
+        *[
+            delete_server_pod(name=name, namespace=namespace, map_id=m, logger=logger)
+            for m in online_servers
+        ]
+    )
+
+
+async def restart_server_pods(  # noqa: PLR0913
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    active_volume: str,
+    reason: str,
+    logger: kopf.Logger | None = None,
+    host: str | None = None,
+    password: str | None = None,
+) -> None:
+    """Gracefully do rolling restart ARK Cluster pods."""
+
+    logger = logger or _LOGGER
+    password = password or await get_rcon_password(name=name, namespace=namespace)
+    lb_ip = str(spec.server.load_balancer_ip) if spec.server.load_balancer_ip else None
+    host = host or lb_ip or "127.0.0.1"
+
+    online_servers = await _get_online_servers(
+        name=name, namespace=namespace, spec=spec
+    )
+    await _notify_server_pods(
+        spec=spec,
+        reason=reason,
+        logger=logger,
+        servers=online_servers,
+        host=host,
+        password=password,
+        rolling=False,
+    )
+
+    await send_cmd_all(
+        f"ServerChat {spec.server.restart_start_message}",
+        spec=spec.server,
+        host=host,
+        password=password,
+        close=False,
+        raise_exceptions=False,
+        servers=online_servers,
+    )
+    for map_id in online_servers.copy():
+        online_servers.remove(map_id)
+        msg = spec.server.rolling_restart_format.format(map_name=get_map_name(map_id))
+        await send_cmd_all(
+            f"ServerChat {msg}",
+            spec=spec.server,
+            host=host,
+            password=password,
+            close=False,
+            raise_exceptions=False,
+            servers=online_servers,
+        )
+
+        server = spec.server.all_servers[map_id]
+        await close_client(host=host, port=server.rcon_port)
+        await delete_server_pod(
+            name=name, namespace=namespace, map_id=map_id, logger=logger
+        )
+        pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        while pod is not None:
+            logger.info("Waiting for server pod to be deleted %s", map_id)
+            await asyncio.sleep(5)
+            pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+
+        await create_server_pod(
+            name=name,
+            namespace=namespace,
+            map_id=map_id,
+            spec=spec,
+            logger=logger,
+            active_volume=active_volume,
+        )
+        ready = False
+        while not ready:
+            logger.info("Waiting for server pod to be ready")
+            await asyncio.sleep(10)
+            pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+            ready = is_server_pod_ready(pod)

@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 
 from cyclopts import Parameter
 
-from ark_operator.data import ArkClusterSpec
+from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.log import LoggingFormat, LoggingLevel
 
 OPTION_LOG_FORMAT = Annotated[LoggingFormat, Parameter(env_var="ARK_OP_LOG_FORMAT")]
@@ -88,6 +88,14 @@ OPTION_RCON_PASSWORD = Annotated[
     ),
 ]
 
+OPTION_RCON_PASSWORD_OPTIONAL = Annotated[
+    str | None,
+    Parameter(
+        ("--rcon-password"),
+        env_var=["ARK_SERVER_RCON_PASSWORD"],
+    ),
+]
+
 OPTION_ARK_CLUSTER_NAME = Annotated[
     str, Parameter(("--name"), env_var=["ARK_CLUSTER_NAME"])
 ]
@@ -99,6 +107,11 @@ OPTION_ARK_CLUSTER_NAMESPACE = Annotated[
 OPTION_ARK_SPEC = Annotated[
     ArkClusterSpec | None,
     Parameter(("--spec"), env_var=["ARK_CLUSTER_SPEC"]),
+]
+
+OPTION_ARK_STATUS = Annotated[
+    ArkClusterStatus | None,
+    Parameter(("--status"), env_var=["ARK_CLUSTER_STATUS"]),
 ]
 
 OPTION_MAPS = Annotated[

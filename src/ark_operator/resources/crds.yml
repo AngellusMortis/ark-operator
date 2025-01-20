@@ -58,6 +58,30 @@ spec:
               server:
                 type: object
                 properties:
+                  gracefulShutdown:
+                    anyOf:
+                      - type: integer
+                      - type: string
+                    pattern: ^(\d+|(\d+h)?(\d+m)?(\d+s)|(\d+h)?(\d+m)|(\d+h))$
+                    x-kubernetes-int-or-string: true
+                    description: |-
+                      Interval to warn players before shutting down server. Defaults to `30m`
+                  shutdownMessageFormat:
+                    type: string
+                    description: |-
+                      Format for generating shutdown message. Defaults to `Server shutting down in {interval} for {reason}`.
+                  restartMessageFormat:
+                    type: string
+                    description: |-
+                      Format for generating shutdown message. Defaults to `Rolling server restart in {interval} for {reason}`.
+                  restartStartMessage:
+                    type: string
+                    description: |-
+                      Message for starting rolling restart. Defaults to `Starting rolling restart`.
+                  rollingRestartFormat:
+                    type: string
+                    description: |-
+                      Message for restarting specific server. Defaults to `Restarting server for {map_name}`.
                   loadBalancerIP:
                     type: string
                     description: |-

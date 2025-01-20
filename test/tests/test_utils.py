@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING
 
 import pytest
 from aiofiles import os as aos
 
-from ark_operator.utils import comma_list, ensure_symlink, touch_file
+from ark_operator.utils import (
+    comma_list,
+    convert_timedelta,
+    ensure_symlink,
+    human_format,
+    serialize_timedelta,
+    touch_file,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -54,3 +62,57 @@ def test_comma_list(in_: list[str] | None, out: list[str] | None) -> None:
     """Test comma_list."""
 
     assert comma_list(in_) == out
+
+
+@pytest.mark.parametrize(
+    ("in_", "out"),
+    [
+        ("nomatch", "nomatch"),
+        (100, timedelta(minutes=1, seconds=40)),
+        ("3h", timedelta(hours=3)),
+        ("5m", timedelta(minutes=5)),
+        ("30s", timedelta(seconds=30)),
+        ("1m40s", timedelta(minutes=1, seconds=40)),
+        ("5h40s", timedelta(hours=5, seconds=40)),
+        ("5h1m40s", timedelta(hours=5, minutes=1, seconds=40)),
+    ],
+)
+def test_convert_timedelta(in_: str | int, out: str) -> None:
+    """Test convert_timedelta."""
+
+    assert convert_timedelta(in_) == out
+
+
+@pytest.mark.parametrize(
+    ("out", "in_"),
+    [
+        ("3h", timedelta(hours=3)),
+        ("5m", timedelta(minutes=5)),
+        ("30s", timedelta(seconds=30)),
+        ("1m40s", timedelta(minutes=1, seconds=40)),
+        ("5h40s", timedelta(hours=5, seconds=40)),
+        ("5h1m40s", timedelta(hours=5, minutes=1, seconds=40)),
+    ],
+)
+def test_serialize_timedelta(in_: timedelta, out: str) -> None:
+    """Test serialize_timedelta."""
+
+    assert serialize_timedelta(in_) == out
+
+
+@pytest.mark.parametrize(
+    ("in_", "out"),
+    [
+        (100, "a minute"),
+        (timedelta(hours=3), "3 hours"),
+        (timedelta(minutes=5), "5 minutes"),
+        (timedelta(seconds=30), "30 seconds"),
+        (timedelta(minutes=1, seconds=40), "a minute"),
+        (timedelta(hours=5, seconds=40), "5 hours"),
+        (timedelta(hours=5, minutes=1, seconds=40), "5 hours"),
+    ],
+)
+def test_human_format(in_: float | timedelta, out: str) -> None:
+    """Test human_format."""
+
+    assert human_format(in_) == out

@@ -5,7 +5,7 @@ from ipaddress import IPv4Address, IPv6Address
 from pathlib import Path
 from typing import Any, Literal
 
-from ark_operator.data import ArkClusterSpec
+from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.log import LoggingFormat, LoggingLevel
 from ark_operator.steam import Steam
 
@@ -71,8 +71,9 @@ class ClusterContext:
     name: str
     namespace: str
     spec: ArkClusterSpec
+    status: ArkClusterStatus
     selected_maps: list[str]
     host: IPv4Address | IPv6Address | str
-    rcon_password: str
+    rcon_password: str | None
 
     parent: CoreContext

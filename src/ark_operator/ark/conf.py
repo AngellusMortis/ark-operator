@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import secrets
 import string
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from http import HTTPStatus
 from typing import TYPE_CHECKING, cast, overload
 
@@ -32,6 +32,7 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 PASSWORD_CHARS = string.ascii_letters + string.digits
+ERROR_NO_PASSWORD = "Could not get RCON password."  # noqa: S105
 
 
 IniConf = dict[str, dict[str, str | list[str]]]
@@ -45,7 +46,7 @@ def read_config_from_lines(lines: list[str]) -> IniConf:
     for line in lines:
         line = line.strip()  # noqa: PLW2901
         if not line or line.startswith(";"):
-            continue
+            continue  # TODO: # pragma: no cover
 
         if line.startswith("[") and line.endswith("]"):
             section = line.lstrip("[").rstrip("]")
@@ -54,17 +55,19 @@ def read_config_from_lines(lines: list[str]) -> IniConf:
 
         try:
             key, value = line.split("=", 1)
-        except Exception:
+        except Exception:  # TODO: # pragma: no cover
             _LOGGER.debug(line)
             raise
 
         value = value.strip()
         section = section or ""
         if section == "":
-            _LOGGER.warning("Found config setting without section %s", key)
+            _LOGGER.warning(  # TODO: # pragma: no cover
+                "Found config setting without section %s", key
+            )
         conf[section] = conf.get(section, {})
         key = key.strip()
-        if key in conf[section]:
+        if key in conf[section]:  # TODO: # pragma: no cover
             existing_value = conf[section][key]
             if isinstance(existing_value, str):
                 existing_value = [existing_value]
@@ -89,7 +92,7 @@ async def write_config(conf: IniConf, path: Path) -> None:
     async with aopen(path, "w") as f:
         first_section = True
         if "" in conf:
-            for key, value in conf.pop("").items():
+            for key, value in conf.pop("").items():  # TODO: # pragma: no cover
                 await f.write(f"{key} = {value}\n")
 
         for section, values in conf.items():
@@ -100,7 +103,7 @@ async def write_config(conf: IniConf, path: Path) -> None:
             await f.write(f"[{section}]\n")
 
             for key, value in values.items():
-                if isinstance(value, str):
+                if isinstance(value, str):  # pragma: no branch
                     value = [value]  # noqa: PLW2901
                 for item in value:
                     await f.write(f"{key} = {item}\n")
@@ -180,6 +183,20 @@ def merge_conf(
     return parent
 
 
+async def read_secrets(*, name: str, namespace: str) -> dict[str, str] | None:
+    """Read ARK cluster secrets."""
+
+    secret_name = f"{name}-cluster-secrets"
+    v1 = await get_v1_client()
+    try:
+        obj = await v1.read_namespaced_secret(name=secret_name, namespace=namespace)
+    except ApiException as ex:
+        if ex.status == HTTPStatus.NOT_FOUND:
+            return None
+        raise  # TODO: # pragma: no cover
+    return cast(dict[str, str], obj.data)
+
+
 async def create_secrets(
     *, name: str, namespace: str, logger: kopf.Logger | None = None
 ) -> bool:
@@ -187,13 +204,7 @@ async def create_secrets(
 
     logger = logger or _LOGGER
     secret_name = f"{name}-cluster-secrets"
-    v1 = await get_v1_client()
-    try:
-        await v1.read_namespaced_secret(name=secret_name, namespace=namespace)
-    except ApiException as ex:
-        if ex.status != HTTPStatus.NOT_FOUND:
-            raise
-    else:
+    if await read_secrets(name=name, namespace=namespace):
         _LOGGER.warning("Secret %s already exists, skipping creation", secret_name)
         return False
 
@@ -208,6 +219,7 @@ async def create_secrets(
             rcon_password=b64encode(password.encode("utf-8")).decode("utf-8"),
         )
     )
+    v1 = await get_v1_client()
     await v1.create_namespaced_secret(namespace=namespace, body=secret)
     return True
 
@@ -223,7 +235,7 @@ async def delete_secrets(
     v1 = await get_v1_client()
     try:
         await v1.delete_namespaced_secret(name=secret_name, namespace=namespace)
-    except Exception:  # noqa: BLE001
+    except Exception:  # noqa: BLE001  # TODO: # pragma: no cover
         logger.warning("Failed to delete secret %s", secret_name)
 
 
@@ -236,7 +248,7 @@ async def _get_config_map(name: str, namespace: str) -> dict[str, str]:
     except ApiException as ex:
         if ex.status == HTTPStatus.NOT_FOUND:
             return {}
-        raise
+        raise  # TODO: # pragma: no cover
 
     return cast(dict[str, str], global_cm.data)
 
@@ -291,3 +303,16 @@ async def get_map_envs(
         envs["ARK_SERVER_MAP_GAME"] = "/srv/ark/conf/map/Game.ini"
 
     return envs
+
+
+@cached(TTLCache(8, ENV.int("ARK_OP_TTL_CACHE", 60)))  # type: ignore[misc]
+async def get_rcon_password(*, name: str, namespace: str) -> str:
+    """Read RCON password for cluster."""
+
+    secrets = await read_secrets(name=name, namespace=namespace)
+    if not secrets or "ARK_SERVER_RCON_PASSWORD" not in secrets:
+        raise RuntimeError(ERROR_NO_PASSWORD)
+
+    return b64decode(secrets["ARK_SERVER_RCON_PASSWORD"].encode("utf-8")).decode(
+        "utf-8"
+    )

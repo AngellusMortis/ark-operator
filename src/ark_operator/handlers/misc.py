@@ -16,6 +16,7 @@ from ark_operator.ark import (
     create_server_pod,
     create_update_job,
     get_server_pod,
+    is_server_pod_ready,
 )
 from ark_operator.data import (
     ActivityEvent,
@@ -32,6 +33,7 @@ from ark_operator.handlers.utils import (
 )
 from ark_operator.k8s import get_k8s_client
 from ark_operator.log import DEFAULT_LOG_CONFIG, init_logging
+from ark_operator.rcon import close_clients
 from ark_operator.steam import Steam
 
 if TYPE_CHECKING:
@@ -66,6 +68,10 @@ async def cleanup(**kwargs: Unpack[ActivityEvent]) -> None:
         await client.close()
     except Exception as ex:  # noqa: BLE001
         logger.warning("Failed to close k8s client", exc_info=ex)
+    try:
+        await close_clients()
+    except Exception as ex:  # noqa: BLE001
+        logger.warning("Failed to close RCON client(s)", exc_info=ex)
 
 
 async def _update_server(  # noqa: PLR0913
@@ -191,8 +197,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
             continue
 
         containers += 1
-        container_ready = [s.ready for s in obj.status.container_statuses]
-        if all(container_ready):
+        if is_server_pod_ready(obj):
             ready += 1
 
     kwargs["patch"].status["createdPods"] = containers

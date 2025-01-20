@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
+from datetime import timedelta
 from importlib.metadata import version
 from typing import TYPE_CHECKING, overload
 
 from aiofiles import open as aopen
 from aiofiles import os as aos
+from human_readable import time_delta
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -16,6 +19,8 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 VERSION = version("ark_operator")
+
+TD_PATTERN = re.compile(r"((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?")
 
 
 def is_async() -> bool:
@@ -87,3 +92,50 @@ def comma_list(args: list[str] | None) -> list[str] | None:
         args = args[0].split(",")
 
     return args
+
+
+def convert_timedelta(value: str | int) -> timedelta | str:
+    """Convert string to timedelta."""
+
+    if isinstance(value, int):
+        return timedelta(seconds=value)
+
+    value = str(value)
+    if match := TD_PATTERN.match(value):  # pragma: no branch
+        hours = match.group("hours")
+        minutes = match.group("minutes")
+        seconds = match.group("seconds")
+        if hours or minutes or seconds:
+            return timedelta(
+                hours=int(hours or "0"),
+                minutes=int(minutes or "0"),
+                seconds=int(seconds or "0"),
+            )
+    return value
+
+
+def serialize_timedelta(interval: timedelta) -> str:
+    """Serialize timedelta."""
+
+    seconds = interval.total_seconds()
+    dt_string = ""
+    if seconds > 3600:  # noqa: PLR2004
+        hours = int(seconds // 3600)
+        dt_string += f"{hours}h"
+        seconds -= hours * 3600
+    if seconds > 60:  # noqa: PLR2004
+        minutes = int(seconds // 60)
+        dt_string += f"{minutes}m"
+        seconds -= minutes * 60
+    if seconds > 0:
+        dt_string += f"{int(seconds)}s"
+    return dt_string
+
+
+def human_format(interval: float | timedelta) -> str:
+    """Get humand readable format for interval."""
+
+    if isinstance(interval, int | float):
+        interval = timedelta(seconds=interval)
+
+    return time_delta(interval)

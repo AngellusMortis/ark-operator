@@ -11,7 +11,7 @@ from aiofiles import open as aopen
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.command import run_async
-from ark_operator.data import ArkClusterSpec
+from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.exceptions import K8sError
 from ark_operator.k8s.client import get_crd_client, get_v1_ext_client
 
@@ -58,7 +58,7 @@ async def install_crds() -> None:
 
 async def get_cluster(
     *, name: str, namespace: str, version: str = "v1beta1"
-) -> ArkClusterSpec:
+) -> tuple[ArkClusterSpec, ArkClusterStatus]:
     """Get ArkCluster."""
 
     v1 = await get_crd_client()
@@ -69,7 +69,7 @@ async def get_cluster(
         name=name,
         namespace=namespace,
     )
-    return ArkClusterSpec(**data["spec"])
+    return ArkClusterSpec(**data["spec"]), ArkClusterStatus(**data["status"])
 
 
 async def update_cluster(*, name: str, namespace: str, spec: ArkClusterSpec) -> None:
@@ -86,6 +86,7 @@ async def update_cluster(*, name: str, namespace: str, spec: ArkClusterSpec) -> 
         data["globalSettings"]["clusterID"] = data["globalSettings"].pop("clusterId")
     del data["server"]["allMaps"]
     del data["server"]["allServers"]
+    del data["server"]["notifyIntervals"]
 
     await run_async(  # noqa: S604
         f"echo '{json.dumps({'spec': data})}' | kubectl -n {namespace} patch arkcluster {name} --type merge --patch-file=/dev/stdin",  # noqa: E501

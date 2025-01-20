@@ -1,12 +1,18 @@
 """Test ARK config."""
 
+from base64 import b64encode
 from http import HTTPStatus
 from unittest.mock import ANY, Mock
 
 import pytest
 from kubernetes_asyncio.client import ApiException
 
-from ark_operator.ark import create_secrets, delete_secrets, get_map_envs
+from ark_operator.ark import (
+    create_secrets,
+    delete_secrets,
+    get_map_envs,
+    get_rcon_password,
+)
 from ark_operator.data import ArkClusterSettings, ArkClusterSpec
 from ark_operator.utils import VERSION
 
@@ -408,3 +414,27 @@ async def test_get_map_envs(  # noqa: PLR0913
         await get_map_envs(name="test", namespace="test", spec=spec, map_id=map_id)
         == expected_envs
     )
+
+
+@pytest.mark.asyncio
+async def test_get_rcon_password(k8s_v1_client: Mock) -> None:
+    """Test get_rcon_password."""
+
+    secret = Mock()
+    secret.data = {"ARK_SERVER_RCON_PASSWORD": b64encode(b"password").decode("utf-8")}
+
+    k8s_v1_client.read_namespaced_secret.return_value = secret
+
+    assert await get_rcon_password(name="test", namespace="test") == "password"
+
+
+@pytest.mark.asyncio
+async def test_get_rcon_password_no_password(k8s_v1_client: Mock) -> None:
+    """Test get_rcon_password."""
+
+    k8s_v1_client.read_namespaced_secret.side_effect = ApiException(
+        status=HTTPStatus.NOT_FOUND
+    )
+
+    with pytest.raises(RuntimeError):
+        assert await get_rcon_password(name="test", namespace="test")

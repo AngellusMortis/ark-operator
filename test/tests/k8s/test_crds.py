@@ -10,10 +10,12 @@ import yaml
 from aiofiles import open as aopen
 from kubernetes_asyncio.client import ApiException
 
+from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.exceptions import K8sError
 from ark_operator.k8s.crds import (
     CRD_FILE,
     are_crds_installed,
+    get_cluster,
     install_crds,
     uninstall_crds,
 )
@@ -106,4 +108,20 @@ async def test_install_crds_installed(k8s_v1_ext_client: Mock) -> None:
     k8s_v1_ext_client.create_custom_resource_definition.assert_not_awaited()
     k8s_v1_ext_client.patch_custom_resource_definition.assert_awaited_once_with(
         body=crds
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_cluster(k8s_crd_client: Mock) -> None:
+    """Test get_cluster."""
+
+    k8s_crd_client.get_namespaced_custom_object.return_value = {
+        "spec": {
+            "runAsUser": 1000,
+        }
+    }
+
+    assert await get_cluster(name="test", namespace="testing") == (
+        ArkClusterSpec(run_as_user=1000),
+        ArkClusterStatus(),
     )

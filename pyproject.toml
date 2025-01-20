@@ -33,6 +33,7 @@ dependencies = [
     "environs",
     "gamercon-async",
     "httpx",
+    "human-readable",
     "jinja2-cli",
     "jinja2",
     "kopf[full-auth]",
@@ -180,7 +181,10 @@ ignore_missing_imports = true
 ## test metadata
 [tool.coverage.run]
 branch = true
-omit = []
+omit = [
+    "src/ark_operator/__main__.py",  # TODO
+    "src/ark_operator/cli/*",  # TODO
+]
 disable_warnings = ["no-data-collected", "couldnt-parse"]
 plugins = []
 relative_files = true

@@ -9,7 +9,6 @@ from typing import TYPE_CHECKING, cast
 
 from gamercon_async import GameRCON
 
-from ark_operator.ark import expand_maps
 from ark_operator.exceptions import RCONError
 
 if TYPE_CHECKING:
@@ -88,6 +87,8 @@ async def send_cmd_all(  # noqa: PLR0913
     servers: list[str] | None = None,
 ) -> dict[str, str | BaseException]:
     """Run rcon command against all servers."""
+
+    from ark_operator.ark import expand_maps
 
     servers = servers or ["@all"]
     objs = [

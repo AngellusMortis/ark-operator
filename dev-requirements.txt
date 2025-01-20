@@ -161,6 +161,10 @@ httpx==0.28.1
     #   ark-operator (pyproject.toml)
     #   hatch
     #   pytest-httpx
+human-readable==2.0.0
+    # via
+    #   -c requirements.txt
+    #   ark-operator (pyproject.toml)
 hyperlink==21.0.0
     # via hatch
 idna==3.10
