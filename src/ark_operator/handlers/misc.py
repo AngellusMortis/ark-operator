@@ -148,6 +148,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         kwargs["patch"].status["createdPods"] = 0
         kwargs["patch"].status["readyPods"] = 0
         kwargs["patch"].status["totalPods"] = len(spec.server.active_maps)
+        kwargs["patch"].status["suspendedPods"] = len(spec.server.suspend)
         return
 
     logger = kwargs["logger"]
@@ -198,3 +199,4 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     kwargs["patch"].status["readyPods"] = ready
     kwargs["patch"].status["totalPods"] = total
     kwargs["patch"].status["state"] = f"Running ({ready}/{containers}/{total})"
+    kwargs["patch"].status["suspendedPods"] = len(spec.server.suspend)

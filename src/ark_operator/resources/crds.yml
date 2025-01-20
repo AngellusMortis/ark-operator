@@ -28,6 +28,11 @@ spec:
         description: What operator is currently doing
         jsonPath: .status.state
         priority: 0
+      - name: Suspended
+        type: integer
+        description: How many pods are suspended
+        jsonPath: .status.suspendedPods
+        priority: 0
       - name: Current Volume
         type: string
         description: Current active volume of ARK
@@ -247,3 +252,6 @@ spec:
               totalPods:
                 type: integer
                 description: Total number of server pods
+              suspendedPods:
+                type: integer
+                description: Total number of suspended server pods

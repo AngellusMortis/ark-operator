@@ -8,5 +8,7 @@ spec:
     persist: true
     maps:
       - BobsMissions_WP
+    # suspend:
+    #   - BobsMissions_WP
   data:
     persist: true

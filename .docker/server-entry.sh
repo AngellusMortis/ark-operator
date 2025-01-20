@@ -41,6 +41,7 @@ fi
 
 ARK_SERVER_AUTO_UPDATE=${ARK_SERVER_AUTO_UPDATE:-true}
 ARK_SERVER_GAME_PORT=${ARK_SERVER_GAME_PORT:-7777}
+ARK_OP_DRY_RUN=${ARK_OP_DRY_RUN:-false}
 set +e
 IS_READ_ONLY=$(touch $ARK_BASE_DIR/server/.perm-test 2>/dev/null 1>&2 && echo "false" || echo "true")
 INITIALIZED=$([[ -f ${ARK_SERVER_DIR}/steamapps/appmanifest_2430930.acf && -d ${ARK_DATA_DIR}/maps/${ARK_SERVER_MAP} ]] && echo "true" || echo "false")

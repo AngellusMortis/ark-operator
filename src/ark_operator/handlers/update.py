@@ -17,7 +17,20 @@ from ark_operator.handlers.utils import (
     DEFAULT_NAMESPACE,
     DRY_RUN,
     ERROR_WAIT_PVC,
+    ERROR_WAIT_UPDATE_JOB,
 )
+
+FIELDS_PVC_UPDATE = [
+    ("spec", "data", "storageClass"),
+    ("spec", "data", "size"),
+    ("spec", "server", "storageClass"),
+    ("spec", "server", "size"),
+]
+FIELDS_NO_SERVER_UPDATE = [
+    ("spec", "data", "persist"),
+    ("spec", "server", "loadBalancerIP"),
+    ("spec", "server", "persist"),
+]
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -27,6 +40,15 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     patch = kwargs["patch"]
     retry = kwargs["retry"]
     status = ArkClusterStatus(**kwargs["status"])
+    if retry == 0:
+        patch.status["ready"] = False
+        patch.status["stages"] = None
+    elif status.ready:
+        status.state = "Running"
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status["stages"] = None
+        return
+
     if retry > 0 and status.is_error:
         patch.status["stages"] = None
         raise kopf.PermanentError
@@ -34,20 +56,16 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     server_done = status.is_stage_completed(ClusterStage.SERVER_PVC)
     data_done = status.is_stage_completed(ClusterStage.DATA_PVC)
     if not server_done or not data_done:
-        status.ready = False
         status.state = "Updating PVCs"
-        patch = kwargs["patch"]
         patch.status.update(**status.model_dump(include={"state", "ready"}))
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
 
     if not status.ready:
         status.state = "Updating Resources"
-        patch = kwargs["patch"]
         patch.status.update(**status.model_dump(include={"state", "ready"}))
-        raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
+        raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=3)
 
     status.state = "Running"
-    patch = kwargs["patch"]
     patch.status.update(**status.model_dump(include={"state", "ready"}))
     patch.status["stages"] = None
 
@@ -57,10 +75,25 @@ async def on_update_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     """Update an ARKCluster."""
 
     status = ArkClusterStatus(**kwargs["status"])
+    patch = kwargs["patch"]
     if status.is_stage_completed(ClusterStage.SERVER_PVC):
         return
 
     logger = kwargs["logger"]
+    diff = kwargs["diff"]
+
+    update_pvc = False
+    for change in diff:
+        if change.field[0] != "spec":
+            continue
+        if change.field in FIELDS_PVC_UPDATE and change.field[1] == "server":
+            update_pvc = True
+            break
+
+    if not update_pvc:
+        patch.status["stages"] = status.mark_stage_complete(ClusterStage.SERVER_PVC)
+        return
+
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
@@ -73,12 +106,10 @@ async def on_update_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
             logger=logger,
         )
     except kopf.PermanentError as ex:
-        kwargs["patch"].status["state"] = f"Error: {ex!s}"
+        patch.status["state"] = f"Error: {ex!s}"
         raise
 
-    kwargs["patch"].status["stages"] = status.mark_stage_complete(
-        ClusterStage.SERVER_PVC
-    )
+    patch.status["stages"] = status.mark_stage_complete(ClusterStage.SERVER_PVC)
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -86,10 +117,25 @@ async def on_update_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     """Update an ARKCluster."""
 
     status = ArkClusterStatus(**kwargs["status"])
+    patch = kwargs["patch"]
     if status.is_stage_completed(ClusterStage.DATA_PVC):
         return
 
     logger = kwargs["logger"]
+    diff = kwargs["diff"]
+
+    update_pvc = False
+    for change in diff:
+        if change.field[0] != "spec":
+            continue
+        if change.field in FIELDS_PVC_UPDATE and change.field[1] == "data":
+            update_pvc = True
+            break
+
+    if not update_pvc:
+        patch.status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+        return
+
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
@@ -103,10 +149,10 @@ async def on_update_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
             warn_existing=False,
         )
     except kopf.PermanentError as ex:
-        kwargs["patch"].status["state"] = f"Error: {ex!s}"
+        patch.status["state"] = f"Error: {ex!s}"
         raise
 
-    kwargs["patch"].status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+    patch.status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -114,13 +160,31 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     """Update an ARKCluster."""
 
     status = ArkClusterStatus(**kwargs["status"])
-    if status.ready:
+    patch = kwargs["patch"]
+    if (
+        status.is_stage_completed(ClusterStage.DATA_PVC)
+        and status.is_stage_completed(ClusterStage.SERVER_PVC)
+        and status.ready
+    ):
         return
 
     logger = kwargs["logger"]
+    diff = kwargs["diff"]
+    update_servers = False
+    for change in diff:
+        if change.field[0] != "spec":
+            continue
+        if change.field not in FIELDS_NO_SERVER_UPDATE:
+            update_servers = True
+            break
+
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
+
+    if not update_servers:
+        patch.status["ready"] = True
+        return
 
     try:
         await asyncio.gather(
@@ -139,7 +203,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             ]
         )
     except kopf.PermanentError as ex:
-        kwargs["patch"].status["state"] = f"Error: {ex!s}"
+        patch.status["state"] = f"Error: {ex!s}"
         raise
 
-    kwargs["patch"].status["ready"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+    patch.status["ready"] = True
