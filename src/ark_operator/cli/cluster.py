@@ -19,7 +19,12 @@ from ark_operator.cli.options import (
     OPTION_RCON_PASSWORD,
 )
 from ark_operator.data import ArkClusterSpec
-from ark_operator.k8s import are_crds_installed, close_k8s_client
+from ark_operator.k8s import (
+    are_crds_installed,
+    close_k8s_client,
+    get_cluster,
+    update_cluster,
+)
 from ark_operator.k8s import install_crds as install_crds_api
 from ark_operator.k8s import uninstall_crds as uninstall_crds_api
 from ark_operator.rcon import send_cmd_all
@@ -39,6 +44,7 @@ cluster = App(
 )
 
 ERROR_HOST_REQUIRED = "Host is required from the option or from loadBalancerIP on spec."
+ERROR_NOT_SUSPENDED = "Map {map_id} is not suspended."
 
 
 def _get_context() -> ClusterContext:
@@ -132,6 +138,37 @@ async def init_volumes(
     await steam.init_volumes(
         base_dir, spec=context.spec, dry_run=dry_run, single_server=single_server
     )
+
+
+@cluster.command
+async def suspend(
+    *maps: str,
+) -> None:
+    """Suspend management of map."""
+
+    context = _get_context()
+    spec = await get_cluster(name=context.name, namespace=context.namespace)
+    for map_id in maps:
+        spec.server.suspend.add(map_id)
+
+    await update_cluster(name=context.name, namespace=context.namespace, spec=spec)
+
+
+@cluster.command
+async def resume(
+    *maps: str,
+) -> None:
+    """Suspend management of map."""
+
+    context = _get_context()
+    spec = await get_cluster(name=context.name, namespace=context.namespace)
+    for map_id in maps:
+        try:
+            spec.server.suspend.remove(map_id)
+        except KeyError as ex:
+            raise CycloptsError(msg=ERROR_NOT_SUSPENDED.format(map_id=map_id)) from ex
+
+    await update_cluster(name=context.name, namespace=context.namespace, spec=spec)
 
 
 @cluster.command

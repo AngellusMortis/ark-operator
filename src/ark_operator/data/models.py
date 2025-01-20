@@ -90,6 +90,7 @@ class ArkServerSpec(BaseK8sModel):
     storage_class: str | None = None
     size: int | str = "50Gi"
     maps: list[str] = ["@canonical"]
+    suspend: set[str] = set()
     persist: bool = False
     game_port_start: int = 7777
     rcon_port_start: int = 27020
@@ -103,6 +104,13 @@ class ArkServerSpec(BaseK8sModel):
         from ark_operator.ark.utils import expand_maps
 
         return expand_maps(self.maps)
+
+    @property
+    def active_maps(self) -> list[str]:
+        """Expand maps into list of full maps."""
+
+        maps = set(self.all_maps)
+        return list(maps - self.suspend)
 
     @computed_field  # type: ignore[prop-decorator]
     @property

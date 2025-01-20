@@ -93,6 +93,12 @@ spec:
                       `@officialNoClub`). Defaults to `@canonical`. Can also prefix map name with `-`
                       to remove it. So `[@canonical, -Aberration_WP] will run all of the canonical maps
                       except for Aberration.
+                  suspend:
+                    type: array
+                    items:
+                      type: string
+                    description: |-
+                      Maps to suspend management of. Useful if you need to do maintenance on a specific map.
                   gamePortStart:
                     type: integer
                     description: |-

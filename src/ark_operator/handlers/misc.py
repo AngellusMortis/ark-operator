@@ -147,7 +147,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     if not status.ready or not status.state or not status.state.startswith("Running"):
         kwargs["patch"].status["createdPods"] = 0
         kwargs["patch"].status["readyPods"] = 0
-        kwargs["patch"].status["totalPods"] = len(spec.server.all_maps)
+        kwargs["patch"].status["totalPods"] = len(spec.server.active_maps)
         return
 
     logger = kwargs["logger"]
@@ -166,7 +166,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                     logger=logger,
                     dry_run=DRY_RUN,
                 )
-                for m in spec.server.all_maps
+                for m in spec.server.active_maps
             ]
         )
     except Exception as ex:  # noqa: BLE001
@@ -178,8 +178,8 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
 
     containers = 0
     ready = 0
-    total = len(spec.server.all_maps)
-    for map_id in spec.server.all_maps:
+    total = len(spec.server.active_maps)
+    for map_id in spec.server.active_maps:
         try:
             obj = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
         except Exception as ex:  # noqa: BLE001

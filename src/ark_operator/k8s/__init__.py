@@ -11,8 +11,10 @@ from ark_operator.k8s.client import (
 from ark_operator.k8s.crds import (
     CRD_FILE,
     are_crds_installed,
+    get_cluster,
     install_crds,
     uninstall_crds,
+    update_cluster,
 )
 from ark_operator.k8s.pvc import (
     check_pvc_exists,
@@ -31,6 +33,7 @@ __all__ = [
     "convert_k8s_size",
     "create_pvc",
     "delete_pvc",
+    "get_cluster",
     "get_crd_client",
     "get_k8s_client",
     "get_pvc",
@@ -40,4 +43,5 @@ __all__ = [
     "install_crds",
     "resize_pvc",
     "uninstall_crds",
+    "update_cluster",
 ]

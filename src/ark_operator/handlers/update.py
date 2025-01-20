@@ -135,7 +135,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                     force_create=True,
                     dry_run=DRY_RUN,
                 )
-                for m in spec.server.all_maps
+                for m in spec.server.active_maps
             ]
         )
     except kopf.PermanentError as ex:

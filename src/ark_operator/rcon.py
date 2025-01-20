@@ -90,7 +90,9 @@ async def send_cmd_all(  # noqa: PLR0913
     """Run rcon command against all servers."""
 
     servers = servers or ["@all"]
-    objs = [spec.all_servers[s] for s in expand_maps(servers, all_maps=spec.all_maps)]
+    objs = [
+        spec.all_servers[s] for s in expand_maps(servers, all_maps=spec.active_maps)
+    ]
     tasks = [
         send_cmd(
             cmd,
