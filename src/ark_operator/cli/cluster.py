@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path  # required for cyclopts  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, cast
 
@@ -58,12 +59,17 @@ def _require_host(spec: ArkClusterSpec | None) -> IPv4Address | IPv6Address:
     return spec.server.load_balancer_ip
 
 
+def _get_cluster(*, name: str, namespace: str) -> ArkClusterSpec:
+    loop = asyncio.new_event_loop()
+    return loop.run_until_complete(get_cluster(name=name, namespace=namespace))
+
+
 @cluster.meta.default
 def meta(  # noqa: PLR0913
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     name: OPTION_ARK_CLUSTER_NAME = "ark",
     namespace: OPTION_ARK_CLUSTER_NAMESPACE = "default",
-    spec: OPTION_ARK_SPEC,
+    spec: OPTION_ARK_SPEC = None,
     selector: OPTION_ARK_SELECTOR = ["@all"],  # noqa: B006\
     host: OPTION_OPTIONAL_HOST = None,
     rcon_password: OPTION_RCON_PASSWORD,
@@ -74,6 +80,7 @@ def meta(  # noqa: PLR0913
     Helpful commands for managing an ARK: Survival Ascended k8s server cluster.
     """
 
+    spec = spec or _get_cluster(name=name, namespace=namespace)
     selector = comma_list(selector)
     selected_maps = expand_maps(selector.copy(), all_maps=spec.server.all_maps)
     set_context(
@@ -147,11 +154,12 @@ async def suspend(
     """Suspend management of map."""
 
     context = _get_context()
-    spec = await get_cluster(name=context.name, namespace=context.namespace)
     for map_id in maps:
-        spec.server.suspend.add(map_id)
+        context.spec.server.suspend.add(map_id)
 
-    await update_cluster(name=context.name, namespace=context.namespace, spec=spec)
+    await update_cluster(
+        name=context.name, namespace=context.namespace, spec=context.spec
+    )
 
 
 @cluster.command
@@ -161,14 +169,15 @@ async def resume(
     """Suspend management of map."""
 
     context = _get_context()
-    spec = await get_cluster(name=context.name, namespace=context.namespace)
     for map_id in maps:
         try:
-            spec.server.suspend.remove(map_id)
+            context.spec.server.suspend.remove(map_id)
         except KeyError as ex:
             raise CycloptsError(msg=ERROR_NOT_SUSPENDED.format(map_id=map_id)) from ex
 
-    await update_cluster(name=context.name, namespace=context.namespace, spec=spec)
+    await update_cluster(
+        name=context.name, namespace=context.namespace, spec=context.spec
+    )
 
 
 @cluster.command

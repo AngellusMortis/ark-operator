@@ -97,7 +97,7 @@ OPTION_ARK_CLUSTER_NAMESPACE = Annotated[
 ]
 
 OPTION_ARK_SPEC = Annotated[
-    ArkClusterSpec,
+    ArkClusterSpec | None,
     Parameter(("--spec"), env_var=["ARK_CLUSTER_SPEC"]),
 ]
 
