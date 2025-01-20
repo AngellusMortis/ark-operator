@@ -192,6 +192,10 @@ async def test_create_init_job(k8s_v1_batch_client: Mock) -> None:
                                         "value": ANY,
                                     },
                                     {
+                                        "name": "ARK_CLUSTER_STATUS",
+                                        "value": ANY,
+                                    },
+                                    {
                                         "name": "ARK_SERVER_HOST",
                                         "value": "127.0.0.1",
                                     },
@@ -313,6 +317,10 @@ async def test_create_init_job_dry_run(k8s_v1_batch_client: Mock) -> None:
                                     },
                                     {
                                         "name": "ARK_CLUSTER_SPEC",
+                                        "value": ANY,
+                                    },
+                                    {
+                                        "name": "ARK_CLUSTER_STATUS",
                                         "value": ANY,
                                     },
                                     {

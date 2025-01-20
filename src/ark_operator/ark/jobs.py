@@ -1,21 +1,26 @@
 """ARK operator code for PVCs."""
 
+from __future__ import annotations
+
 import json
 import logging
 from http import HTTPStatus
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
 
 import kopf
 import yaml
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION
-from ark_operator.data import ArkClusterSpec
+from ark_operator.data import ArkClusterStatus
 from ark_operator.k8s import (
     get_v1_batch_client,
 )
 from ark_operator.templates import loader
 from ark_operator.utils import VERSION
+
+if TYPE_CHECKING:
+    from ark_operator.data import ArkClusterSpec
 
 JOB_RETRIES = 3
 
@@ -52,7 +57,6 @@ async def _create_job(  # noqa: PLR0913
             else None,
             tolerations=json.dumps(spec.tolerations) if spec.tolerations else None,
             retries=JOB_RETRIES,
-            spec=spec.model_dump_json(),
             dry_run=dry_run,
             image_version=ARK_SERVER_IMAGE_VERSION,
             operator_version=VERSION,
@@ -108,16 +112,18 @@ async def _check_job(
     raise kopf.TemporaryError(ERROR_WAIT_POD.format(job_desc=job_desc), delay=10)
 
 
-async def create_init_job(
+async def create_init_job(  # noqa: PLR0913
     *,
     name: str,
     namespace: str,
     spec: ArkClusterSpec,
+    status: ArkClusterStatus | None = None,
     logger: kopf.Logger | None = None,
     dry_run: bool = False,
 ) -> None:
     """Create job to initialize PVCs."""
 
+    status = status or ArkClusterStatus()
     await _create_job(
         template="init-job.yml.j2",
         job_desc="volume init",
@@ -126,6 +132,8 @@ async def create_init_job(
         spec=spec,
         logger=logger,
         dry_run=dry_run,
+        spec_json=spec.model_dump_json(),
+        status_json=status.model_dump_json(),
     )
 
 

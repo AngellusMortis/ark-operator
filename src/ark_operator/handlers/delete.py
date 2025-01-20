@@ -1,7 +1,9 @@
 """Delete handlers for kopf."""
 
+from __future__ import annotations
+
 import asyncio
-from typing import Unpack
+from typing import TYPE_CHECKING, Any, Unpack
 
 import kopf
 
@@ -16,6 +18,9 @@ from ark_operator.handlers.update import (
 )
 from ark_operator.k8s import delete_pvc
 
+if TYPE_CHECKING:
+    from collections.abc import Coroutine
+
 
 @kopf.on.delete("arkcluster")  # type: ignore[arg-type]
 async def on_delete_resources(**kwargs: Unpack[ChangeEvent]) -> None:
@@ -26,17 +31,18 @@ async def on_delete_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
-    tasks = [
+    tasks: list[Coroutine[Any, Any, Any]] = [
         check_init_job(
             name=name, namespace=namespace, logger=logger, force_delete=True
         ),
-        delete_secrets(name=name, namespace=namespace, logger=logger),
     ]
     tasks.extend(
         delete_server_pod(name=name, namespace=namespace, map_id=m, logger=logger)
         for m in spec.server.all_maps
     )
+    await asyncio.gather(*tasks)
 
+    tasks = [delete_secrets(name=name, namespace=namespace, logger=logger)]
     if not spec.server.persist:
         tasks.append(
             delete_pvc(

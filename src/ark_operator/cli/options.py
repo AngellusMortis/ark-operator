@@ -8,7 +8,7 @@ from typing import Annotated, Any, Literal
 
 from cyclopts import Parameter
 
-from ark_operator.data import ArkClusterSpec, ArkClusterStatus
+from ark_operator.data import ArkClusterSpec
 from ark_operator.log import LoggingFormat, LoggingLevel
 
 OPTION_LOG_FORMAT = Annotated[LoggingFormat, Parameter(env_var="ARK_OP_LOG_FORMAT")]
@@ -110,7 +110,7 @@ OPTION_ARK_SPEC = Annotated[
 ]
 
 OPTION_ARK_STATUS = Annotated[
-    ArkClusterStatus | None,
+    dict[str, Any] | None,
     Parameter(("--status"), env_var=["ARK_CLUSTER_STATUS"]),
 ]
 

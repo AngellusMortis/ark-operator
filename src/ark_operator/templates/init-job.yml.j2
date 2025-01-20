@@ -42,7 +42,9 @@ spec:
             - name: ARK_CLUSTER_NAMESPACE
               value: '{{ namespace }}'
             - name: ARK_CLUSTER_SPEC
-              value: '{{ spec }}'
+              value: '{{ spec_json }}'
+            - name: ARK_CLUSTER_STATUS
+              value: '{{ status_json }}'
             - name: ARK_SERVER_HOST
               value: "127.0.0.1"
             - name: ARK_SERVER_RCON_PASSWORD

@@ -46,8 +46,6 @@ spec:
         value: '{{ instance_name }}'
       - name: ARK_CLUSTER_NAMESPACE
         value: '{{ namespace }}'
-      - name: ARK_CLUSTER_SPEC
-        value: '{{ spec }}'
       - name: ARK_SERVER_HOST
         value: "127.0.0.1"
       {% for key, value in envs.items() %}

@@ -234,7 +234,9 @@ async def delete_secrets(
     logger.info("Deleting secrets %s", secret_name)
     v1 = await get_v1_client()
     try:
-        await v1.delete_namespaced_secret(name=secret_name, namespace=namespace)
+        await v1.delete_namespaced_secret(
+            name=secret_name, namespace=namespace, propagation_policy="Foreground"
+        )
     except Exception:  # noqa: BLE001  # TODO: # pragma: no cover
         logger.warning("Failed to delete secret %s", secret_name)
 

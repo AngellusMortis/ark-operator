@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from copy import deepcopy
 from http import HTTPStatus
-from unittest.mock import ANY, AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from kubernetes_asyncio.client import ApiException
@@ -58,7 +58,6 @@ _SERVER_POD = {
                 "env": [
                     {"name": "ARK_CLUSTER_NAME", "value": "test"},
                     {"name": "ARK_CLUSTER_NAMESPACE", "value": "testing"},
-                    {"name": "ARK_CLUSTER_SPEC", "value": ANY},
                     {"name": "ARK_SERVER_HOST", "value": "127.0.0.1"},
                     {"name": "ARK_SERVER_GAME_PORT", "value": "7777"},
                     {"name": "ARK_SERVER_RCON_PORT", "value": "27020"},

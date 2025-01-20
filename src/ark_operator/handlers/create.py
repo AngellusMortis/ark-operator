@@ -11,6 +11,7 @@ from ark_operator.ark import (
     check_init_job,
     create_init_job,
     create_secrets,
+    create_server_pod,
     update_data_pvc,
     update_server_pvc,
 )
@@ -181,6 +182,7 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
                 name=name,
                 namespace=namespace,
                 spec=spec,
+                status=status,
                 logger=logger,
                 dry_run=DRY_RUN,
             )
@@ -216,10 +218,26 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+    spec = ArkClusterSpec(**kwargs["spec"])
     tasks = [create_secrets(name=name, namespace=namespace, logger=logger)]
 
     try:
         await asyncio.gather(*tasks)
+        await asyncio.gather(
+            *[
+                create_server_pod(
+                    name=name,
+                    namespace=namespace,
+                    map_id=m,
+                    active_volume=status.active_volume or "server-a",
+                    spec=spec,
+                    logger=logger,
+                    dry_run=DRY_RUN,
+                    force_create=True,
+                )
+                for m in spec.server.active_maps
+            ]
+        )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
         raise

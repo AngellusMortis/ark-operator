@@ -97,7 +97,6 @@ async def create_server_pod(  # noqa: PLR0913
             resources=json.dumps(spec.server.resources)
             if spec.server.resources
             else None,
-            spec=spec.model_dump_json(),
             dry_run=dry_run,
             image_version=ARK_SERVER_IMAGE_VERSION,
             operator_version=VERSION,

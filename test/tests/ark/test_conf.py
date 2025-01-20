@@ -73,7 +73,7 @@ async def test_delete_secrets(k8s_v1_client: Mock) -> None:
     await delete_secrets(name="test", namespace="test")
 
     k8s_v1_client.delete_namespaced_secret.assert_awaited_once_with(
-        name="test-cluster-secrets", namespace="test"
+        name="test-cluster-secrets", namespace="test", propagation_policy="Foreground"
     )
 
 

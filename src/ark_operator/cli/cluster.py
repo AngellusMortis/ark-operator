@@ -95,8 +95,11 @@ def meta(  # noqa: PLR0913
     Helpful commands for managing an ARK: Survival Ascended k8s server cluster.
     """
 
-    if not spec or not status:
-        spec, status = _get_cluster(name=name, namespace=namespace)
+    cluster_status: ArkClusterStatus | None = None
+    if status:
+        cluster_status = ArkClusterStatus(**status)
+    if not spec or not cluster_status:
+        spec, cluster_status = _get_cluster(name=name, namespace=namespace)
 
     selector = comma_list(selector)
     selected_maps = expand_maps(selector.copy(), all_maps=spec.server.all_maps)
@@ -106,7 +109,7 @@ def meta(  # noqa: PLR0913
             name=name,
             namespace=namespace,
             spec=spec,
-            status=status,
+            status=cluster_status,
             selected_maps=selected_maps,
             host=host or _require_host(spec),
             rcon_password=rcon_password,
