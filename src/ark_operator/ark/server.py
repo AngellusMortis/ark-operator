@@ -164,6 +164,10 @@ async def _notify_server_pods(  # noqa: PLR0913
     password: str,
     rolling: bool = False,
 ) -> None:
+    if spec.server.graceful_shutdown.total_seconds() <= 0:
+        logger.info("Skipping notify because gracefulShutdown is set to 0")
+        return
+
     logger.info("Notifying servers of shutdown (rolling: %s)", rolling)
     previous_interval: float | None = None
     for interval in spec.server.notify_intervals:

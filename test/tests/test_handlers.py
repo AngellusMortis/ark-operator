@@ -33,6 +33,7 @@ CLUSTER_SPEC: dict[str, Any] = {
         "server": {
             "size": "2Mi",
             "maps": ["BobsMissions_WP"],
+            "gracefulShutdown": 0,
         },
         "data": {"size": "2Mi"},
     },

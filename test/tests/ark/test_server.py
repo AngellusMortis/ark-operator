@@ -227,5 +227,5 @@ async def test_delete_server_pod(k8s_v1_client: Mock) -> None:
     await delete_server_pod(name="test", namespace="testing", map_id="TheIsland_WP")
 
     k8s_v1_client.delete_namespaced_pod.assert_awaited_once_with(
-        name="test-island", namespace="testing"
+        name="test-island", namespace="testing", propagation_policy="Foreground"
     )

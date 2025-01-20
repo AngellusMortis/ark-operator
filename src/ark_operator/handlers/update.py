@@ -1,10 +1,16 @@
 """Main handlers for kopf."""
 
+import asyncio
 from typing import Unpack
 
 import kopf
 
-from ark_operator.ark import shutdown_server_pods, update_data_pvc, update_server_pvc
+from ark_operator.ark import (
+    create_server_pod,
+    shutdown_server_pods,
+    update_data_pvc,
+    update_server_pvc,
+)
 from ark_operator.data import (
     ArkClusterSpec,
     ArkClusterStatus,
@@ -14,6 +20,7 @@ from ark_operator.data import (
 from ark_operator.handlers.utils import (
     DEFAULT_NAME,
     DEFAULT_NAMESPACE,
+    DRY_RUN,
     ERROR_WAIT_PVC,
     ERROR_WAIT_UPDATE_JOB,
 )
@@ -193,6 +200,21 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             spec=spec,
             reason="configuration update",
             logger=logger,
+        )
+        await asyncio.gather(
+            *[
+                create_server_pod(
+                    name=name,
+                    namespace=namespace,
+                    map_id=m,
+                    active_volume=status.active_volume or "server-a",
+                    spec=spec,
+                    logger=logger,
+                    force_create=True,
+                    dry_run=DRY_RUN,
+                )
+                for m in spec.server.active_maps
+            ]
         )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"

@@ -69,7 +69,7 @@ async def get_cluster(
         name=name,
         namespace=namespace,
     )
-    return ArkClusterSpec(**data["spec"]), ArkClusterStatus(**data["status"])
+    return ArkClusterSpec(**data["spec"]), ArkClusterStatus(**data.get("status", {}))
 
 
 async def update_cluster(*, name: str, namespace: str, spec: ArkClusterSpec) -> None:

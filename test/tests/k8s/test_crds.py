@@ -118,7 +118,7 @@ async def test_get_cluster(k8s_crd_client: Mock) -> None:
     k8s_crd_client.get_namespaced_custom_object.return_value = {
         "spec": {
             "runAsUser": 1000,
-        }
+        },
     }
 
     assert await get_cluster(name="test", namespace="testing") == (
