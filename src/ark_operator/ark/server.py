@@ -12,7 +12,7 @@ import yaml
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark.conf import get_map_envs
-from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION, get_map_name
+from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION, get_map_name, get_map_slug
 from ark_operator.k8s import get_v1_client
 from ark_operator.templates import loader
 from ark_operator.utils import VERSION
@@ -29,8 +29,8 @@ _LOGGER = logging.getLogger(__name__)
 async def get_server_pod(*, name: str, namespace: str, map_id: str) -> V1Pod | None:
     """Get server pod."""
 
-    map_name = get_map_name(map_id)
-    pod_name = f"{name}-{map_name.replace(' ', '-').lower()}"
+    map_slug = get_map_slug(map_id)
+    pod_name = f"{name}-{map_slug}"
 
     v1 = await get_v1_client()
     try:
@@ -66,7 +66,8 @@ async def create_server_pod(  # noqa: PLR0913
 
     v1 = await get_v1_client()
     map_name = get_map_name(map_id)
-    pod_name = f"{name}-{map_name.replace(' ', '-').lower()}"
+    map_slug = get_map_slug(map_id)
+    pod_name = f"{name}-{map_slug}"
     envs = await get_map_envs(name=name, namespace=namespace, spec=spec, map_id=map_id)
     has_global_gus = "ARK_SERVER_GLOBAL_GUS" in envs
     has_global_game = "ARK_SERVER_GLOBAL_GAME" in envs
@@ -93,6 +94,7 @@ async def create_server_pod(  # noqa: PLR0913
             operator_version=VERSION,
             map_id=map_id,
             map_name=map_name,
+            map_slug=map_slug,
             active_volume=active_volume,
             envs=envs,
             has_global_gus=has_global_gus,
@@ -130,8 +132,8 @@ async def delete_server_pod(
 ) -> None:
     """Delete secrets for ARK cluster."""
 
-    map_name = get_map_name(map_id)
-    pod_name = f"{name}-{map_name.replace(' ', '-').lower()}"
+    map_slug = get_map_slug(map_id)
+    pod_name = f"{name}-{map_slug}"
     logger = logger or _LOGGER
     logger.info("Deleting server pod %s", pod_name)
     v1 = await get_v1_client()

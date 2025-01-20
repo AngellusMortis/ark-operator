@@ -9,6 +9,7 @@ from ark_operator.ark.utils import (
     ARK_SERVER_APP_ID,
     copy_ark,
     get_ark_buildid,
+    get_map_slug,
     has_newer_version,
     is_ark_newer,
 )
@@ -157,3 +158,35 @@ async def test_copy_ark_no_dest(mock_is_new: Mock, mock_shutil: Mock) -> None:
 
     mock_shutil.rmtree.assert_not_awaited()
     mock_shutil.copytree.assert_awaited_once()
+
+
+@pytest.mark.parametrize(
+    ("input_map", "expected_map"),
+    [
+        ("Aberration_WP", "aberration"),
+        ("BobsMissions_WP", "club-ark"),
+        ("Extinction_WP", "extinction"),
+        ("ScorchedEarth_WP", "se"),
+        ("TheCenter_WP", "center"),
+        ("TheIsland_WP", "island"),
+        ("TheIsland_SOTF", "sotf-island"),
+        ("Svartalfheim_WP", "svartalf"),
+        ("Astraeos_WP", "astraeos"),
+        ("Amissa_WP", "amissa"),
+        ("Forglar_WP", "forglar"),
+        ("insaluna_WP", "insaluna"),
+        ("Temptress_WP", "temptress"),
+        ("TeamDeathmatch", "td"),
+        ("Reverence_WP", "reverence"),
+        ("Althemia", "althemia"),
+        ("Nyrandil", "nyrandil"),
+        ("Frost_WP", "frost"),
+        ("M_ArkopolisWP", "arkopolis"),
+        ("Appalachia_Official_WP", "ao"),
+        ("TaeniaStella", "ts"),
+    ],
+)
+def test_get_map_slug(input_map: str, expected_map: str) -> None:
+    """Get k8s friendly name for maps."""
+
+    assert get_map_slug(input_map) == expected_map

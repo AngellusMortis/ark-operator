@@ -21,6 +21,7 @@ from ark_operator.ark.utils import (
     get_ark_buildid,
     get_latest_ark_buildid,
     get_map_name,
+    get_map_slug,
     has_newer_version,
     is_ark_newer,
 )
@@ -43,6 +44,7 @@ __all__ = [
     "get_latest_ark_buildid",
     "get_map_envs",
     "get_map_name",
+    "get_map_slug",
     "get_server_pod",
     "has_newer_version",
     "is_ark_newer",

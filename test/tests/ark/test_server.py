@@ -18,9 +18,9 @@ _SERVER_POD = {
     "apiVersion": "v1",
     "kind": "Pod",
     "metadata": {
-        "name": "test-the-island",
+        "name": "test-island",
         "labels": {
-            "app.kubernetes.io/name": "the-island",
+            "app.kubernetes.io/name": "island",
             "app.kubernetes.io/instance": "test",
             "app.kubernetes.io/version": VERSION.replace("+", "-"),
             "app.kubernetes.io/component": "server",
@@ -45,12 +45,12 @@ _SERVER_POD = {
                 "ports": [
                     {
                         "containerPort": 7777,
-                        "name": "ark-the-island",
+                        "name": "ark-island",
                         "protocol": "UDP",
                     },
                     {
                         "containerPort": 27020,
-                        "name": "rcon-the-island",
+                        "name": "rcon-island",
                         "protocol": "TCP",
                     },
                 ],
@@ -155,7 +155,7 @@ async def test_create_server_pod(k8s_v1_client: Mock) -> None:
     )
 
     k8s_v1_client.read_namespaced_pod.assert_awaited_once_with(
-        namespace="testing", name="test-the-island"
+        namespace="testing", name="test-island"
     )
     k8s_v1_client.create_namespaced_pod.assert_awaited_once()
     actual = k8s_v1_client.create_namespaced_pod.call_args_list[0].kwargs["body"]
@@ -184,7 +184,7 @@ async def test_create_server_pod_exists(k8s_v1_client: Mock) -> None:
     )
 
     k8s_v1_client.read_namespaced_pod.assert_awaited_once_with(
-        namespace="testing", name="test-the-island"
+        namespace="testing", name="test-island"
     )
     k8s_v1_client.create_namespaced_pod.assert_not_awaited()
 
@@ -213,7 +213,7 @@ async def test_create_server_pod_force_create(k8s_v1_client: Mock) -> None:
     )
 
     k8s_v1_client.read_namespaced_pod.assert_awaited_once_with(
-        namespace="testing", name="test-the-island"
+        namespace="testing", name="test-island"
     )
     k8s_v1_client.patch_namespaced_pod.assert_awaited_once()
     actual = k8s_v1_client.patch_namespaced_pod.call_args_list[0].kwargs["body"]
@@ -227,5 +227,5 @@ async def test_delete_server_pod(k8s_v1_client: Mock) -> None:
     await delete_server_pod(name="test", namespace="testing", map_id="TheIsland_WP")
 
     k8s_v1_client.delete_namespaced_pod.assert_awaited_once_with(
-        name="test-the-island", namespace="testing"
+        name="test-island", namespace="testing"
     )

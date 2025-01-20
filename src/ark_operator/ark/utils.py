@@ -153,6 +153,22 @@ def get_map_name(map_id: str) -> str:
     return map_name.replace("_", "").title()
 
 
+@lru_cache(maxsize=20)
+def get_map_slug(map_id: str, max_length: int = 11) -> str:
+    """Get map name from map ID."""
+
+    map_name = get_map_name(map_id)
+    map_name = (
+        map_name.lower().replace("survival of the fittest", "sotf").replace("heim", "")
+    )
+    no_the = map_name.replace("the ", "").replace("(", "").replace(")", "").strip()
+    slug = no_the.replace(" ", "-")
+    if len(slug) > max_length:
+        slug = "".join([s[0] for s in no_the.split(" ")])
+
+    return slug
+
+
 def expand_maps(maps: list[str], *, all_maps: list[str] | None = None) -> list[str]:
     """Expand map shorthands into list of maps."""
 
