@@ -76,6 +76,9 @@ spec:
                     type: boolean
                     description: |-
                       Keep the data PVC after the cluster is deleted. Default to false.
+                  resources:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
                   maps:
                     type: array
                     items:
