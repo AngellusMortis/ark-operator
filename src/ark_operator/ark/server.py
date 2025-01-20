@@ -119,7 +119,7 @@ async def create_server_pod(  # noqa: PLR0913
                 body=pod,
             )
     except Exception as ex:
-        raise kopf.PermanentError(ERROR_POD.format(map_id=map_id)) from ex
+        raise kopf.TemporaryError(ERROR_POD.format(map_id=map_id), delay=5) from ex
 
     logger.info(
         "%s server pod: %s", "Patched" if exists else "Created", obj.metadata.name
