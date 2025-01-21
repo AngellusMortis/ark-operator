@@ -161,7 +161,7 @@ async def test_delete_secrets(k8s_v1_client: Mock) -> None:
         (
             ArkClusterSettings(
                 session_name_format="{map_name}",
-                multihome_ip="1.1.1.1",
+                multihome_ip="1.1.1.1",  # type: ignore[call-arg]
                 max_players=10,
                 cluster_id="test",
                 battleye=False,
@@ -191,7 +191,7 @@ async def test_delete_secrets(k8s_v1_client: Mock) -> None:
         (
             ArkClusterSettings(
                 session_name_format="{map_name}",
-                multihome_ip="1.1.1.1",
+                multihome_ip="1.1.1.1",  # type: ignore[call-arg]
                 max_players=10,
                 cluster_id="test",
                 battleye=False,
@@ -223,7 +223,7 @@ async def test_delete_secrets(k8s_v1_client: Mock) -> None:
         (
             ArkClusterSettings(
                 session_name_format="{map_name}",
-                multihome_ip="1.1.1.1",
+                multihome_ip="1.1.1.1",  # type: ignore[call-arg]
                 max_players=10,
                 cluster_id="test",
                 battleye=False,
@@ -254,7 +254,7 @@ async def test_delete_secrets(k8s_v1_client: Mock) -> None:
         (
             ArkClusterSettings(
                 session_name_format="{map_name}",
-                multihome_ip="1.1.1.1",
+                multihome_ip="1.1.1.1",  # type: ignore[call-arg]
                 max_players=10,
                 cluster_id="test",
                 battleye=False,
@@ -286,7 +286,7 @@ async def test_delete_secrets(k8s_v1_client: Mock) -> None:
         (
             ArkClusterSettings(
                 session_name_format="{map_name}",
-                multihome_ip="1.1.1.1",
+                multihome_ip="1.1.1.1",  # type: ignore[call-arg]
                 max_players=10,
                 cluster_id="test",
                 battleye=False,
