@@ -92,16 +92,6 @@ async def update_cluster(
     if spec:
         if isinstance(spec, ArkClusterSpec):
             spec = spec.model_dump(mode="json", by_alias=True)
-            if "loadBalancerIp" in spec["server"]:
-                spec["server"]["loadBalancerIP"] = spec["server"].pop("loadBalancerIp")
-            if "multihomeIp" in spec["globalSettings"]:
-                spec["globalSettings"]["multihomeIP"] = spec["globalSettings"].pop(
-                    "multihomeIp"
-                )
-            if "clusterId" in spec["globalSettings"]:
-                spec["globalSettings"]["clusterID"] = spec["globalSettings"].pop(
-                    "clusterId"
-                )
             del spec["server"]["allMaps"]
             del spec["server"]["allServers"]
             del spec["server"]["notifyIntervals"]

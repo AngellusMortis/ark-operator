@@ -223,6 +223,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     spec = ArkClusterSpec(**kwargs["spec"])
     tasks = [create_secrets(name=name, namespace=namespace, logger=logger)]
 
+    logger.debug("cluster spec: %s", spec)
     try:
         await asyncio.gather(*tasks)
         if status.last_applied_version != ARK_SERVER_IMAGE_VERSION:
@@ -233,7 +234,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                 name=name,
                 namespace=namespace,
                 spec=spec,
-                reason=f"container update {old} -> {new}",
+                reason="container update",
                 logger=logger,
             )
             logger.info("Waiting 30 seconds before starting back up pods")

@@ -189,6 +189,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
+    logger.debug("cluster spec: %s", spec)
     if not update_servers:
         patch.status["ready"] = True
         return

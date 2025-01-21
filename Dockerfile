@@ -13,13 +13,16 @@ RUN addgroup --system --gid 1000 app \
 RUN --mount=type=cache,mode=0755,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,mode=0755,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     apt-get update -qq \
-    && apt-get install -yqq lib32stdc++6 dbus libfreetype6 locales net-tools \
+    && apt-get install -yqq lib32stdc++6 dbus libfreetype6 locales net-tools curl \
     # required for Steam/Proton
     && rm -f /etc/machine-id \
     && dbus-uuidgen --ensure=/etc/machine-id \
     && echo 'LANG="en_US.UTF-8"' > /etc/default/locale \
     && echo "en_US.UTF-8 UTF-8" >> /etc/locale.gen \
-    && locale-gen
+    && locale-gen \
+    && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
+    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
+    && rm kubectl
 
 
 FROM base AS builder-prod
@@ -120,9 +123,6 @@ RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing
     apt-get update -qq \
     && apt-get install -yqq git curl vim procps curl jq yq sudo zip \
     && echo 'app ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
-    && curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" \
-    && install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl \
-    && rm kubectl \
     && chown app:app /home/app/.bashrc \
     && chmod +x /usr/local/bin/docker-fix
 

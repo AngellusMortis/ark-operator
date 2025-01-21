@@ -13,6 +13,7 @@ from pydantic import (
     BaseModel,
     BeforeValidator,
     ConfigDict,
+    Field,
     PlainSerializer,
     computed_field,
 )
@@ -109,7 +110,9 @@ class GameServer:
 class ArkServerSpec(BaseK8sModel):
     """ArkCluster.spec.server CRD spec."""
 
-    load_balancer_ip: IPv4Address | IPv6Address | None = None
+    load_balancer_ip: IPv4Address | IPv6Address | None = Field(
+        alias="loadBalancerIP", default=None
+    )
     storage_class: str | None = None
     size: int | str = "50Gi"
     maps: list[str] = ["@canonical"]
@@ -197,9 +200,9 @@ class ArkClusterSettings(BaseK8sModel):
     """ArkCluster.spec.cluster CRD spec."""
 
     session_name_format: str = "ASA - {map_name}"
-    multihome_ip: str | None = None
+    multihome_ip: str | None = Field(alias="multihomeIP", default=None)
     max_players: int = 70
-    cluster_id: str = "ark-cluster"
+    cluster_id: str = Field(alias="clusterID", default="ark-cluster")
     battleye: bool = True
     allowed_platforms: list[str] = ["ALL"]
     whitelist: bool = False

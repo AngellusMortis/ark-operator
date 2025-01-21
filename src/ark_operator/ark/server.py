@@ -199,7 +199,6 @@ async def _notify_server_pods(  # noqa: PLR0913
             host=host,
             password=password,
             close=False,
-            raise_exceptions=False,
             servers=servers.copy(),
         )
         previous_interval = interval
@@ -336,7 +335,6 @@ async def restart_server_pods(  # noqa: PLR0913
         host=host,
         password=password,
         close=False,
-        raise_exceptions=False,
         servers=online_servers.copy(),
     )
     total = len(online_servers)
@@ -354,7 +352,6 @@ async def restart_server_pods(  # noqa: PLR0913
                 host=host,
                 password=password,
                 close=False,
-                raise_exceptions=False,
                 servers=online_servers.copy(),
             )
         await asyncio.sleep(10)
