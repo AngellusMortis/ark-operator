@@ -6,6 +6,7 @@ import asyncio
 import logging
 import re
 from datetime import timedelta
+from functools import lru_cache
 from importlib.metadata import version
 from typing import TYPE_CHECKING, overload
 
@@ -21,6 +22,14 @@ _LOGGER = logging.getLogger(__name__)
 VERSION = version("ark_operator")
 
 TD_PATTERN = re.compile(r"((?P<hours>\d+)h)?((?P<minutes>\d+)m)?((?P<seconds>\d+)s)?")
+_INTERVALS = {
+    "1h": int(timedelta(hours=1).total_seconds()),
+    "30m": int(timedelta(minutes=30).total_seconds()),
+    "5m": int(timedelta(minutes=5).total_seconds()),
+    "1m": 60,
+    "30s": 30,
+    "10s": 10,
+}
 
 
 def is_async() -> bool:
@@ -142,3 +151,28 @@ def human_format(interval: float | timedelta) -> str:
         interval = timedelta(seconds=interval)
 
     return time_delta(interval)
+
+
+@lru_cache(maxsize=20)
+def notify_intervals(interval: timedelta) -> list[int]:
+    """Intervals to notify players."""
+
+    seconds = int(interval.total_seconds())
+    if seconds <= 0:
+        return []
+
+    intervals = [seconds]
+    if seconds > _INTERVALS["1h"]:
+        intervals.append(_INTERVALS["1h"])
+    if seconds > _INTERVALS["30m"]:
+        intervals.append(_INTERVALS["30m"])
+    if seconds > _INTERVALS["5m"]:
+        intervals.append(_INTERVALS["5m"])
+    if seconds > _INTERVALS["1m"]:
+        intervals.append(_INTERVALS["1m"])
+    if seconds > _INTERVALS["30s"]:
+        intervals.append(_INTERVALS["30s"])
+    if seconds > _INTERVALS["10s"]:
+        intervals.append(_INTERVALS["10s"])
+
+    return intervals

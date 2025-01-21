@@ -149,12 +149,17 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
 
     status = ArkClusterStatus(**kwargs["status"])
     spec = ArkClusterSpec(**kwargs["spec"])
+    patch = kwargs["patch"]
+
+    if status.ready is None and status.state.startswith("Running"):
+        status.ready = True
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
 
     if not status.ready or not status.state or not status.state.startswith("Running"):
-        kwargs["patch"].status["createdPods"] = 0
-        kwargs["patch"].status["readyPods"] = 0
-        kwargs["patch"].status["totalPods"] = len(spec.server.active_maps)
-        kwargs["patch"].status["suspendedPods"] = len(spec.server.suspend)
+        patch.status["createdPods"] = 0
+        patch.status["readyPods"] = 0
+        patch.status["totalPods"] = len(spec.server.active_maps)
+        patch.status["suspendedPods"] = len(spec.server.suspend)
         return
 
     logger = kwargs["logger"]
@@ -200,8 +205,8 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         if is_server_pod_ready(obj):
             ready += 1
 
-    kwargs["patch"].status["createdPods"] = containers
-    kwargs["patch"].status["readyPods"] = ready
-    kwargs["patch"].status["totalPods"] = total
-    kwargs["patch"].status["state"] = f"Running ({ready}/{containers}/{total})"
-    kwargs["patch"].status["suspendedPods"] = len(spec.server.suspend)
+    patch.status["createdPods"] = containers
+    patch.status["readyPods"] = ready
+    patch.status["totalPods"] = total
+    patch.status["state"] = f"Running ({ready}/{containers}/{total})"
+    patch.status["suspendedPods"] = len(spec.server.suspend)

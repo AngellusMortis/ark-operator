@@ -25,6 +25,7 @@ from ark_operator.cli.options import (
     OPTION_DRY_RUN,
     OPTION_OPTIONAL_HOST,
     OPTION_RCON_PASSWORD_OPTIONAL,
+    OPTION_WAIT_INTERVAL,
 )
 from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.k8s import (
@@ -257,7 +258,12 @@ async def broadcast(*message: str) -> None:
 
 
 @cluster.command
-async def shutdown(*reason: str, force: bool = False, suspend: bool = False) -> None:
+async def shutdown(
+    *reason: str,
+    force: bool = False,
+    suspend: bool = False,
+    wait_interval: OPTION_WAIT_INTERVAL = None,
+) -> None:
     """Run shutdown server via rcon."""
 
     context = _get_context()
@@ -300,6 +306,7 @@ async def shutdown(*reason: str, force: bool = False, suspend: bool = False) -> 
                 reason=" ".join(reason),
                 suspend=suspend,
                 servers=context.selected_maps,
+                wait_interval=wait_interval,
             )
         finally:
             await close_clients()
@@ -307,7 +314,9 @@ async def shutdown(*reason: str, force: bool = False, suspend: bool = False) -> 
 
 @cluster.command
 async def restart(
-    *reason: str, active_volume: Literal["server-a", "server-b"] | None = None
+    *reason: str,
+    active_volume: Literal["server-a", "server-b"] | None = None,
+    wait_interval: OPTION_WAIT_INTERVAL = None,
 ) -> None:
     """Do rolling restart on ARK cluster."""
 
@@ -329,9 +338,11 @@ async def restart(
             host=str(context.host) if context.host else None,
             password=password,
             servers=context.selected_maps,
+            wait_interval=wait_interval,
         )
     finally:
         await close_clients()
+
     if active_volume:
         _, status = await get_cluster(name=context.name, namespace=context.namespace)
         status.active_volume = active_volume

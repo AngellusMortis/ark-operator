@@ -94,7 +94,6 @@ async def update_cluster(
             spec = spec.model_dump(mode="json", by_alias=True)
             del spec["server"]["allMaps"]
             del spec["server"]["allServers"]
-            del spec["server"]["notifyIntervals"]
         _LOGGER.debug("Updating spec: %s", spec)
         data["spec"] = spec
 

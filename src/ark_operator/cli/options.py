@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
 from ipaddress import IPv4Address, IPv6Address
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
 from cyclopts import Parameter
 
+from ark_operator.cli.converters import timedelta_converter
 from ark_operator.data import ArkClusterSpec
 from ark_operator.log import LoggingFormat, LoggingLevel
 
@@ -191,4 +193,8 @@ OPTION_SERVER_GLOBAL_GAME = Annotated[
 
 OPTION_SERVER_MAP_GAME = Annotated[
     Path | None, Parameter("--map-game", env_var=["ARK_SERVER_MAP_GAME"])
+]
+
+OPTION_WAIT_INTERVAL = Annotated[
+    timedelta | None, Parameter(converter=timedelta_converter)
 ]

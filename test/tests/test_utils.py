@@ -13,6 +13,7 @@ from ark_operator.utils import (
     convert_timedelta,
     ensure_symlink,
     human_format,
+    notify_intervals,
     serialize_timedelta,
     touch_file,
 )
@@ -118,3 +119,27 @@ def test_human_format(in_: float | timedelta, out: str) -> None:
     """Test human_format."""
 
     assert human_format(in_) == out
+
+
+@pytest.mark.parametrize(
+    ("in_", "out"),
+    [
+        (timedelta(hours=3), [3600 * 3, 3600, 1800, 300, 60, 30, 10]),
+        (timedelta(hours=1), [3600, 1800, 300, 60, 30, 10]),
+        (timedelta(minutes=40), [2400, 1800, 300, 60, 30, 10]),
+        (timedelta(minutes=30), [1800, 300, 60, 30, 10]),
+        (timedelta(minutes=20), [1200, 300, 60, 30, 10]),
+        (timedelta(minutes=10), [600, 300, 60, 30, 10]),
+        (timedelta(minutes=5), [300, 60, 30, 10]),
+        (timedelta(minutes=1), [60, 30, 10]),
+        (timedelta(seconds=40), [40, 30, 10]),
+        (timedelta(seconds=30), [30, 10]),
+        (timedelta(seconds=20), [20, 10]),
+        (timedelta(seconds=10), [10]),
+        (timedelta(seconds=0), []),
+    ],
+)
+def test_notify_intervals(in_: timedelta, out: list[int]) -> None:
+    """Test notify_intervals."""
+
+    assert notify_intervals(in_) == out

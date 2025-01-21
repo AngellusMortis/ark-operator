@@ -56,15 +56,6 @@ States = Literal[
     "Updating Server",
 ]
 
-_INTERVALS = {
-    "1h": timedelta(hours=1).total_seconds(),
-    "30m": timedelta(minutes=30).total_seconds(),
-    "5m": timedelta(minutes=5).total_seconds(),
-    "1m": 60,
-    "30s": 30,
-    "10s": 10,
-}
-
 TimedeltaStr = Annotated[
     timedelta,
     BeforeValidator(convert_timedelta),
@@ -161,31 +152,6 @@ class ArkServerSpec(BaseK8sModel):
             rcon_port += 1
 
         return servers
-
-    @computed_field  # type: ignore[prop-decorator]
-    @property
-    def notify_intervals(self) -> list[float]:
-        """Intervals to notify players."""
-
-        seconds = self.graceful_shutdown.total_seconds()
-        if seconds <= 0:
-            return []
-
-        intervals = [seconds]
-        if seconds > _INTERVALS["1h"]:
-            intervals.append(_INTERVALS["1h"])
-        if seconds > _INTERVALS["30m"]:
-            intervals.append(_INTERVALS["30m"])
-        if seconds > _INTERVALS["5m"]:
-            intervals.append(_INTERVALS["5m"])
-        if seconds > _INTERVALS["1m"]:
-            intervals.append(_INTERVALS["1m"])
-        if seconds > _INTERVALS["30s"]:
-            intervals.append(_INTERVALS["30s"])
-        if seconds > _INTERVALS["10s"]:
-            intervals.append(_INTERVALS["10s"])
-
-        return intervals
 
 
 class ArkDataSpec(BaseK8sModel):

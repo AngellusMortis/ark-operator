@@ -47,9 +47,12 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     patch = kwargs["patch"]
     retry = kwargs["retry"]
     status = ArkClusterStatus(**kwargs["status"])
+    status.ready = status.ready or False
+
     if retry == 0:
-        patch.status["ready"] = False
+        status.ready = False
         patch.status["stages"] = None
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
     elif status.ready:
         status.state = "Running"
         patch.status.update(**status.model_dump(include={"state", "ready"}))

@@ -22,9 +22,11 @@ from ark_operator.ark.utils import (
 from ark_operator.k8s import get_v1_client, update_cluster
 from ark_operator.rcon import close_client, send_cmd_all
 from ark_operator.templates import loader
-from ark_operator.utils import VERSION, human_format
+from ark_operator.utils import VERSION, human_format, notify_intervals
 
 if TYPE_CHECKING:
+    from datetime import timedelta
+
     from kubernetes_asyncio.client import V1Pod
 
     from ark_operator.data import ArkClusterSpec
@@ -169,20 +171,21 @@ async def _notify_server_pods(  # noqa: PLR0913
     servers: list[str],
     host: str,
     password: str,
+    wait_interval: timedelta,
     rolling: bool = False,
 ) -> None:
-    if spec.server.graceful_shutdown.total_seconds() <= 0:
+    if wait_interval.total_seconds() <= 0:
         logger.info("Skipping notify because gracefulShutdown is set to 0")
         return
 
     logger.info("Notifying servers of shutdown (rolling: %s)", rolling)
     previous_interval: float | None = None
-    for interval in spec.server.notify_intervals:
+    for interval in notify_intervals(wait_interval):
         if previous_interval:
-            wait_interval = previous_interval - interval
-            human_wait = human_format(wait_interval)
+            wait_seconds = previous_interval - interval
+            human_wait = human_format(wait_seconds)
             logger.info("Waiting %s until next interval", human_wait)
-            await asyncio.sleep(wait_interval)
+            await asyncio.sleep(wait_seconds)
 
         human_interval = human_format(interval)
         if rolling:
@@ -247,6 +250,7 @@ async def shutdown_server_pods(  # noqa: PLR0913
     password: str | None = None,
     suspend: bool = False,
     servers: list[str] | None = None,
+    wait_interval: timedelta | None = None,
 ) -> None:
     """Gracefully shutdown ARK Cluster pods for restart."""
 
@@ -254,6 +258,7 @@ async def shutdown_server_pods(  # noqa: PLR0913
     password = password or await get_rcon_password(name=name, namespace=namespace)
     lb_ip = str(spec.server.load_balancer_ip) if spec.server.load_balancer_ip else None
     host = host or lb_ip or "127.0.0.1"
+    wait_interval = wait_interval or spec.server.graceful_shutdown
 
     online_servers = await _get_online_servers(
         name=name, namespace=namespace, spec=spec, servers=servers
@@ -272,6 +277,7 @@ async def shutdown_server_pods(  # noqa: PLR0913
         host=host,
         password=password,
         rolling=False,
+        wait_interval=wait_interval,
     )
     await _close_clients(spec=spec, servers=online_servers, host=host)
     if suspend:
@@ -302,6 +308,7 @@ async def restart_server_pods(  # noqa: PLR0913
     host: str | None = None,
     password: str | None = None,
     servers: list[str] | None = None,
+    wait_interval: timedelta | None = None,
 ) -> None:
     """Gracefully do rolling restart ARK Cluster pods."""
 
@@ -309,6 +316,7 @@ async def restart_server_pods(  # noqa: PLR0913
     password = password or await get_rcon_password(name=name, namespace=namespace)
     lb_ip = str(spec.server.load_balancer_ip) if spec.server.load_balancer_ip else None
     host = host or lb_ip or "127.0.0.1"
+    wait_interval = wait_interval or spec.server.graceful_shutdown
 
     online_servers = await _get_online_servers(
         name=name, namespace=namespace, spec=spec, servers=servers
@@ -327,6 +335,7 @@ async def restart_server_pods(  # noqa: PLR0913
         host=host,
         password=password,
         rolling=True,
+        wait_interval=wait_interval,
     )
 
     await send_cmd_all(
@@ -354,7 +363,7 @@ async def restart_server_pods(  # noqa: PLR0913
                 close=False,
                 servers=online_servers.copy(),
             )
-        await asyncio.sleep(10)
+        await asyncio.sleep(30)
         online_servers.remove(map_id)
 
         server = spec.server.all_servers[map_id]
