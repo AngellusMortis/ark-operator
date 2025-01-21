@@ -182,6 +182,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         if change.field[0] != "spec":
             continue
         if change.field not in FIELDS_NO_SERVER_UPDATE:
+            logger.info("Update servers do to field update: %s", change.field)
             update_servers = True
             break
 
