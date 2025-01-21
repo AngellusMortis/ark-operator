@@ -226,16 +226,14 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     try:
         await asyncio.gather(*tasks)
         if status.last_applied_version != ARK_SERVER_IMAGE_VERSION:
-            logger.info(
-                "Container version mismatch (%s != %s)",
-                status.last_applied_version,
-                ARK_SERVER_IMAGE_VERSION,
-            )
+            old = status.last_applied_version
+            new = ARK_SERVER_IMAGE_VERSION
+            logger.info("Container version mismatch (%s -> %s)", old, new)
             await shutdown_server_pods(
                 name=name,
                 namespace=namespace,
                 spec=spec,
-                reason="container update",
+                reason=f"container update {old} -> {new}",
                 logger=logger,
             )
             logger.info("Waiting 30 seconds before starting back up pods")
