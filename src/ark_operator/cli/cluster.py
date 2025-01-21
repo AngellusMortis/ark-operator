@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 from pathlib import Path  # required for cyclopts  # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Literal, cast
 
@@ -97,7 +98,7 @@ def meta(  # noqa: PLR0913
 
     cluster_status: ArkClusterStatus | None = None
     if status:
-        cluster_status = ArkClusterStatus(**status)
+        cluster_status = ArkClusterStatus(**json.loads(status))
     if not spec or not cluster_status:
         spec, cluster_status = _get_cluster(name=name, namespace=namespace)
 

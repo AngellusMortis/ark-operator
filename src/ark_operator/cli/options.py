@@ -110,7 +110,7 @@ OPTION_ARK_SPEC = Annotated[
 ]
 
 OPTION_ARK_STATUS = Annotated[
-    dict[str, Any] | None,
+    str | None,
     Parameter(("--status"), env_var=["ARK_CLUSTER_STATUS"]),
 ]
 
