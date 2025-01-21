@@ -17,7 +17,6 @@ from ark_operator.ark import (
     create_update_job,
     get_server_pod,
     is_server_pod_ready,
-    restart_server_pods,
 )
 from ark_operator.data import (
     ActivityEvent,
@@ -31,6 +30,8 @@ from ark_operator.handlers.utils import (
     DRY_RUN,
     ENV,
     ERROR_WAIT_UPDATE_JOB,
+    create_restart_lock,
+    restart_with_lock,
 )
 from ark_operator.k8s import get_k8s_client
 from ark_operator.log import DEFAULT_LOG_CONFIG, init_logging
@@ -56,6 +57,7 @@ async def startup(**kwargs: Unpack[ActivityEvent]) -> None:
         level,
         config=ENV.dict("ARK_OP_LOG_CONFIG", None) or DEFAULT_LOG_CONFIG,
     )
+    create_restart_lock()
     await get_k8s_client()
 
 
@@ -110,13 +112,13 @@ async def _update_server(  # noqa: PLR0913
         patch.status["state"] = f"Error: {ex!s}"
         raise
 
-    await restart_server_pods(
+    await restart_with_lock(
         name=name,
         namespace=namespace,
         spec=spec,
+        active_volume=status.active_volume or "server-a",
         reason="ARK update",
         logger=logger,
-        active_volume=update_volume,
     )
 
     status.ready = True

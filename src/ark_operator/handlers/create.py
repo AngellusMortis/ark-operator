@@ -13,7 +13,6 @@ from ark_operator.ark import (
     create_init_job,
     create_secrets,
     create_server_pod,
-    restart_server_pods,
     update_data_pvc,
     update_server_pvc,
 )
@@ -31,6 +30,7 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_INIT_RESOURCES,
     ERROR_WAIT_PVC,
     add_tracked_instance,
+    restart_with_lock,
 )
 from ark_operator.steam import Steam
 
@@ -238,7 +238,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             old = status.last_applied_version
             new = ARK_SERVER_IMAGE_VERSION
             logger.info("Container version mismatch (%s -> %s)", old, new)
-            await restart_server_pods(
+            await restart_with_lock(
                 name=name,
                 namespace=namespace,
                 spec=spec,

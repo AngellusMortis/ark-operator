@@ -7,7 +7,6 @@ import kopf
 
 from ark_operator.ark import (
     create_server_pod,
-    restart_server_pods,
     shutdown_server_pods,
     update_data_pvc,
     update_server_pvc,
@@ -25,6 +24,7 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_PVC,
     ERROR_WAIT_UPDATE_JOB,
     add_tracked_instance,
+    restart_with_lock,
 )
 
 FIELDS_PVC_UPDATE = {
@@ -182,7 +182,7 @@ async def _restart_servers(  # noqa: PLR0913
 ) -> None:
     try:
         if restart:
-            await restart_server_pods(
+            await restart_with_lock(
                 name=name,
                 namespace=namespace,
                 spec=spec,
