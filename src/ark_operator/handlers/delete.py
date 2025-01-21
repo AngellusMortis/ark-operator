@@ -12,9 +12,10 @@ from ark_operator.data import (
     ArkClusterSpec,
     ChangeEvent,
 )
-from ark_operator.handlers.update import (
+from ark_operator.handlers.utils import (
     DEFAULT_NAME,
     DEFAULT_NAMESPACE,
+    remove_tracked_instance,
 )
 from ark_operator.k8s import delete_pvc
 
@@ -25,6 +26,8 @@ if TYPE_CHECKING:
 @kopf.on.delete("arkcluster")  # type: ignore[arg-type]
 async def on_delete_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     """Delete an ARKCluster."""
+
+    remove_tracked_instance(kwargs["name"], kwargs["namespace"])
 
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME

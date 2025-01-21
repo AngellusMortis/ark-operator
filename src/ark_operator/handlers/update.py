@@ -24,26 +24,30 @@ from ark_operator.handlers.utils import (
     DRY_RUN,
     ERROR_WAIT_PVC,
     ERROR_WAIT_UPDATE_JOB,
+    add_tracked_instance,
 )
 
-FIELDS_PVC_UPDATE = [
+FIELDS_PVC_UPDATE = {
     ("spec", "data", "storageClass"),
     ("spec", "data", "size"),
     ("spec", "server", "storageClass"),
     ("spec", "server", "size"),
-]
-FIELDS_NO_SERVER_UPDATE = [
+}
+FIELDS_NO_SERVER_UPDATE = {
     ("spec", "data", "persist"),
+    ("spec", "service", "loadBalancerIP"),
     ("spec", "server", "loadBalancerIP"),
     ("spec", "server", "gracefulShutdown"),
     ("spec", "server", "shutdownMessageFormat"),
     ("spec", "server", "persist"),
-]
+}
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
 async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     """Update an ARKCluster."""
+
+    add_tracked_instance(kwargs["name"], kwargs["namespace"])
 
     patch = kwargs["patch"]
     retry = kwargs["retry"]

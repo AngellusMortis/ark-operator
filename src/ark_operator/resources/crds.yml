@@ -55,6 +55,13 @@ spec:
           spec:
             type: object
             properties:
+              service:
+                type: object
+                properties:
+                  loadBalancerIP:
+                    type: string
+                    description: |-
+                      IP to use for load balancer.
               server:
                 type: object
                 properties:
@@ -82,10 +89,7 @@ spec:
                     type: string
                     description: |-
                       Message for restarting specific server. Defaults to `Restarting server for {map_name}`.
-                  loadBalancerIP:
-                    type: string
-                    description: |-
-                      IP to use for load balancer.
+
                   storageClass:
                     type: string
                     description: |-

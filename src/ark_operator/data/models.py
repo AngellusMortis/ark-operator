@@ -162,6 +162,14 @@ class ArkDataSpec(BaseK8sModel):
     persist: bool = True
 
 
+class ArkServiceSpec(BaseK8sModel):
+    """ArkCluster.spec.service CRD spec."""
+
+    load_balancer_ip: IPv4Address | IPv6Address | None = Field(
+        alias="loadBalancerIP", default=None
+    )
+
+
 class ArkClusterSettings(BaseK8sModel):
     """ArkCluster.spec.cluster CRD spec."""
 
@@ -212,6 +220,7 @@ class ArkClusterSpec(BaseK8sModel):
     """ArkCluster.spec CRD spec."""
 
     server: ArkServerSpec = ArkServerSpec()
+    service: ArkServiceSpec = ArkServiceSpec()
     data: ArkDataSpec = ArkDataSpec()
     run_as_user: int = 65535
     run_as_group: int = 65535

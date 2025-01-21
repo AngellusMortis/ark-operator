@@ -13,6 +13,7 @@ import yaml
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark.conf import get_map_envs, get_rcon_password
+from ark_operator.ark.service import get_cluster_host
 from ark_operator.ark.utils import (
     ARK_SERVER_IMAGE_VERSION,
     get_map_name,
@@ -256,8 +257,11 @@ async def shutdown_server_pods(  # noqa: PLR0913
 
     logger = logger or _LOGGER
     password = password or await get_rcon_password(name=name, namespace=namespace)
-    lb_ip = str(spec.server.load_balancer_ip) if spec.server.load_balancer_ip else None
-    host = host or lb_ip or "127.0.0.1"
+    host = host or await get_cluster_host(name=name, namespace=namespace, spec=spec)
+    if not host:
+        logger.error("Skipping shutdown because could not figure out host for cluster")
+        return
+
     wait_interval = wait_interval or spec.server.graceful_shutdown
 
     online_servers = await _get_online_servers(
@@ -314,8 +318,11 @@ async def restart_server_pods(  # noqa: PLR0913
 
     logger = logger or _LOGGER
     password = password or await get_rcon_password(name=name, namespace=namespace)
-    lb_ip = str(spec.server.load_balancer_ip) if spec.server.load_balancer_ip else None
-    host = host or lb_ip or "127.0.0.1"
+    host = host or await get_cluster_host(name=name, namespace=namespace, spec=spec)
+    if not host:
+        logger.error("Skipping restart because could not figure out host for cluster")
+        return
+
     wait_interval = wait_interval or spec.server.graceful_shutdown
 
     online_servers = await _get_online_servers(

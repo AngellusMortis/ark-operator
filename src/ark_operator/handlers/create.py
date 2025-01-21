@@ -30,6 +30,7 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_INIT_JOB,
     ERROR_WAIT_INIT_RESOURCES,
     ERROR_WAIT_PVC,
+    add_tracked_instance,
 )
 from ark_operator.steam import Steam
 
@@ -50,6 +51,8 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
 @kopf.on.create("arkcluster")
 async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
+
+    add_tracked_instance(kwargs["name"], kwargs["namespace"])
 
     patch = kwargs["patch"]
     retry = kwargs["retry"]
