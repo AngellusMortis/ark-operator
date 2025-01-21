@@ -13,7 +13,7 @@ from ark_operator.ark import (
     create_init_job,
     create_secrets,
     create_server_pod,
-    shutdown_server_pods,
+    restart_server_pods,
     update_data_pvc,
     update_server_pvc,
 )
@@ -233,15 +233,14 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             old = status.last_applied_version
             new = ARK_SERVER_IMAGE_VERSION
             logger.info("Container version mismatch (%s -> %s)", old, new)
-            await shutdown_server_pods(
+            await restart_server_pods(
                 name=name,
                 namespace=namespace,
                 spec=spec,
+                active_volume=status.active_volume or "server-a",
                 reason="container update",
                 logger=logger,
             )
-            logger.info("Waiting 30 seconds before starting back up pods")
-            await asyncio.sleep(30)
         await asyncio.gather(
             *[
                 create_server_pod(
