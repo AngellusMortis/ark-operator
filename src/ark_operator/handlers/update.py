@@ -7,6 +7,7 @@ import kopf
 
 from ark_operator.ark import (
     create_server_pod,
+    restart_server_pods,
     shutdown_server_pods,
     update_data_pvc,
     update_server_pvc,
@@ -165,6 +166,41 @@ async def on_update_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     patch.status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
 
 
+async def _restart_servers(  # noqa: PLR0913
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    logger: kopf.Logger,
+    patch: kopf.Patch,
+    active_volume: str,
+    restart: bool,
+) -> None:
+    try:
+        if restart:
+            await restart_server_pods(
+                name=name,
+                namespace=namespace,
+                spec=spec,
+                reason="configuration update",
+                active_volume=active_volume,
+                logger=logger,
+            )
+        else:
+            await shutdown_server_pods(
+                name=name,
+                namespace=namespace,
+                spec=spec,
+                reason="cluster update",
+                logger=logger,
+            )
+            logger.info("Waiting 30 seconds before starting back up pods")
+            await asyncio.sleep(30)
+    except kopf.PermanentError as ex:
+        patch.status["state"] = f"Error: {ex!s}"
+        raise
+
+
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
 async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     """Update an ARKCluster."""
@@ -181,12 +217,17 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     logger = kwargs["logger"]
     diff = kwargs["diff"]
     update_servers = False
+    allow_restart = True
     for change in diff:
         if change.field[0] != "spec":
             continue
         if change.field not in FIELDS_NO_SERVER_UPDATE:
             logger.info("Update servers do to field update: %s", change.field)
             update_servers = True
+            # if there is only updates to global settings,
+            # rolling restart is acceptable and better
+            if change.field[1] != "globalSettings":
+                allow_restart = False
             break
 
     name = kwargs["name"] or DEFAULT_NAME
@@ -198,23 +239,24 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status["ready"] = True
         return
 
+    active_volume = status.active_volume or "server-a"
     try:
-        await shutdown_server_pods(
+        await _restart_servers(
             name=name,
             namespace=namespace,
             spec=spec,
-            reason="cluster update",
             logger=logger,
+            active_volume=active_volume,
+            patch=patch,
+            restart=allow_restart,
         )
-        logger.info("Waiting 30 seconds before starting back up pods")
-        await asyncio.sleep(30)
         await asyncio.gather(
             *[
                 create_server_pod(
                     name=name,
                     namespace=namespace,
                     map_id=m,
-                    active_volume=status.active_volume or "server-a",
+                    active_volume=active_volume,
                     spec=spec,
                     logger=logger,
                     force_create=True,
