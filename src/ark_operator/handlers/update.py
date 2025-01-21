@@ -190,7 +190,6 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     spec = ArkClusterSpec(**kwargs["spec"])
 
     if not update_servers:
-        logger.debug("Update resources diff: %s", diff)
         patch.status["ready"] = True
         return
 

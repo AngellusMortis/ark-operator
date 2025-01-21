@@ -12,6 +12,7 @@ from ark_operator.ark import (
     create_init_job,
     create_secrets,
     create_server_pod,
+    shutdown_server_pods,
     update_data_pvc,
     update_server_pvc,
 )
@@ -30,6 +31,7 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_PVC,
 )
 from ark_operator.steam import Steam
+from ark_operator.utils import VERSION
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -221,10 +223,18 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     spec = ArkClusterSpec(**kwargs["spec"])
     tasks = [create_secrets(name=name, namespace=namespace, logger=logger)]
 
-    logger.debug("Create resources diff: %s", kwargs["diff"])
-
     try:
         await asyncio.gather(*tasks)
+        if status.last_applied_version != VERSION:
+            await shutdown_server_pods(
+                name=name,
+                namespace=namespace,
+                spec=spec,
+                reason="container update",
+                logger=logger,
+            )
+            logger.info("Waiting 30 seconds before starting back up pods")
+            await asyncio.sleep(30)
         await asyncio.gather(
             *[
                 create_server_pod(
@@ -244,4 +254,5 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status["state"] = f"Error: {ex!s}"
         raise
 
+    patch.status["lastAppliedVersion"] = VERSION
     patch.status["stages"] = status.mark_stage_complete(ClusterStage.CREATE)

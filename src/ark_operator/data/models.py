@@ -264,6 +264,8 @@ class ArkClusterStatus(BaseK8sModel):
     total_pods: int | None = None
     created_pods: int | None = None
     ready_pods: int | None = None
+    suspended_pods: int | None = None
+    last_applied_version: str | None = None
 
     @property
     def is_error(self) -> bool:

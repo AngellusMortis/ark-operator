@@ -279,3 +279,6 @@ spec:
               suspendedPods:
                 type: integer
                 description: Total number of suspended server pods
+              lastAppliedVersion:
+                type: string
+                description: Last applied ark-operator version
