@@ -226,6 +226,11 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     try:
         await asyncio.gather(*tasks)
         if status.last_applied_version != ARK_SERVER_IMAGE_VERSION:
+            logger.info(
+                "Container version mismatch (%s != %s)",
+                status.last_applied_version,
+                ARK_SERVER_IMAGE_VERSION,
+            )
             await shutdown_server_pods(
                 name=name,
                 namespace=namespace,
