@@ -8,6 +8,7 @@ from typing import Unpack
 import kopf
 
 from ark_operator.ark import (
+    ARK_SERVER_IMAGE_VERSION,
     check_init_job,
     create_init_job,
     create_secrets,
@@ -31,7 +32,6 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_PVC,
 )
 from ark_operator.steam import Steam
-from ark_operator.utils import VERSION
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -225,7 +225,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
 
     try:
         await asyncio.gather(*tasks)
-        if status.last_applied_version != VERSION:
+        if status.last_applied_version != ARK_SERVER_IMAGE_VERSION:
             await shutdown_server_pods(
                 name=name,
                 namespace=namespace,
@@ -254,5 +254,5 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status["state"] = f"Error: {ex!s}"
         raise
 
-    patch.status["lastAppliedVersion"] = VERSION
+    patch.status["lastAppliedVersion"] = ARK_SERVER_IMAGE_VERSION
     patch.status["stages"] = status.mark_stage_complete(ClusterStage.CREATE)

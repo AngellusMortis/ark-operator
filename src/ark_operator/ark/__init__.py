@@ -28,6 +28,7 @@ from ark_operator.ark.server import (
 )
 from ark_operator.ark.utils import (
     ARK_SERVER_APP_ID,
+    ARK_SERVER_IMAGE_VERSION,
     copy_ark,
     expand_maps,
     get_ark_buildid,
@@ -40,6 +41,7 @@ from ark_operator.ark.utils import (
 
 __all__ = [
     "ARK_SERVER_APP_ID",
+    "ARK_SERVER_IMAGE_VERSION",
     "MIN_SIZE_SERVER",
     "ArkServer",
     "check_init_job",
