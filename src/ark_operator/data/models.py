@@ -101,9 +101,6 @@ class GameServer:
 class ArkServerSpec(BaseK8sModel):
     """ArkCluster.spec.server CRD spec."""
 
-    load_balancer_ip: IPv4Address | IPv6Address | None = Field(
-        alias="loadBalancerIP", default=None
-    )
     storage_class: str | None = None
     size: int | str = "50Gi"
     maps: list[str] = ["@canonical"]
