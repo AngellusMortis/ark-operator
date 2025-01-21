@@ -221,6 +221,8 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     spec = ArkClusterSpec(**kwargs["spec"])
     tasks = [create_secrets(name=name, namespace=namespace, logger=logger)]
 
+    logger.debug("Create resources diff: %s", kwargs["diff"])
+
     try:
         await asyncio.gather(*tasks)
         await asyncio.gather(
