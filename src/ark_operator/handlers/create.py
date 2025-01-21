@@ -214,6 +214,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
 
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
+    reason = kwargs["reason"]
     if status.is_stage_completed(ClusterStage.CREATE):
         return
 
@@ -229,7 +230,10 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     logger.debug("cluster spec: %s", spec)
     try:
         await asyncio.gather(*tasks)
-        if status.last_applied_version != ARK_SERVER_IMAGE_VERSION:
+        if (
+            reason == kopf.Reason.RESUME
+            and status.last_applied_version != ARK_SERVER_IMAGE_VERSION
+        ):
             old = status.last_applied_version
             new = ARK_SERVER_IMAGE_VERSION
             logger.info("Container version mismatch (%s -> %s)", old, new)

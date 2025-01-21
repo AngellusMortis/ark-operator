@@ -203,7 +203,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             name=name,
             namespace=namespace,
             spec=spec,
-            reason="configuration update",
+            reason="cluster update",
             logger=logger,
         )
         logger.info("Waiting 30 seconds before starting back up pods")

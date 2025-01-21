@@ -7,7 +7,7 @@ import logging
 from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
-from typing import TYPE_CHECKING, Unpack
+from typing import TYPE_CHECKING, Literal, Unpack
 
 import kopf
 
@@ -17,6 +17,7 @@ from ark_operator.ark import (
     create_update_job,
     get_server_pod,
     is_server_pod_ready,
+    restart_server_pods,
 )
 from ark_operator.data import (
     ActivityEvent,
@@ -84,7 +85,12 @@ async def _update_server(  # noqa: PLR0913
     patch: Patch,
 ) -> None:
     status.state = "Updating Server"
-    patch.status["state"] = status.state
+    status.ready = False
+    patch.status.update(**status.model_dump(include={"state", "ready"}))
+    active_volume = status.active_volume or "server-a"
+    update_volume: Literal["server-a", "server-b"] = (
+        "server-a" if active_volume == "server-b" else "server-b"
+    )
     try:
         job_result = await check_update_job(
             name=name, namespace=namespace, logger=logger
@@ -104,10 +110,24 @@ async def _update_server(  # noqa: PLR0913
         patch.status["state"] = f"Error: {ex!s}"
         raise
 
+    await restart_server_pods(
+        name=name,
+        namespace=namespace,
+        spec=spec,
+        reason="ARK update",
+        logger=logger,
+        active_volume=update_volume,
+    )
+
+    status.ready = True
     status.state = "Running"
     status.active_buildid = status.latest_buildid
-    patch.status["activeBuildid"] = status.latest_buildid
-    patch.status["state"] = status.state
+    status.active_volume = update_volume
+    patch.status.update(
+        **status.model_dump(
+            include={"state", "ready", "active_buildid", "active_volume"}, by_alias=True
+        )
+    )
 
 
 @kopf.timer(  # type: ignore[arg-type]
@@ -118,6 +138,10 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
 
     status = ArkClusterStatus(**kwargs["status"])
     logger = kwargs["logger"]
+
+    if not status.ready or not status.state or not status.state.startswith("Running"):
+        logger.info("Skipping update check because cluster is not ready.")
+        return
 
     if DRY_RUN:
         latest_version = 1
@@ -150,6 +174,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     status = ArkClusterStatus(**kwargs["status"])
     spec = ArkClusterSpec(**kwargs["spec"])
     patch = kwargs["patch"]
+    logger = kwargs["logger"]
 
     if status.ready is None and status.state.startswith("Running"):
         status.ready = True
@@ -160,6 +185,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         patch.status["readyPods"] = 0
         patch.status["totalPods"] = len(spec.server.active_maps)
         patch.status["suspendedPods"] = len(spec.server.suspend)
+        logger.info("Skipping status check because cluster is not ready.")
         return
 
     logger = kwargs["logger"]
@@ -186,6 +212,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         return
 
     if any(created):
+        logger.info("Created %s server pod(s)", len([x for x in created if x]))
         return
 
     containers = 0
@@ -205,6 +232,13 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         if is_server_pod_ready(obj):
             ready += 1
 
+    logger.info(
+        "Status: ready: %s, running: %s, total: %s, suspeded: %s",
+        ready,
+        containers,
+        total,
+        len(spec.server.suspend),
+    )
     patch.status["createdPods"] = containers
     patch.status["readyPods"] = ready
     patch.status["totalPods"] = total
