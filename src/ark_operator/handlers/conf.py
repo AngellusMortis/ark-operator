@@ -60,6 +60,10 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
             return
         raise
 
+    if not status.ready or not status.state or not status.state.startswith("Running"):
+        logger.info("Skipping conf update restart because cluster is not ready.")
+        return
+
     maps = [map_id] if map_id else cluster.server.all_maps
     logger.info("Restarting servers %s due to configuration update", maps)
     await restart_server_pods(
