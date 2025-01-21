@@ -201,6 +201,8 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             reason="configuration update",
             logger=logger,
         )
+        logger.info("Waiting 30 seconds before starting back up pods")
+        await asyncio.sleep(30)
         await asyncio.gather(
             *[
                 create_server_pod(

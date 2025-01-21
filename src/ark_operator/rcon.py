@@ -132,6 +132,6 @@ async def send_cmd_all(  # noqa: PLR0913
             continue
 
         _LOGGER.info("%s - %s", objs[index].map_name, cmd)
-        _LOGGER.info(response)
+        _LOGGER.info(str(response).strip())
 
     return return_responses

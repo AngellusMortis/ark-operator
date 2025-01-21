@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from http import HTTPStatus
 from pathlib import Path
+from typing import Any
 
 import yaml
 from aiofiles import open as aopen
@@ -18,6 +20,7 @@ from ark_operator.k8s.client import get_crd_client, get_v1_ext_client
 CRD_FILE = Path(__file__).parent.parent / "resources" / "crds.yml"
 ERROR_CRDS_INSTALLED = "ArkCluster CRDs are already installed"
 ERROR_CRDS_NOT_INSTALLED = "ArkCluster CRDs are not installed"
+_LOGGER = logging.getLogger(__name__)
 
 
 async def are_crds_installed() -> bool:
@@ -72,23 +75,46 @@ async def get_cluster(
     return ArkClusterSpec(**data["spec"]), ArkClusterStatus(**data.get("status", {}))
 
 
-async def update_cluster(*, name: str, namespace: str, spec: ArkClusterSpec) -> None:
+async def update_cluster(
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec | dict[str, Any] | None = None,
+    status: ArkClusterStatus | dict[str, Any] | None = None,
+) -> None:
     """Update ArkCluster."""
 
-    data = spec.model_dump(mode="json", by_alias=True)
-    if "loadBalancerIp" in data["server"]:
-        data["server"]["loadBalancerIP"] = data["server"].pop("loadBalancerIp")
-    if "multihomeIp" in data["globalSettings"]:
-        data["globalSettings"]["multihomeIP"] = data["globalSettings"].pop(
-            "multihomeIp"
-        )
-    if "clusterId" in data["globalSettings"]:
-        data["globalSettings"]["clusterID"] = data["globalSettings"].pop("clusterId")
-    del data["server"]["allMaps"]
-    del data["server"]["allServers"]
-    del data["server"]["notifyIntervals"]
+    if not spec and not status:
+        _LOGGER.debug("Skipping update because no spec or status")
+        return
+
+    data: dict[str, Any] = {}
+    if spec:
+        if isinstance(spec, ArkClusterSpec):
+            spec = spec.model_dump(mode="json", by_alias=True)
+            if "loadBalancerIp" in spec["server"]:
+                spec["server"]["loadBalancerIP"] = spec["server"].pop("loadBalancerIp")
+            if "multihomeIp" in spec["globalSettings"]:
+                spec["globalSettings"]["multihomeIP"] = spec["globalSettings"].pop(
+                    "multihomeIp"
+                )
+            if "clusterId" in spec["globalSettings"]:
+                spec["globalSettings"]["clusterID"] = spec["globalSettings"].pop(
+                    "clusterId"
+                )
+            del spec["server"]["allMaps"]
+            del spec["server"]["allServers"]
+            del spec["server"]["notifyIntervals"]
+        _LOGGER.debug("Updating spec: %s", spec)
+        data["spec"] = spec
+
+    if status:
+        if isinstance(status, ArkClusterStatus):
+            status = status.model_dump(mode="json", by_alias=True)
+        _LOGGER.debug("Updating status: %s", status)
+        data["status"] = status
 
     await run_async(  # noqa: S604
-        f"echo '{json.dumps({'spec': data})}' | kubectl -n {namespace} patch arkcluster {name} --type merge --patch-file=/dev/stdin",  # noqa: E501
+        f"echo '{json.dumps(data)}' | kubectl -n {namespace} patch arkcluster {name} --type merge --patch-file=/dev/stdin",  # noqa: E501
         shell=True,
     )

@@ -13,7 +13,12 @@ import yaml
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark.conf import get_map_envs, get_rcon_password
-from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION, get_map_name, get_map_slug
+from ark_operator.ark.utils import (
+    ARK_SERVER_IMAGE_VERSION,
+    get_map_name,
+    get_map_slug,
+    order_maps,
+)
 from ark_operator.k8s import get_v1_client, update_cluster
 from ark_operator.rcon import close_client, send_cmd_all
 from ark_operator.templates import loader
@@ -45,8 +50,11 @@ async def get_server_pod(*, name: str, namespace: str, map_id: str) -> V1Pod | N
     return obj
 
 
-def is_server_pod_ready(pod: V1Pod) -> bool:
+def is_server_pod_ready(pod: V1Pod | None) -> bool:
     """Check if server pod is ready."""
+
+    if not pod or not pod.status or not pod.status.container_statuses:
+        return False
 
     container_ready = [s.ready for s in pod.status.container_statuses]
     return all(container_ready)
@@ -192,7 +200,7 @@ async def _notify_server_pods(  # noqa: PLR0913
             password=password,
             close=False,
             raise_exceptions=False,
-            servers=servers,
+            servers=servers.copy(),
         )
         previous_interval = interval
 
@@ -212,13 +220,21 @@ async def _close_clients(
 
 
 async def _get_online_servers(
-    *, name: str, namespace: str, spec: ArkClusterSpec
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    servers: list[str] | None = None,
 ) -> list[str]:
-    return [
+    online_servers = [
         m
         for m in spec.server.active_maps
         if await get_server_pod(name=name, namespace=namespace, map_id=m)
     ]
+
+    if servers:
+        online_servers = list(set(servers).intersection(set(online_servers)))
+    return order_maps(online_servers)
 
 
 async def shutdown_server_pods(  # noqa: PLR0913
@@ -231,6 +247,7 @@ async def shutdown_server_pods(  # noqa: PLR0913
     host: str | None = None,
     password: str | None = None,
     suspend: bool = False,
+    servers: list[str] | None = None,
 ) -> None:
     """Gracefully shutdown ARK Cluster pods for restart."""
 
@@ -240,7 +257,13 @@ async def shutdown_server_pods(  # noqa: PLR0913
     host = host or lb_ip or "127.0.0.1"
 
     online_servers = await _get_online_servers(
-        name=name, namespace=namespace, spec=spec
+        name=name, namespace=namespace, spec=spec, servers=servers
+    )
+    logger.info("Shutting down servers [suspend: %s] %s", suspend, online_servers)
+    await update_cluster(
+        name=name,
+        namespace=namespace,
+        status={"ready": False, "state": "Shutting Down"},
     )
     await _notify_server_pods(
         spec=spec,
@@ -262,6 +285,11 @@ async def shutdown_server_pods(  # noqa: PLR0913
             for m in online_servers
         ]
     )
+    await update_cluster(
+        name=name,
+        namespace=namespace,
+        status={"ready": True, "state": "Running"},
+    )
 
 
 async def restart_server_pods(  # noqa: PLR0913
@@ -274,6 +302,7 @@ async def restart_server_pods(  # noqa: PLR0913
     logger: kopf.Logger | None = None,
     host: str | None = None,
     password: str | None = None,
+    servers: list[str] | None = None,
 ) -> None:
     """Gracefully do rolling restart ARK Cluster pods."""
 
@@ -283,7 +312,13 @@ async def restart_server_pods(  # noqa: PLR0913
     host = host or lb_ip or "127.0.0.1"
 
     online_servers = await _get_online_servers(
-        name=name, namespace=namespace, spec=spec
+        name=name, namespace=namespace, spec=spec, servers=servers
+    )
+    logger.info("Restarting servers %s", online_servers)
+    await update_cluster(
+        name=name,
+        namespace=namespace,
+        status={"ready": False, "state": "Rolling Restart"},
     )
     await _notify_server_pods(
         spec=spec,
@@ -292,7 +327,7 @@ async def restart_server_pods(  # noqa: PLR0913
         servers=online_servers,
         host=host,
         password=password,
-        rolling=False,
+        rolling=True,
     )
 
     await send_cmd_all(
@@ -302,20 +337,28 @@ async def restart_server_pods(  # noqa: PLR0913
         password=password,
         close=False,
         raise_exceptions=False,
-        servers=online_servers,
+        servers=online_servers.copy(),
     )
-    for map_id in online_servers.copy():
-        online_servers.remove(map_id)
-        msg = spec.server.rolling_restart_format.format(map_name=get_map_name(map_id))
-        await send_cmd_all(
-            f"ServerChat {msg}",
-            spec=spec.server,
-            host=host,
-            password=password,
-            close=False,
-            raise_exceptions=False,
-            servers=online_servers,
+    total = len(online_servers)
+    for index, map_id in enumerate(online_servers.copy()):
+        await update_cluster(
+            name=name,
+            namespace=namespace,
+            status={"state": f"Rolling Restart ({index + 1}/{total})"},
         )
+        msg = spec.server.rolling_restart_format.format(map_name=get_map_name(map_id))
+        if online_servers:
+            await send_cmd_all(
+                f"ServerChat {msg}",
+                spec=spec.server,
+                host=host,
+                password=password,
+                close=False,
+                raise_exceptions=False,
+                servers=online_servers.copy(),
+            )
+        await asyncio.sleep(10)
+        online_servers.remove(map_id)
 
         server = spec.server.all_servers[map_id]
         await close_client(host=host, port=server.rcon_port)
@@ -338,7 +381,11 @@ async def restart_server_pods(  # noqa: PLR0913
         )
         ready = False
         while not ready:
-            logger.info("Waiting for server pod to be ready")
+            logger.info("Waiting for server pod %s to be ready", map_id)
             await asyncio.sleep(10)
             pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
             ready = is_server_pod_ready(pod)
+
+    await update_cluster(
+        name=name, namespace=namespace, status={"ready": True, "state": "Running"}
+    )

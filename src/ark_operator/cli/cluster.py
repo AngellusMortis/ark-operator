@@ -35,7 +35,7 @@ from ark_operator.k8s import (
 )
 from ark_operator.k8s import install_crds as install_crds_api
 from ark_operator.k8s import uninstall_crds as uninstall_crds_api
-from ark_operator.rcon import send_cmd_all
+from ark_operator.rcon import close_clients, send_cmd_all
 from ark_operator.steam import Steam
 from ark_operator.utils import comma_list
 
@@ -52,6 +52,7 @@ cluster = App(
 )
 
 ERROR_HOST_REQUIRED = "Host is required from the option or from loadBalancerIP on spec."
+ERROR_INVALID_MAP = "Map {map_id} is not a valid map for this cluster."
 ERROR_NOT_SUSPENDED = "Map {map_id} is not suspended."
 ERROR_REASON_REQUIRED = "Reason for shutdown is required"
 
@@ -177,6 +178,8 @@ async def suspend(
 
     context = _get_context()
     for map_id in maps:
+        if map_id not in context.spec.server.all_maps:
+            raise CycloptsError(msg=ERROR_INVALID_MAP.format(map_id=map_id))
         context.spec.server.suspend.add(map_id)
 
     await update_cluster(
@@ -287,15 +290,19 @@ async def shutdown(*reason: str, force: bool = False, suspend: bool = False) -> 
     else:
         if not reason:
             raise CycloptsError(msg=ERROR_REASON_REQUIRED)
-        await shutdown_server_pods(
-            name=context.name,
-            namespace=context.namespace,
-            spec=context.spec,
-            host=str(context.host) if context.host else None,
-            password=password,
-            reason=" ".join(reason),
-            suspend=suspend,
-        )
+        try:
+            await shutdown_server_pods(
+                name=context.name,
+                namespace=context.namespace,
+                spec=context.spec,
+                host=str(context.host) if context.host else None,
+                password=password,
+                reason=" ".join(reason),
+                suspend=suspend,
+                servers=context.selected_maps,
+            )
+        finally:
+            await close_clients()
 
 
 @cluster.command
@@ -312,12 +319,22 @@ async def restart(
         name=context.name, namespace=context.namespace
     )
     active_volume = active_volume or context.status.active_volume
-    await restart_server_pods(
-        name=context.name,
-        namespace=context.namespace,
-        spec=context.spec,
-        active_volume=active_volume,  # type: ignore[arg-type]
-        reason=" ".join(reason),
-        host=str(context.host) if context.host else None,
-        password=password,
-    )
+    try:
+        await restart_server_pods(
+            name=context.name,
+            namespace=context.namespace,
+            spec=context.spec,
+            active_volume=active_volume,  # type: ignore[arg-type]
+            reason=" ".join(reason),
+            host=str(context.host) if context.host else None,
+            password=password,
+            servers=context.selected_maps,
+        )
+    finally:
+        await close_clients()
+    if active_volume:
+        _, status = await get_cluster(name=context.name, namespace=context.namespace)
+        status.active_volume = active_volume
+        await update_cluster(
+            name=context.name, namespace=context.namespace, status=status
+        )

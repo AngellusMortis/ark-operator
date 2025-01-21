@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 ENV = Env()
 
 ARK_SERVER_APP_ID = 2430930
-ARK_SERVER_IMAGE_VERSION = ENV("ARK_SERVER_IMAGE_VERSION", "v0.6.3")
+ARK_SERVER_IMAGE_VERSION = ENV("ARK_SERVER_IMAGE_VERSION", "v0.7.0")
 MAP_NAME_LOOKUP = {
     "Aberration_WP": "Aberration",
     "BobsMissions_WP": "Club Ark",
@@ -169,6 +169,20 @@ def get_map_slug(map_id: str, max_length: int = 11) -> str:
     return slug
 
 
+def order_maps(maps: list[str]) -> list[str]:
+    """Order maps in a consistent way."""
+
+    ordered_maps = []
+    map_order = MAP_SHORTHAND_LOOKUP["@official"]
+    for map_id in map_order:
+        if map_id in maps:
+            ordered_maps.append(map_id)
+            maps.remove(map_id)
+    ordered_maps += sorted(maps)
+
+    return ordered_maps
+
+
 def expand_maps(maps: list[str], *, all_maps: list[str] | None = None) -> list[str]:
     """Expand map shorthands into list of maps."""
 
@@ -187,12 +201,4 @@ def expand_maps(maps: list[str], *, all_maps: list[str] | None = None) -> list[s
             _expanded.add(map_id)
 
     _expanded -= remove_maps
-    ordered_maps = []
-    map_order = MAP_SHORTHAND_LOOKUP["@official"]
-    for map_id in map_order:
-        if map_id in _expanded:
-            ordered_maps.append(map_id)
-            _expanded.remove(map_id)
-    ordered_maps += list(_expanded)
-
-    return ordered_maps
+    return order_maps(list(_expanded))
