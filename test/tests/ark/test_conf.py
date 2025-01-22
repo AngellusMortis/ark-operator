@@ -58,6 +58,10 @@ async def test_create_secrets(k8s_v1_client: Mock) -> None:
 async def test_create_secrets_existing(k8s_v1_client: Mock) -> None:
     """Test create_secrets."""
 
+    secrets = Mock()
+    secrets.data = {}
+    k8s_v1_client.read_namespaced_secret.return_value = secrets
+
     assert await create_secrets(name="test", namespace="test") is False
 
     k8s_v1_client.read_namespaced_secret.assert_awaited_once_with(
