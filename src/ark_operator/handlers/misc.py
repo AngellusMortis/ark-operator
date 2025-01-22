@@ -112,6 +112,10 @@ async def _update_server(  # noqa: PLR0913
         patch.status["state"] = f"Error: {ex!s}"
         raise
 
+    await check_update_job(
+        name=name, namespace=namespace, logger=logger, force_delete=True
+    )
+
     await restart_with_lock(
         name=name,
         namespace=namespace,
@@ -140,6 +144,7 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
     """Check for ARK server updates."""
 
     status = ArkClusterStatus(**kwargs["status"])
+    patch = kwargs["patch"]
     logger = kwargs["logger"]
 
     if not status.ready or not status.state or not status.state.startswith("Running"):
@@ -151,8 +156,8 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
     else:
         steam = Steam(Path(gettempdir()) / "steam")
         latest_version = await steam.get_latest_ark_buildid()
-    kwargs["patch"].status["latestBuildid"] = latest_version
     status.latest_buildid = latest_version
+    patch.status.update(**status.model_dump(include={"latest_buildid"}, by_alias=True))
     logger.info("Latest ARK version: %s", latest_version)
 
     active_version = status.active_buildid or 1
@@ -163,7 +168,7 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
             namespace=kwargs.get("namespace") or DEFAULT_NAMESPACE,
             spec=ArkClusterSpec(**kwargs["spec"]),
             logger=logger,
-            status=ArkClusterStatus(**kwargs["status"]),
+            status=status,
             patch=kwargs["patch"],
         )
 
@@ -214,6 +219,9 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+    await check_update_job(
+        name=name, namespace=namespace, logger=logger, force_delete=True
+    )
 
     try:
         created = await asyncio.gather(

@@ -239,6 +239,12 @@ async def _notify_server_pods(  # noqa: PLR0913
     logger.info("Notifying servers of shutdown (rolling: %s)", rolling)
     previous_interval: float | None = None
     for interval in notify_intervals(wait_interval):
+        msg = "Rolling Restart" if rolling else "Shutting Down"
+        await update_cluster(
+            name=name,
+            namespace=namespace,
+            status={"ready": False, "state": msg},
+        )
         if previous_interval:
             wait_seconds = previous_interval - interval
             human_wait = human_format(wait_seconds)
