@@ -263,3 +263,9 @@ class ArkClusterStatus(BaseK8sModel):
         self.stages = self.stages or {}
         self.stages[stage] = True
         return {stage.value: True}
+
+
+class ArkClusterSecrets(BaseK8sModel):
+    """ark-operator-secrets secret model."""
+
+    discord_webhook: str | None = None

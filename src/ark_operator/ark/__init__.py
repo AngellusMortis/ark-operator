@@ -5,6 +5,7 @@ from ark_operator.ark.conf import (
     delete_secrets,
     get_map_envs,
     get_rcon_password,
+    get_secrets,
 )
 from ark_operator.ark.jobs import (
     check_init_job,
@@ -71,6 +72,7 @@ __all__ = [
     "get_map_name",
     "get_map_slug",
     "get_rcon_password",
+    "get_secrets",
     "get_server_pod",
     "get_service",
     "has_newer_version",

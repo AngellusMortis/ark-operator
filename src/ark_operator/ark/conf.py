@@ -16,7 +16,7 @@ from cachetools import TTLCache
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark.utils import ENV, get_map_slug
-from ark_operator.data import ArkClusterSpec
+from ark_operator.data import ArkClusterSecrets, ArkClusterSpec
 from ark_operator.k8s import get_v1_client
 from ark_operator.templates import loader
 from ark_operator.utils import VERSION
@@ -183,18 +183,21 @@ def merge_conf(
     return parent
 
 
-async def read_secrets(*, name: str, namespace: str) -> dict[str, str] | None:
-    """Read ARK cluster secrets."""
-
-    secret_name = f"{name}-cluster-secrets"
+async def _read_secret(*, name: str, namespace: str) -> dict[str, str] | None:
     v1 = await get_v1_client()
     try:
-        obj = await v1.read_namespaced_secret(name=secret_name, namespace=namespace)
+        obj = await v1.read_namespaced_secret(name=name, namespace=namespace)
     except ApiException as ex:
         if ex.status == HTTPStatus.NOT_FOUND:
             return None
         raise  # TODO: # pragma: no cover
     return cast(dict[str, str], obj.data)
+
+
+async def read_secrets(*, name: str, namespace: str) -> dict[str, str] | None:
+    """Read ARK cluster secrets."""
+
+    return await _read_secret(name=f"{name}-cluster-secrets", namespace=namespace)
 
 
 async def create_secrets(
@@ -320,3 +323,13 @@ async def get_rcon_password(*, name: str, namespace: str) -> str:
     return b64decode(secrets["ARK_SERVER_RCON_PASSWORD"].encode("utf-8")).decode(
         "utf-8"
     )
+
+
+@cached(TTLCache(8, ENV.int("ARK_OP_TTL_CACHE", 300)))  # type: ignore[misc]
+async def get_secrets(*, name: str, namespace: str) -> ArkClusterSecrets:
+    """Read operator secrets for cluster."""
+
+    secrets = await _read_secret(name=f"{name}-operator-secrets", namespace=namespace)
+    if secrets:
+        return ArkClusterSecrets(**secrets)
+    return ArkClusterSecrets()

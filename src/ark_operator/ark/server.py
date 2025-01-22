@@ -8,11 +8,12 @@ import logging
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
+import httpx
 import kopf
 import yaml
 from kubernetes_asyncio.client import ApiException
 
-from ark_operator.ark.conf import get_map_envs, get_rcon_password
+from ark_operator.ark.conf import get_map_envs, get_rcon_password, get_secrets
 from ark_operator.ark.service import get_cluster_host
 from ark_operator.ark.utils import (
     ARK_SERVER_IMAGE_VERSION,
@@ -190,8 +191,40 @@ async def delete_server_pod(
         logger.warning("Failed to delete server pod %s", pod_name)
 
 
+async def _send_message(  # noqa: PLR0913
+    msg: str,
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    host: str,
+    password: str,
+    servers: list[str],
+    logger: kopf.Logger | logging.Logger,
+) -> None:
+    secrets = await get_secrets(name=name, namespace=namespace)
+    if secrets.discord_webhook:
+        async with httpx.AsyncClient() as client:
+            try:
+                r = await client.post(secrets.discord_webhook, json={"content": msg})
+                r.raise_for_status()
+            except Exception:
+                logger.exception("Error sending Discord Webhook message")
+    else:
+        await send_cmd_all(
+            f"ServerChat {msg}",
+            spec=spec.server,
+            host=host,
+            password=password,
+            close=False,
+            servers=servers.copy(),
+        )
+
+
 async def _notify_server_pods(  # noqa: PLR0913
     *,
+    name: str,
+    namespace: str,
     spec: ArkClusterSpec,
     reason: str,
     logger: kopf.Logger | logging.Logger,
@@ -223,17 +256,19 @@ async def _notify_server_pods(  # noqa: PLR0913
             msg = spec.server.shutdown_message_format.format(
                 interval=human_interval, reason=reason
             )
-        await send_cmd_all(
-            f"ServerChat {msg}",
-            spec=spec.server,
+        await _send_message(
+            msg,
+            name=name,
+            namespace=namespace,
+            spec=spec,
             host=host,
             password=password,
-            close=False,
-            servers=servers.copy(),
+            servers=servers,
+            logger=logger,
         )
         previous_interval = interval
 
-    _LOGGER.info("Waiting %s until shutdown", human_interval)
+    logger.info("Waiting %s until shutdown", human_interval)
     await asyncio.sleep(interval)
 
 
@@ -300,6 +335,8 @@ async def shutdown_server_pods(  # noqa: PLR0913
         status={"ready": False, "state": "Shutting Down"},
     )
     await _notify_server_pods(
+        name=name,
+        namespace=namespace,
         spec=spec,
         reason=reason,
         logger=logger,
@@ -362,6 +399,8 @@ async def restart_server_pods(  # noqa: PLR0913
         status={"ready": False, "state": "Rolling Restart"},
     )
     await _notify_server_pods(
+        name=name,
+        namespace=namespace,
         spec=spec,
         reason=reason,
         logger=logger,
@@ -372,13 +411,15 @@ async def restart_server_pods(  # noqa: PLR0913
         wait_interval=wait_interval,
     )
 
-    await send_cmd_all(
-        f"ServerChat {spec.server.restart_start_message}",
-        spec=spec.server,
+    await _send_message(
+        spec.server.restart_start_message,
+        name=name,
+        namespace=namespace,
+        spec=spec,
         host=host,
         password=password,
-        close=False,
-        servers=online_servers.copy(),
+        servers=online_servers,
+        logger=logger,
     )
     total = len(online_servers)
     for index, map_id in enumerate(online_servers.copy()):
@@ -391,13 +432,15 @@ async def restart_server_pods(  # noqa: PLR0913
         msg = spec.server.rolling_restart_format.format(
             map_name=get_map_name(map_id), progress=progress
         )
-        await send_cmd_all(
-            f"ServerChat {msg}",
-            spec=spec.server,
+        await _send_message(
+            msg,
+            name=name,
+            namespace=namespace,
+            spec=spec,
             host=host,
             password=password,
-            close=False,
-            servers=online_servers.copy(),
+            servers=online_servers,
+            logger=logger,
         )
         await asyncio.sleep(30)
 
@@ -428,13 +471,15 @@ async def restart_server_pods(  # noqa: PLR0913
             pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
             ready = is_server_pod_ready(pod)
 
-    await send_cmd_all(
-        f"ServerChat {spec.server.restart_complete_message}",
-        spec=spec.server,
+    await _send_message(
+        spec.server.restart_complete_message,
+        name=name,
+        namespace=namespace,
+        spec=spec,
         host=host,
         password=password,
-        close=False,
-        servers=online_servers.copy(),
+        servers=online_servers,
+        logger=logger,
     )
     await update_cluster(
         name=name, namespace=namespace, status={"ready": True, "state": "Running"}
