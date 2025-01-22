@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from datetime import timedelta
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any
 
@@ -24,11 +25,9 @@ from ark_operator.ark.utils import (
 from ark_operator.k8s import get_v1_client, update_cluster
 from ark_operator.rcon import close_client, send_cmd_all
 from ark_operator.templates import loader
-from ark_operator.utils import VERSION, human_format, notify_intervals
+from ark_operator.utils import VERSION, human_format, notify_intervals, utc_now
 
 if TYPE_CHECKING:
-    from datetime import timedelta
-
     from kubernetes_asyncio.client import V1Pod
 
     from ark_operator.data import ArkClusterSpec
@@ -450,6 +449,9 @@ async def restart_server_pods(  # noqa: PLR0913
         )
         pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
         while pod is not None:
+            if utc_now() - pod.metadata.creation_timestamp < timedelta(minutes=5):
+                break
+
             logger.info("Waiting for server pod to be deleted %s", map_id)
             await asyncio.sleep(5)
             pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)

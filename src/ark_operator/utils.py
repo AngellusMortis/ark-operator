@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import lru_cache
 from importlib.metadata import version
 from typing import TYPE_CHECKING, overload
@@ -13,6 +13,15 @@ from typing import TYPE_CHECKING, overload
 from aiofiles import open as aopen
 from aiofiles import os as aos
 from human_readable import time_delta
+
+try:
+    # python 3.11+
+    from datetime import UTC
+except ImportError:
+    # python 3.10-
+    from datetime import timezone
+
+    UTC = timezone.utc  # noqa: UP017
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -30,6 +39,12 @@ _INTERVALS = {
     "30s": 30,
     "10s": 10,
 }
+
+
+def utc_now() -> datetime:
+    """Get current time."""
+
+    return datetime.now(UTC)
 
 
 def is_async() -> bool:
