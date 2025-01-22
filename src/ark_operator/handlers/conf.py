@@ -9,7 +9,12 @@ import kopf
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.data import ChangeEvent
-from ark_operator.handlers.utils import DEFAULT_NAME, is_tracked, restart_with_lock
+from ark_operator.handlers.utils import (
+    DEFAULT_NAME,
+    DRY_RUN,
+    is_tracked,
+    restart_with_lock,
+)
 from ark_operator.k8s import get_cluster
 
 NAME_PATTERN = re.compile(
@@ -81,4 +86,5 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         reason="configuration update",
         active_volume=status.active_volume or "server-a",
         logger=logger,
+        dry_run=DRY_RUN,
     )

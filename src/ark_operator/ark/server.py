@@ -313,6 +313,7 @@ async def restart_server_pods(  # noqa: PLR0913
     password: str | None = None,
     servers: list[str] | None = None,
     wait_interval: timedelta | None = None,
+    dry_run: bool = False,
 ) -> None:
     """Gracefully do rolling restart ARK Cluster pods."""
 
@@ -391,6 +392,7 @@ async def restart_server_pods(  # noqa: PLR0913
             spec=spec,
             logger=logger,
             active_volume=active_volume,
+            dry_run=dry_run,
         )
         ready = False
         while not ready:

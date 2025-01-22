@@ -119,6 +119,7 @@ async def _update_server(  # noqa: PLR0913
         active_volume=status.active_volume or "server-a",
         reason="ARK update",
         logger=logger,
+        dry_run=DRY_RUN,
     )
 
     status.ready = True

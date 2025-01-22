@@ -190,6 +190,7 @@ async def _restart_servers(  # noqa: PLR0913
                 reason="configuration update",
                 active_volume=active_volume,
                 logger=logger,
+                dry_run=DRY_RUN,
             )
         else:
             await shutdown_server_pods(

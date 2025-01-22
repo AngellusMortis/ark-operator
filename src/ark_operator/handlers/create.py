@@ -249,6 +249,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                 active_volume=status.active_volume or "server-a",
                 reason="container update",
                 logger=logger,
+                dry_run=DRY_RUN,
             )
         await asyncio.gather(
             *[

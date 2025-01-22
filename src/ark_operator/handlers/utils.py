@@ -66,6 +66,7 @@ async def restart_with_lock(  # noqa: PLR0913
     reason: str,
     active_volume: str,
     logger: kopf.Logger,
+    dry_run: bool = False,
 ) -> None:
     """Do restart with lock."""
 
@@ -86,6 +87,7 @@ async def restart_with_lock(  # noqa: PLR0913
                 reason=reason,
                 active_volume=active_volume,
                 logger=logger,
+                dry_run=dry_run,
             )
         else:
             logger.warning("Skipped restart because one was already in progress")
