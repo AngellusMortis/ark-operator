@@ -471,6 +471,11 @@ async def restart_server_pods(  # noqa: PLR0913
             await asyncio.sleep(10)
             pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
             ready = is_server_pod_ready(pod)
+            await update_cluster(
+                name=name,
+                namespace=namespace,
+                status={"ready": False, "state": f"Rolling Restart {progress}"},
+            )
 
     await _send_message(
         spec.server.restart_complete_message,
