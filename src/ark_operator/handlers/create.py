@@ -45,7 +45,7 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     patch = kwargs["patch"]
 
     if not status.get("state"):  # pragma: no branch
-        patch.status.update(**ArkClusterStatus(**status).model_dump())
+        patch.status.update(**ArkClusterStatus(**status).model_dump(by_alias=True))
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -62,11 +62,15 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
 
     if retry == 0:
         status.ready = False
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         patch.status["stages"] = None
     elif status.ready:
         status.state = "Running"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         patch.status["stages"] = None
         patch.status["initalized"] = True
         return
@@ -81,25 +85,31 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
     data_done = status.initalized or status.is_stage_completed(ClusterStage.DATA_PVC)
     if not server_done or not data_done:
         status.state = "Creating PVCs"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
 
     init_done = status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC)
     if server_done and data_done and not init_done:
         status.state = "Initializing PVCs"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=30)
 
     all_initialized = status.initalized or all([server_done, data_done, init_done])
     create_done = status.is_stage_completed(ClusterStage.CREATE)
     if all_initialized and not create_done:
         status.state = "Creating Resources"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         raise kopf.TemporaryError(ERROR_WAIT_INIT_RESOURCES, delay=3)
 
     status.ready = True
     status.state = "Running"
-    patch.status.update(**status.model_dump(include={"state", "ready"}))
+    patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
     patch.status["stages"] = None
     patch.status["initalized"] = True
 

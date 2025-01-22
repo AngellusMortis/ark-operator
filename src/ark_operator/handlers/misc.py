@@ -88,7 +88,7 @@ async def _update_server(  # noqa: PLR0913
 ) -> None:
     status.state = "Updating Server"
     status.ready = False
-    patch.status.update(**status.model_dump(include={"state", "ready"}))
+    patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
     active_volume = status.active_volume or "server-a"
     update_volume: Literal["server-a", "server-b"] = (
         "server-a" if active_volume == "server-b" else "server-b"
@@ -185,7 +185,9 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         status.ready = True
         if status.state is None:
             status.state = "Running"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
 
     if not status.ready or not status.state or not status.state.startswith("Running"):
         status.created_pods = 0
@@ -201,7 +203,8 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                     "total_pods",
                     "state",
                     "suspended_pods",
-                }
+                },
+                by_alias=True,
             )
         )
 
@@ -275,6 +278,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                 "total_pods",
                 "state",
                 "suspended_pods",
-            }
+            },
+            by_alias=True,
         )
     )

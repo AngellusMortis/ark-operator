@@ -58,10 +58,14 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     if retry == 0:
         status.ready = False
         patch.status["stages"] = None
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
     elif status.ready:
         status.state = "Running"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         patch.status["stages"] = None
         return
 
@@ -73,16 +77,20 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     data_done = status.is_stage_completed(ClusterStage.DATA_PVC)
     if not server_done or not data_done:
         status.state = "Updating PVCs"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
 
     if not status.ready:
         status.state = "Updating Resources"
-        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
         raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=3)
 
     status.state = "Running"
-    patch.status.update(**status.model_dump(include={"state", "ready"}))
+    patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
     patch.status["stages"] = None
 
 
