@@ -113,7 +113,8 @@ class ArkServerSpec(BaseK8sModel):
     shutdown_message_format: str = "Server shutting down in {interval} for {reason}"
     restart_message_format: str = "Rolling server restart in {interval} for {reason}"
     restart_start_message: str = "Starting rolling restart"
-    rolling_restart_format: str = "Restarting server for {map_name}"
+    restart_complete_message: str = "Completed rolling restart"
+    rolling_restart_format: str = "Restarting server for {map_name} {progress}"
 
     @computed_field  # type: ignore[prop-decorator]
     @property
@@ -242,6 +243,7 @@ class ArkClusterStatus(BaseK8sModel):
     ready_pods: int | None = None
     suspended_pods: int | None = None
     last_applied_version: str | None = None
+    kopf: dict[str, Any] | None = None
 
     @property
     def is_error(self) -> bool:

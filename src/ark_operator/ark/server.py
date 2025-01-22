@@ -382,23 +382,24 @@ async def restart_server_pods(  # noqa: PLR0913
     )
     total = len(online_servers)
     for index, map_id in enumerate(online_servers.copy()):
+        progress = f"({index + 1}/{total})"
         await update_cluster(
             name=name,
             namespace=namespace,
-            status={"ready": False, "state": f"Rolling Restart ({index + 1}/{total})"},
+            status={"ready": False, "state": f"Rolling Restart {progress}"},
         )
-        msg = spec.server.rolling_restart_format.format(map_name=get_map_name(map_id))
-        if online_servers:
-            await send_cmd_all(
-                f"ServerChat {msg}",
-                spec=spec.server,
-                host=host,
-                password=password,
-                close=False,
-                servers=online_servers.copy(),
-            )
+        msg = spec.server.rolling_restart_format.format(
+            map_name=get_map_name(map_id), progress=progress
+        )
+        await send_cmd_all(
+            f"ServerChat {msg}",
+            spec=spec.server,
+            host=host,
+            password=password,
+            close=False,
+            servers=online_servers.copy(),
+        )
         await asyncio.sleep(30)
-        online_servers.remove(map_id)
 
         server = spec.server.all_servers[map_id]
         await close_client(host=host, port=server.rcon_port)
@@ -427,6 +428,14 @@ async def restart_server_pods(  # noqa: PLR0913
             pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
             ready = is_server_pod_ready(pod)
 
+    await send_cmd_all(
+        f"ServerChat {spec.server.restart_complete_message}",
+        spec=spec.server,
+        host=host,
+        password=password,
+        close=False,
+        servers=online_servers.copy(),
+    )
     await update_cluster(
         name=name, namespace=namespace, status={"ready": True, "state": "Running"}
     )

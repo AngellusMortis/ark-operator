@@ -91,7 +91,11 @@ spec:
                   rollingRestartFormat:
                     type: string
                     description: |-
-                      Message for restarting specific server. Defaults to `Restarting server for {map_name}`.
+                      Message for restarting specific server. Defaults to `Restarting server for {map_name} {progress}`.
+                  restartCompleteMessage:
+                    type: string
+                    description: |-
+                      Message for starting rolling restart. Defaults to `Completed rolling restart`.
 
                   storageClass:
                     type: string
@@ -289,3 +293,7 @@ spec:
               lastAppliedVersion:
                 type: string
                 description: Last applied ark-operator version
+              kopf:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+                description: Internal field for kopf
