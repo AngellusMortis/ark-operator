@@ -46,7 +46,7 @@
             "args": [
                 "run",
                 "-n",
-                "games",
+                "ark-dev",
                 "--verbose",
                 "--standalone",
                 "-m",
