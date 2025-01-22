@@ -59,7 +59,7 @@ async def test_create_secrets_existing(k8s_v1_client: Mock) -> None:
     """Test create_secrets."""
 
     secrets = Mock()
-    secrets.data = {}
+    secrets.data = {"TEST": b64encode(b"test").decode("utf-8")}
     k8s_v1_client.read_namespaced_secret.return_value = secrets
 
     assert await create_secrets(name="test", namespace="test") is False
