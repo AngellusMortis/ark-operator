@@ -8,6 +8,7 @@ import kopf
 from ark_operator.ark import (
     create_server_pod,
     create_services,
+    get_active_volume,
     shutdown_server_pods,
     update_data_pvc,
     update_server_pvc,
@@ -57,20 +58,21 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
 
     if retry == 0:
         status.ready = False
-        patch.status["stages"] = None
+        status.stages = None
         patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
+            **status.model_dump(include={"stages", "state", "ready"}, by_alias=True)
         )
     elif status.ready:
         status.state = "Running"
+        status.stages = None
         patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
+            **status.model_dump(include={"stages", "state", "ready"}, by_alias=True)
         )
-        patch.status["stages"] = None
         return
 
     if retry > 0 and status.is_error:
-        patch.status["stages"] = None
+        status.stages = None
+        patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
         raise kopf.PermanentError
 
     server_done = status.is_stage_completed(ClusterStage.SERVER_PVC)
@@ -90,8 +92,10 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
         raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=3)
 
     status.state = "Running"
-    patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
-    patch.status["stages"] = None
+    status.stages = None
+    patch.status.update(
+        **status.model_dump(include={"stages", "state", "ready"}, by_alias=True)
+    )
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -252,10 +256,13 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
 
     logger.debug("cluster spec: %s", spec)
     if not update_servers:
-        patch.status["ready"] = True
+        status.ready = True
+        patch.status.update(**status.model_dump(include={"ready"}, by_alias=True))
         return
 
-    active_volume = status.active_volume or "server-a"
+    active_volume = status.active_volume or await get_active_volume(
+        name=name, namespace=namespace, spec=spec
+    )
     try:
         await _restart_servers(
             name=name,
@@ -285,4 +292,5 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status["state"] = f"Error: {ex!s}"
         raise
 
-    patch.status["ready"] = True
+    status.ready = True
+    patch.status.update(**status.model_dump(include={"ready"}, by_alias=True))

@@ -14,6 +14,7 @@ from ark_operator.ark import (
     create_secrets,
     create_server_pod,
     create_services,
+    get_active_volume,
     update_data_pvc,
     update_server_pvc,
 )
@@ -44,7 +45,11 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     status = kwargs["status"]
     patch = kwargs["patch"]
 
-    if not status.get("state"):  # pragma: no branch
+    if (
+        not status.get("state")
+        and not status.get("ready")
+        and not status.get("initalized")
+    ):  # pragma: no branch
         patch.status.update(**ArkClusterStatus(**status).model_dump(by_alias=True))
 
 
@@ -62,21 +67,24 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
 
     if retry == 0:
         status.ready = False
+        status.stages = None
         patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
+            **status.model_dump(include={"state", "ready", "stages"}, by_alias=True)
         )
-        patch.status["stages"] = None
     elif status.ready:
         status.state = "Running"
+        status.stages = None
+        status.initalized = True
         patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
+            **status.model_dump(
+                include={"state", "ready", "stages", "initialized"}, by_alias=True
+            )
         )
-        patch.status["stages"] = None
-        patch.status["initalized"] = True
         return
 
     if retry > 0 and status.is_error:
-        patch.status["stages"] = None
+        status.stages = None
+        patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
         raise kopf.PermanentError
 
     server_done = status.initalized or status.is_stage_completed(
@@ -109,9 +117,13 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
 
     status.ready = True
     status.state = "Running"
-    patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
-    patch.status["stages"] = None
-    patch.status["initalized"] = True
+    status.stages = None
+    status.initalized = True
+    patch.status.update(
+        **status.model_dump(
+            include={"state", "ready", "stages", "initialized"}, by_alias=True
+        )
+    )
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -215,10 +227,17 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     else:
         steam = Steam(Path(gettempdir()) / "steam")
         latest_version = await steam.get_latest_ark_buildid()
-    patch.status["activeVolume"] = "server-a"
-    patch.status["activeBuildid"] = latest_version
-    patch.status["latestBuildid"] = latest_version
-    patch.status["stages"] = status.mark_stage_complete(ClusterStage.INIT_PVC)
+
+    status.active_volume = "server-a"
+    status.active_buildid = latest_version
+    status.latest_buildid = latest_version
+    status.mark_stage_complete(ClusterStage.INIT_PVC)
+    patch.status.update(
+        **status.model_dump(
+            include={"active_volume", "active_buildid", "latest_buildid", "stages"},
+            by_alias=True,
+        )
+    )
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -252,11 +271,14 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             old = status.last_applied_version
             new = ARK_SERVER_IMAGE_VERSION
             logger.info("Container version mismatch (%s -> %s)", old, new)
+            active_volume = status.active_volume or await get_active_volume(
+                name=name, namespace=namespace, spec=spec
+            )
             await restart_with_lock(
                 name=name,
                 namespace=namespace,
                 spec=spec,
-                active_volume=status.active_volume or "server-a",
+                active_volume=active_volume,
                 reason="container update",
                 logger=logger,
                 dry_run=DRY_RUN,
@@ -267,7 +289,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                     name=name,
                     namespace=namespace,
                     map_id=m,
-                    active_volume=status.active_volume or "server-a",
+                    active_volume=active_volume,
                     spec=spec,
                     logger=logger,
                     dry_run=DRY_RUN,
@@ -280,5 +302,11 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status["state"] = f"Error: {ex!s}"
         raise
 
-    patch.status["lastAppliedVersion"] = ARK_SERVER_IMAGE_VERSION
-    patch.status["stages"] = status.mark_stage_complete(ClusterStage.CREATE)
+    status.last_applied_version = ARK_SERVER_IMAGE_VERSION
+    status.mark_stage_complete(ClusterStage.CREATE)
+    patch.status.update(
+        **status.model_dump(
+            include={"last_applied_version", "stages"},
+            by_alias=True,
+        )
+    )

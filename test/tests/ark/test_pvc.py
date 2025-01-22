@@ -8,7 +8,7 @@ import pytest
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark import check_init_job, create_init_job
-from ark_operator.data import ArkClusterSpec
+from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.utils import VERSION
 
 
@@ -129,9 +129,10 @@ async def test_create_init_job_error(k8s_v1_batch_client: Mock) -> None:
     k8s_v1_batch_client.create_namespaced_job = AsyncMock(side_effect=Exception("test"))
 
     spec = ArkClusterSpec()
+    status = ArkClusterStatus()
 
     with pytest.raises(kopf.PermanentError):
-        await create_init_job(name="test", namespace="test", spec=spec)
+        await create_init_job(name="test", namespace="test", spec=spec, status=status)
 
 
 @pytest.mark.asyncio
@@ -139,7 +140,8 @@ async def test_create_init_job(k8s_v1_batch_client: Mock) -> None:
     """Test create_init_job."""
 
     spec = ArkClusterSpec()
-    await create_init_job(name="test", namespace="test", spec=spec)
+    status = ArkClusterStatus()
+    await create_init_job(name="test", namespace="test", spec=spec, status=status)
 
     k8s_v1_batch_client.create_namespaced_job.assert_awaited_once_with(
         namespace="test",
@@ -263,7 +265,10 @@ async def test_create_init_job_dry_run(k8s_v1_batch_client: Mock) -> None:
     """Test create_init_job."""
 
     spec = ArkClusterSpec()
-    await create_init_job(name="test", namespace="test", spec=spec, dry_run=True)
+    status = ArkClusterStatus()
+    await create_init_job(
+        name="test", namespace="test", spec=spec, status=status, dry_run=True
+    )
 
     k8s_v1_batch_client.create_namespaced_job.assert_awaited_once_with(
         namespace="test",

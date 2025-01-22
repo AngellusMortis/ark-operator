@@ -8,7 +8,7 @@ from typing import Unpack
 import kopf
 from kubernetes_asyncio.client import ApiException
 
-from ark_operator.ark import get_map_id_from_slug
+from ark_operator.ark import get_active_volume, get_map_id_from_slug
 from ark_operator.data import ChangeEvent
 from ark_operator.handlers.utils import (
     DEFAULT_NAME,
@@ -84,12 +84,15 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         else cluster.server.all_maps
     )
     logger.info("Restarting servers %s due to configuration update", maps)
+    active_volume = status.active_volume or await get_active_volume(
+        name=name, namespace=namespace, spec=cluster
+    )
     await restart_with_lock(
         name=instance_name,
         namespace=namespace,
         spec=cluster,
         reason="configuration update",
-        active_volume=status.active_volume or "server-a",
+        active_volume=active_volume,
         servers=maps,
         logger=logger,
         dry_run=DRY_RUN,

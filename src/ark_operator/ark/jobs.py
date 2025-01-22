@@ -12,7 +12,6 @@ import yaml
 from kubernetes_asyncio.client import ApiException
 
 from ark_operator.ark.utils import ARK_SERVER_IMAGE_VERSION
-from ark_operator.data import ArkClusterStatus
 from ark_operator.k8s import (
     get_v1_batch_client,
 )
@@ -20,7 +19,7 @@ from ark_operator.templates import loader
 from ark_operator.utils import VERSION
 
 if TYPE_CHECKING:
-    from ark_operator.data import ArkClusterSpec
+    from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 
 JOB_RETRIES = 3
 
@@ -117,13 +116,12 @@ async def create_init_job(  # noqa: PLR0913
     name: str,
     namespace: str,
     spec: ArkClusterSpec,
-    status: ArkClusterStatus | None = None,
+    status: ArkClusterStatus,
     logger: kopf.Logger | None = None,
     dry_run: bool = False,
 ) -> None:
     """Create job to initialize PVCs."""
 
-    status = status or ArkClusterStatus()
     await _create_job(
         template="init-job.yml.j2",
         job_desc="volume init",

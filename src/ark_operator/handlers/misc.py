@@ -15,6 +15,7 @@ from ark_operator.ark import (
     check_update_job,
     create_server_pod,
     create_update_job,
+    get_active_volume,
     get_server_pod,
     is_server_pod_ready,
 )
@@ -89,7 +90,9 @@ async def _update_server(  # noqa: PLR0913
     status.state = "Updating Server"
     status.ready = False
     patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
-    active_volume = status.active_volume or "server-a"
+    active_volume = status.active_volume or await get_active_volume(
+        name=name, namespace=namespace, spec=spec
+    )
     update_volume: Literal["server-a", "server-b"] = (
         "server-a" if active_volume == "server-b" else "server-b"
     )
@@ -99,13 +102,16 @@ async def _update_server(  # noqa: PLR0913
         )
         if not job_result:
             logger.info("Update job does not exist yet, creating it")
+            active_volume = status.active_volume or await get_active_volume(
+                name=name, namespace=namespace, spec=spec
+            )
             await create_update_job(
                 name=name,
                 namespace=namespace,
                 spec=spec,
                 logger=logger,
                 dry_run=DRY_RUN,
-                active_volume=status.active_volume or "server-a",
+                active_volume=active_volume,
             )
             raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=30)
     except kopf.PermanentError as ex:
@@ -116,11 +122,14 @@ async def _update_server(  # noqa: PLR0913
         name=name, namespace=namespace, logger=logger, force_delete=True
     )
 
+    active_volume = status.active_volume or await get_active_volume(
+        name=name, namespace=namespace, spec=spec
+    )
     await restart_with_lock(
         name=name,
         namespace=namespace,
         spec=spec,
-        active_volume=status.active_volume or "server-a",
+        active_volume=active_volume,
         reason="ARK update",
         logger=logger,
         dry_run=DRY_RUN,
@@ -223,6 +232,9 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         name=name, namespace=namespace, logger=logger, force_delete=True
     )
 
+    active_volume = status.active_volume or await get_active_volume(
+        name=name, namespace=namespace, spec=spec
+    )
     try:
         created = await asyncio.gather(
             *[
@@ -230,7 +242,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                     name=name,
                     namespace=namespace,
                     map_id=m,
-                    active_volume=status.active_volume or "server-a",
+                    active_volume=active_volume,
                     spec=spec,
                     logger=logger,
                     dry_run=DRY_RUN,

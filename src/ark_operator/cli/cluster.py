@@ -344,8 +344,8 @@ async def restart(
         await close_clients()
 
     if active_volume:
-        _, status = await get_cluster(name=context.name, namespace=context.namespace)
-        status.active_volume = active_volume
         await update_cluster(
-            name=context.name, namespace=context.namespace, status=status
+            name=context.name,
+            namespace=context.namespace,
+            status={"activeVolume": active_volume},
         )

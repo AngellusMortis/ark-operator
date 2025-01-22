@@ -7,7 +7,7 @@ import json
 import logging
 from datetime import timedelta
 from http import HTTPStatus
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import httpx
 import kopf
@@ -51,6 +51,28 @@ async def get_server_pod(*, name: str, namespace: str, map_id: str) -> V1Pod | N
         raise  # TODO: # pragma: no cover
 
     return obj
+
+
+async def get_active_volume(
+    name: str, namespace: str, spec: ArkClusterSpec
+) -> Literal["server-a", "server-b"]:
+    """Get active_volume."""
+
+    for map_id in spec.server.all_maps:
+        pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        if pod:
+            break
+
+    if not pod:
+        return "server-a"
+
+    for volume in pod.spec.volumes:
+        if volume.name == "server":
+            return cast(
+                Literal["server-a", "server-b"],
+                volume.persistent_volume_claim.claim_name.replace(f"{name}-", ""),
+            )
+    return "server-a"
 
 
 def is_server_pod_ready(pod: V1Pod | None) -> bool:
