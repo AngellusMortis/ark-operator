@@ -456,17 +456,19 @@ async def restart_server_pods(  # noqa: PLR0913
             await asyncio.sleep(5)
             pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
 
-        await create_server_pod(
-            name=name,
-            namespace=namespace,
-            map_id=map_id,
-            spec=spec,
-            logger=logger,
-            active_volume=active_volume,
-            dry_run=dry_run,
-        )
         ready = False
         while not ready:
+            if not await get_server_pod(name=name, namespace=namespace, map_id=map_id):
+                await create_server_pod(
+                    name=name,
+                    namespace=namespace,
+                    map_id=map_id,
+                    spec=spec,
+                    logger=logger,
+                    active_volume=active_volume,
+                    dry_run=dry_run,
+                )
+
             logger.info("Waiting for server pod %s to be ready", map_id)
             await asyncio.sleep(10)
             pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
