@@ -8,6 +8,7 @@ from typing import Unpack
 import kopf
 from kubernetes_asyncio.client import ApiException
 
+from ark_operator.ark import get_map_id_from_slug
 from ark_operator.data import ChangeEvent
 from ark_operator.handlers.utils import (
     DEFAULT_NAME,
@@ -18,7 +19,7 @@ from ark_operator.handlers.utils import (
 from ark_operator.k8s import get_cluster
 
 NAME_PATTERN = re.compile(
-    r"^(?P<instance_name>[^-]*)-(global-(ark-config|envs)|map-(envs|config)-(?P<map_id>[^-]*)|cluster-secrets)$"
+    r"^(?P<instance_name>[^-]*)-(global-(ark-config|envs)|map-(envs|config)-(?P<map_slug>[^-]*)|cluster-secrets)$"
 )
 
 
@@ -47,7 +48,7 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         return
 
     instance_name = match.group("instance_name")
-    map_id = match.group("map_id")
+    map_slug = match.group("map_slug")
     if not is_tracked(instance_name, namespace):
         logger.info(
             "ArkCluster instance (%s, %s) is not tracked", instance_name, namespace
@@ -77,7 +78,11 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         )
         return
 
-    maps = [map_id] if map_id else cluster.server.all_maps
+    maps = (
+        [get_map_id_from_slug(map_slug, tuple(cluster.server.all_maps))]
+        if map_slug
+        else cluster.server.all_maps
+    )
     logger.info("Restarting servers %s due to configuration update", maps)
     await restart_with_lock(
         name=instance_name,

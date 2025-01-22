@@ -15,7 +15,7 @@ from asyncache import cached
 from cachetools import TTLCache
 from kubernetes_asyncio.client import ApiException
 
-from ark_operator.ark.utils import ENV
+from ark_operator.ark.utils import ENV, get_map_slug
 from ark_operator.data import ArkClusterSpec
 from ark_operator.k8s import get_v1_client
 from ark_operator.templates import loader
@@ -266,11 +266,13 @@ async def _get_global_ark_config(name: str, namespace: str) -> dict[str, str]:
 
 
 async def _get_map_config(name: str, namespace: str, map_id: str) -> dict[str, str]:
-    return await _get_config_map(f"{name}-map-envs-{map_id}", namespace)
+    slug = get_map_slug(map_id)
+    return await _get_config_map(f"{name}-map-envs-{slug}", namespace)
 
 
 async def _get_map_ark_config(name: str, namespace: str, map_id: str) -> dict[str, str]:
-    return await _get_config_map(f"{name}-map-ark-config-{map_id}", namespace)
+    slug = get_map_slug(map_id)
+    return await _get_config_map(f"{name}-map-ark-config-{slug}", namespace)
 
 
 async def get_map_envs(

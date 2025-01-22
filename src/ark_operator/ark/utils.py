@@ -169,6 +169,14 @@ def get_map_slug(map_id: str, max_length: int = 11) -> str:
     return slug
 
 
+@lru_cache(maxsize=20)
+def get_map_id_from_slug(map_id: str, all_maps: tuple[str]) -> str:
+    """Get map ID from map slug."""
+
+    slug_map = {get_map_slug(m): m for m in all_maps}
+    return slug_map[map_id]
+
+
 def order_maps(maps: list[str]) -> list[str]:
     """Order maps in a consistent way."""
 
