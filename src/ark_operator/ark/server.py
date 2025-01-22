@@ -6,7 +6,7 @@ import asyncio
 import json
 import logging
 from http import HTTPStatus
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import kopf
 import yaml
@@ -61,6 +61,30 @@ def is_server_pod_ready(pod: V1Pod | None) -> bool:
 
     container_ready = [s.ready for s in pod.status.container_statuses]
     return all(container_ready)
+
+
+async def _patch_server_pod(
+    *, pod_name: str, namespace: str, body: dict[str, Any]
+) -> V1Pod:
+    v1 = await get_v1_client()
+    try:
+        obj = await v1.patch_namespaced_pod(
+            name=pod_name,
+            namespace=namespace,
+            body=body,
+        )
+    except ApiException as ex:
+        if ex.status == HTTPStatus.UNPROCESSABLE_ENTITY:
+            await v1.delete_namespaced_pod(name=pod_name, namespace=namespace)
+            obj = await v1.patch_namespaced_pod(
+                name=pod_name,
+                namespace=namespace,
+                body=body,
+            )
+        else:
+            raise
+
+    return obj
 
 
 async def create_server_pod(  # noqa: PLR0913
@@ -127,8 +151,8 @@ async def create_server_pod(  # noqa: PLR0913
 
     try:
         if exists:
-            obj = await v1.patch_namespaced_pod(
-                name=pod_name,
+            obj = await _patch_server_pod(
+                pod_name=pod_name,
                 namespace=namespace,
                 body=pod,
             )
@@ -138,6 +162,8 @@ async def create_server_pod(  # noqa: PLR0913
                 body=pod,
             )
     except Exception as ex:  # TODO: # pragma: no cover
+        # kopf does not log stracktrace
+        logger.exception(ERROR_POD.format(map_id=map_id))
         raise kopf.TemporaryError(ERROR_POD.format(map_id=map_id), delay=5) from ex
 
     logger.info(

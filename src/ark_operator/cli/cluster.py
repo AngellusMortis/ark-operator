@@ -63,10 +63,10 @@ def _get_context() -> ClusterContext:
 
 
 def _require_host(spec: ArkClusterSpec | None) -> IPv4Address | IPv6Address:
-    if not spec or not spec.server.load_balancer_ip:
+    if not spec or not spec.service.load_balancer_ip:
         raise CycloptsError(msg=ERROR_HOST_REQUIRED)
 
-    return spec.server.load_balancer_ip
+    return spec.service.load_balancer_ip
 
 
 def _get_cluster(

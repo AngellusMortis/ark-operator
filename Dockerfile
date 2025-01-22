@@ -13,7 +13,7 @@ RUN addgroup --system --gid 1000 app \
 RUN --mount=type=cache,mode=0755,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,mode=0755,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     apt-get update -qq \
-    && apt-get install -yqq lib32stdc++6 dbus libfreetype6 locales net-tools curl \
+    && apt-get install -yqq lib32stdc++6 dbus libfreetype6 locales net-tools curl git \
     # required for Steam/Proton
     && rm -f /etc/machine-id \
     && dbus-uuidgen --ensure=/etc/machine-id \
@@ -30,7 +30,7 @@ FROM base AS builder-prod
 RUN --mount=type=cache,mode=0755,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,mode=0755,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     apt-get update -qq \
-    && apt-get install -yqq build-essential git
+    && apt-get install -yqq build-essential
 
 COPY requirements.txt /
 RUN --mount=type=cache,mode=0755,id=pip-$TARGETPLATFORM,target=/root/.cache \
@@ -60,16 +60,10 @@ ARG RELEASE_VERSION=""
 ENV SETUPTOOLS_SCM_PRETEND_VERSION=${RELEASE_VERSION}
 
 RUN --mount=source=./,target=/tmp/ark-operator,type=bind \
-    --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
-    --mount=type=cache,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     --mount=type=cache,mode=0755,id=pip,target=/root/.cache \
     ls -la /tmp/ark-operator \
     && cd /tmp/ark-operator \
-    && apt-get update -qq \
-    && apt-get install -yqq git \
-    && pip install . \
-    && apt-get remove -yqq git \
-    && apt-get autoremove -yqq
+    && pip install .
 USER app
 WORKDIR /
 ENTRYPOINT [ "arkctl" ]
@@ -121,7 +115,7 @@ COPY ./.docker/bashrc /home/app/.bashrc
 RUN --mount=type=cache,id=apt-cache-TARGETPLATFORM,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,id=apt-data-TARGETPLATFORM,target=/var/lib/apt,sharing=locked \
     apt-get update -qq \
-    && apt-get install -yqq git curl vim procps curl jq yq sudo zip \
+    && apt-get install -yqq curl vim procps curl jq yq sudo zip \
     && echo 'app ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers \
     && chown app:app /home/app/.bashrc \
     && chmod +x /usr/local/bin/docker-fix

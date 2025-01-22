@@ -66,6 +66,7 @@ async def restart_with_lock(  # noqa: PLR0913
     reason: str,
     active_volume: str,
     logger: kopf.Logger,
+    servers: list[str] | None = None,
     dry_run: bool = False,
 ) -> None:
     """Do restart with lock."""
@@ -86,6 +87,7 @@ async def restart_with_lock(  # noqa: PLR0913
                 spec=spec,
                 reason=reason,
                 active_volume=active_volume,
+                servers=servers,
                 logger=logger,
                 dry_run=dry_run,
             )

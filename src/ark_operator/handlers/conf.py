@@ -19,7 +19,7 @@ from ark_operator.handlers.utils import (
 from ark_operator.k8s import get_cluster
 
 NAME_PATTERN = re.compile(
-    r"^(?P<instance_name>[^-]*)-(global-(ark-config|envs)|map-(envs|config)-(?P<map_slug>[^-]*)|cluster-secrets)$"
+    r"^(?P<instance_name>[^-]*)-(global-(ark-config|envs)|map-(envs|config)-(?P<map_slug>.*)|cluster-secrets)$"
 )
 
 
@@ -90,6 +90,7 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         spec=cluster,
         reason="configuration update",
         active_volume=status.active_volume or "server-a",
+        servers=maps,
         logger=logger,
         dry_run=DRY_RUN,
     )

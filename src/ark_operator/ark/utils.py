@@ -24,7 +24,7 @@ _LOGGER = logging.getLogger(__name__)
 ENV = Env()
 
 ARK_SERVER_APP_ID = 2430930
-ARK_SERVER_IMAGE_VERSION = ENV("ARK_SERVER_IMAGE_VERSION", "v0.8.0")
+ARK_SERVER_IMAGE_VERSION = ENV("ARK_SERVER_IMAGE_VERSION", "v0.9.1")
 MAP_NAME_LOOKUP = {
     "Aberration_WP": "Aberration",
     "BobsMissions_WP": "Club Ark",

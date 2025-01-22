@@ -179,15 +179,32 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     patch = kwargs["patch"]
     logger = kwargs["logger"]
 
-    if status.ready is None and status.state.startswith("Running"):
+    if status.ready is None and (
+        status.state.startswith("Running") or status.state is None
+    ):
         status.ready = True
+        if status.state is None:
+            status.state = "Running"
         patch.status.update(**status.model_dump(include={"state", "ready"}))
 
     if not status.ready or not status.state or not status.state.startswith("Running"):
-        patch.status["createdPods"] = 0
-        patch.status["readyPods"] = 0
-        patch.status["totalPods"] = len(spec.server.active_maps)
-        patch.status["suspendedPods"] = len(spec.server.suspend)
+        status.created_pods = 0
+        status.ready_pods = 0
+        status.total_pods = len(spec.server.active_maps)
+        status.suspended_pods = len(spec.server.suspend)
+        patch.status.update(
+            **status.model_dump(
+                include={
+                    "ready",
+                    "created_pods",
+                    "ready_pods",
+                    "total_pods",
+                    "state",
+                    "suspended_pods",
+                }
+            )
+        )
+
         logger.info("Skipping status check because cluster is not ready.")
         return
 
@@ -242,8 +259,22 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         total,
         len(spec.server.suspend),
     )
-    patch.status["createdPods"] = containers
-    patch.status["readyPods"] = ready
-    patch.status["totalPods"] = total
-    patch.status["state"] = f"Running ({ready}/{containers}/{total})"
-    patch.status["suspendedPods"] = len(spec.server.suspend)
+    status.ready = True
+    status.created_pods = containers
+    status.ready_pods = ready
+    status.total_pods = total
+    status.state = f"Running ({ready}/{containers}/{total})"
+    status.suspended_pods = len(spec.server.suspend)
+
+    patch.status.update(
+        **status.model_dump(
+            include={
+                "ready",
+                "created_pods",
+                "ready_pods",
+                "total_pods",
+                "state",
+                "suspended_pods",
+            }
+        )
+    )

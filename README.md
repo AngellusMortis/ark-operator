@@ -67,7 +67,7 @@ ARK_SERVER_AUTO_UPDATE=false
 ```yml
 services:
   club-ark:
-    image: ghcr.io/angellusmortis/ark-server:v0.8.0
+    image: ghcr.io/angellusmortis/ark-server:v0.9.1
     env_file: .env
     environment:
       ARK_SERVER_MAP: BobsMissions_WP
@@ -96,7 +96,7 @@ services:
       - "27020:27020"
       - "7777:7777"
   island:
-    image: ghcr.io/angellusmortis/ark-server:v0.8.0
+    image: ghcr.io/angellusmortis/ark-server:v0.9.1
     env_file: .env
     environment:
       ARK_SERVER_MAP: TheIsland_WP

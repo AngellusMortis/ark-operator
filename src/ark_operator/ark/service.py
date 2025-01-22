@@ -89,6 +89,8 @@ async def _create_service(
                 body=svc,
             )
     except Exception as ex:  # TODO: # pragma: no cover
+        # kopf does not log stracktrace
+        logger.exception(ERROR_SVC)
         raise kopf.TemporaryError(ERROR_SVC, delay=5) from ex
 
     logger.info("%s service: %s", "Patched" if exists else "Created", obj.metadata.name)
