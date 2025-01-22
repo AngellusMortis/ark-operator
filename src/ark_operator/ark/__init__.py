@@ -22,6 +22,7 @@ from ark_operator.ark.runner import ArkServer
 from ark_operator.ark.server import (
     create_server_pod,
     delete_server_pod,
+    get_active_buildid,
     get_active_volume,
     get_server_pod,
     is_server_pod_ready,
@@ -65,6 +66,7 @@ __all__ = [
     "delete_server_pod",
     "delete_services",
     "expand_maps",
+    "get_active_buildid",
     "get_active_volume",
     "get_ark_buildid",
     "get_cluster_host",

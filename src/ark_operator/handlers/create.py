@@ -42,15 +42,32 @@ from ark_operator.steam import Steam
 async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
-    status = kwargs["status"]
+    status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
+    logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+    spec = ArkClusterSpec(**kwargs["spec"])
 
-    if (
-        not status.get("state")
-        and not status.get("ready")
-        and not status.get("initalized")
-    ):  # pragma: no branch
-        patch.status.update(**ArkClusterStatus(**status).model_dump(by_alias=True))
+    if not status.state and not status.ready and not status.initalized:
+        patch.status.update(status.model_dump(by_alias=True))
+        logger.debug("status update %s", patch.status)
+        return
+
+    if status.active_volume is None:
+        status.active_volume = await get_active_volume(
+            name=name, namespace=namespace, spec=spec
+        )
+        patch.status.update(
+            **status.model_dump(include={"active_volume"}, by_alias=True)
+        )
+        logger.debug("status update %s", patch.status)
+    if status.active_buildid is None:
+        status.active_buildid = status.latest_buildid
+        patch.status.update(
+            **status.model_dump(include={"active_buildid"}, by_alias=True)
+        )
+        logger.debug("status update %s", patch.status)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -62,6 +79,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
 
     patch = kwargs["patch"]
     retry = kwargs["retry"]
+    logger = kwargs["logger"]
     status = ArkClusterStatus(**kwargs["status"])
     status.ready = status.ready or False
 
@@ -71,6 +89,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"state", "ready", "stages"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
     elif status.ready:
         status.state = "Running"
         status.stages = None
@@ -80,11 +99,13 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
                 include={"state", "ready", "stages", "initialized"}, by_alias=True
             )
         )
+        logger.debug("status update %s", patch.status)
         return
 
     if retry > 0 and status.is_error:
         status.stages = None
         patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
+        logger.debug("status update %s", patch.status)
         raise kopf.PermanentError
 
     server_done = status.initalized or status.is_stage_completed(
@@ -96,6 +117,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
 
     init_done = status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC)
@@ -104,6 +126,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=30)
 
     all_initialized = status.initalized or all([server_done, data_done, init_done])
@@ -113,6 +136,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
         raise kopf.TemporaryError(ERROR_WAIT_INIT_RESOURCES, delay=3)
 
     status.ready = True
@@ -124,6 +148,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:
             include={"state", "ready", "stages", "initialized"}, by_alias=True
         )
     )
+    logger.debug("status update %s", patch.status)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -133,6 +158,7 @@ async def on_create_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
 
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
+    logger = kwargs["logger"]
     if status.initalized or status.is_stage_completed(ClusterStage.SERVER_PVC):
         return
 
@@ -150,9 +176,11 @@ async def on_create_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     patch.status["stages"] = status.mark_stage_complete(ClusterStage.SERVER_PVC)
+    logger.debug("status update %s", patch.status)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -162,6 +190,7 @@ async def on_create_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
 
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
+    logger = kwargs["logger"]
     if status.initalized or status.is_stage_completed(ClusterStage.DATA_PVC):
         return
 
@@ -180,9 +209,11 @@ async def on_create_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     patch.status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+    logger.debug("status update %s", patch.status)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -220,6 +251,7 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
             raise kopf.TemporaryError(ERROR_WAIT_INIT_JOB, delay=30)
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     if DRY_RUN:
@@ -238,6 +270,7 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
             by_alias=True,
         )
     )
+    logger.debug("status update %s", patch.status)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -279,6 +312,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                 namespace=namespace,
                 spec=spec,
                 active_volume=active_volume,
+                active_buildid=status.active_buildid,
                 reason="container update",
                 logger=logger,
                 dry_run=DRY_RUN,
@@ -290,6 +324,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                     namespace=namespace,
                     map_id=m,
                     active_volume=active_volume,
+                    active_buildid=status.active_buildid,
                     spec=spec,
                     logger=logger,
                     dry_run=DRY_RUN,
@@ -300,6 +335,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     status.last_applied_version = ARK_SERVER_IMAGE_VERSION
@@ -310,3 +346,4 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             by_alias=True,
         )
     )
+    logger.debug("status update %s", patch.status)

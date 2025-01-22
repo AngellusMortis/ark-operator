@@ -9,6 +9,9 @@ metadata:
     app.kubernetes.io/component: server
     app.kubernetes.io/part-of: ark-operator
     app.kubernetes.io/managed-by: ark-operator
+    {% if active_buildid %}
+    mort.is/ark_build: {{ active_buildid }}
+    {% endif %}
 spec:
   {% if node_selector %}
   nodeSelector: {{ node_selector }}

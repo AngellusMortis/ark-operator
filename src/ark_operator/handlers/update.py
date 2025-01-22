@@ -53,6 +53,7 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
 
     patch = kwargs["patch"]
     retry = kwargs["retry"]
+    logger = kwargs["logger"]
     status = ArkClusterStatus(**kwargs["status"])
     status.ready = status.ready or False
 
@@ -62,17 +63,20 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"stages", "state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
     elif status.ready:
         status.state = "Running"
         status.stages = None
         patch.status.update(
             **status.model_dump(include={"stages", "state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
         return
 
     if retry > 0 and status.is_error:
         status.stages = None
         patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
+        logger.debug("status update %s", patch.status)
         raise kopf.PermanentError
 
     server_done = status.is_stage_completed(ClusterStage.SERVER_PVC)
@@ -82,6 +86,7 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
 
     if not status.ready:
@@ -89,6 +94,7 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
         raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=3)
 
     status.state = "Running"
@@ -96,6 +102,7 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     patch.status.update(
         **status.model_dump(include={"stages", "state", "ready"}, by_alias=True)
     )
+    logger.debug("status update %s", patch.status)
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -120,6 +127,7 @@ async def on_update_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
 
     if not update_pvc:
         patch.status["stages"] = status.mark_stage_complete(ClusterStage.SERVER_PVC)
+        logger.debug("status update %s", patch.status)
         return
 
     name = kwargs["name"] or DEFAULT_NAME
@@ -135,9 +143,11 @@ async def on_update_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     patch.status["stages"] = status.mark_stage_complete(ClusterStage.SERVER_PVC)
+    logger.debug("status update %s", patch.status)
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -178,9 +188,11 @@ async def on_update_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     patch.status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+    logger.debug("status update %s", patch.status)
 
 
 async def _restart_servers(  # noqa: PLR0913
@@ -191,6 +203,7 @@ async def _restart_servers(  # noqa: PLR0913
     logger: kopf.Logger,
     patch: kopf.Patch,
     active_volume: str,
+    active_buildid: int | None,
     restart: bool,
 ) -> None:
     try:
@@ -201,6 +214,7 @@ async def _restart_servers(  # noqa: PLR0913
                 spec=spec,
                 reason="configuration update",
                 active_volume=active_volume,
+                active_buildid=active_buildid,
                 logger=logger,
                 dry_run=DRY_RUN,
             )
@@ -216,6 +230,7 @@ async def _restart_servers(  # noqa: PLR0913
             await asyncio.sleep(30)
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
 
@@ -258,6 +273,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     if not update_servers:
         status.ready = True
         patch.status.update(**status.model_dump(include={"ready"}, by_alias=True))
+        logger.debug("status update %s", patch.status)
         return
 
     active_volume = status.active_volume or await get_active_volume(
@@ -270,6 +286,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             spec=spec,
             logger=logger,
             active_volume=active_volume,
+            active_buildid=status.active_buildid,
             patch=patch,
             restart=allow_restart,
         )
@@ -280,6 +297,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                     namespace=namespace,
                     map_id=m,
                     active_volume=active_volume,
+                    active_buildid=status.active_buildid,
                     spec=spec,
                     logger=logger,
                     force_create=True,
@@ -290,7 +308,9 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         )
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     status.ready = True
     patch.status.update(**status.model_dump(include={"ready"}, by_alias=True))
+    logger.debug("status update %s", patch.status)

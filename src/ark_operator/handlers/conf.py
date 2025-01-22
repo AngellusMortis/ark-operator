@@ -93,6 +93,7 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         spec=cluster,
         reason="configuration update",
         active_volume=active_volume,
+        active_buildid=status.active_buildid,
         servers=maps,
         logger=logger,
         dry_run=DRY_RUN,

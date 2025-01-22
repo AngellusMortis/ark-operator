@@ -15,6 +15,7 @@ from ark_operator.ark import (
     check_update_job,
     create_server_pod,
     create_update_job,
+    get_active_buildid,
     get_active_volume,
     get_server_pod,
     is_server_pod_ready,
@@ -90,6 +91,7 @@ async def _update_server(  # noqa: PLR0913
     status.state = "Updating Server"
     status.ready = False
     patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
+    logger.debug("status update %s", patch.status)
     active_volume = status.active_volume or await get_active_volume(
         name=name, namespace=namespace, spec=spec
     )
@@ -116,6 +118,7 @@ async def _update_server(  # noqa: PLR0913
             raise kopf.TemporaryError(ERROR_WAIT_UPDATE_JOB, delay=30)
     except kopf.PermanentError as ex:
         patch.status["state"] = f"Error: {ex!s}"
+        logger.debug("status update %s", patch.status)
         raise
 
     await check_update_job(
@@ -130,6 +133,7 @@ async def _update_server(  # noqa: PLR0913
         namespace=namespace,
         spec=spec,
         active_volume=active_volume,
+        active_buildid=status.active_buildid,
         reason="ARK update",
         logger=logger,
         dry_run=DRY_RUN,
@@ -144,6 +148,7 @@ async def _update_server(  # noqa: PLR0913
             include={"state", "ready", "active_buildid", "active_volume"}, by_alias=True
         )
     )
+    logger.debug("status update %s", patch.status)
 
 
 @kopf.timer(  # type: ignore[arg-type]
@@ -167,6 +172,7 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
         latest_version = await steam.get_latest_ark_buildid()
     status.latest_buildid = latest_version
     patch.status.update(**status.model_dump(include={"latest_buildid"}, by_alias=True))
+    logger.debug("status update %s", patch.status)
     logger.info("Latest ARK version: %s", latest_version)
 
     active_version = status.active_buildid or 1
@@ -182,17 +188,15 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
         )
 
 
-@kopf.timer(  # type: ignore[arg-type]
-    "arkcluster", interval=15
-)
-async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
-    """Check for ARK server updates."""
-
-    status = ArkClusterStatus(**kwargs["status"])
-    spec = ArkClusterSpec(**kwargs["spec"])
-    patch = kwargs["patch"]
-    logger = kwargs["logger"]
-
+async def _check_initial_status(  # noqa: PLR0913
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    status: ArkClusterStatus,
+    patch: kopf.Patch,
+    logger: kopf.Logger,
+) -> None:
     if not status.ready and (
         status.state.startswith("Running") or status.state is None
     ):
@@ -202,7 +206,34 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         patch.status.update(
             **status.model_dump(include={"state", "ready"}, by_alias=True)
         )
+        logger.debug("status update %s", patch.status)
 
+    if status.ready and status.active_volume is None:
+        status.active_volume = await get_active_volume(
+            name=name, namespace=namespace, spec=spec
+        )
+        patch.status.update(
+            **status.model_dump(include={"active_volume"}, by_alias=True)
+        )
+        logger.debug("status update %s", patch.status)
+    if status.ready and status.active_buildid is None:
+        status.active_buildid = (
+            await get_active_buildid(name=name, namespace=namespace, spec=spec)
+            or status.latest_buildid
+        )
+        patch.status.update(
+            **status.model_dump(include={"active_buildid"}, by_alias=True)
+        )
+        logger.debug("status update %s", patch.status)
+
+
+def _is_ready(
+    *,
+    spec: ArkClusterSpec,
+    status: ArkClusterStatus,
+    patch: kopf.Patch,
+    logger: kopf.Logger,
+) -> bool:
     if not status.ready or not status.state or not status.state.startswith("Running"):
         status.created_pods = 0
         status.ready_pods = 0
@@ -221,17 +252,21 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                 by_alias=True,
             )
         )
+        logger.debug("status update %s", patch.status)
 
         logger.info("Skipping status check because cluster is not ready.")
-        return
+        return False
+    return True
 
-    logger = kwargs["logger"]
-    name = kwargs["name"] or DEFAULT_NAME
-    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
-    await check_update_job(
-        name=name, namespace=namespace, logger=logger, force_delete=True
-    )
 
+async def _create_pods(
+    *,
+    name: str,
+    namespace: str,
+    spec: ArkClusterSpec,
+    status: ArkClusterStatus,
+    logger: kopf.Logger,
+) -> bool:
     active_volume = status.active_volume or await get_active_volume(
         name=name, namespace=namespace, spec=spec
     )
@@ -243,6 +278,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                     namespace=namespace,
                     map_id=m,
                     active_volume=active_volume,
+                    active_buildid=status.active_buildid,
                     spec=spec,
                     logger=logger,
                     dry_run=DRY_RUN,
@@ -252,10 +288,44 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
         )
     except Exception as ex:  # noqa: BLE001
         logger.warning("Failed to create server pods", exc_info=ex)
-        return
+        return True
 
     if any(created):
         logger.info("Created %s server pod(s)", len([x for x in created if x]))
+        return True
+    return False
+
+
+@kopf.timer(  # type: ignore[arg-type]
+    "arkcluster", interval=15, initial_delay=30
+)
+async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
+    """Check for ARK server updates."""
+
+    status = ArkClusterStatus(**kwargs["status"])
+    spec = ArkClusterSpec(**kwargs["spec"])
+    patch = kwargs["patch"]
+    logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+
+    await _check_initial_status(
+        name=name,
+        namespace=namespace,
+        spec=spec,
+        status=status,
+        patch=patch,
+        logger=logger,
+    )
+    if not _is_ready(spec=spec, status=status, patch=patch, logger=logger):
+        return
+    await check_update_job(
+        name=name, namespace=namespace, logger=logger, force_delete=True
+    )
+
+    if await _create_pods(
+        name=name, namespace=namespace, spec=spec, status=status, logger=logger
+    ):
         return
 
     containers = 0
@@ -302,3 +372,4 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
             by_alias=True,
         )
     )
+    logger.debug("status update %s", patch.status)

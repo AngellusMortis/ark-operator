@@ -75,6 +75,24 @@ async def get_active_volume(
     return "server-a"
 
 
+async def get_active_buildid(
+    name: str, namespace: str, spec: ArkClusterSpec
+) -> int | None:
+    """Get active_buildid."""
+
+    for map_id in spec.server.all_maps:
+        pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        if pod:
+            break
+
+    if not pod:
+        return None
+
+    if "mort.is/ark_build" in pod.metadata.labels:
+        return int(pod.metadata.labels["mort.is/ark_build"])
+    return None
+
+
 def is_server_pod_ready(pod: V1Pod | None) -> bool:
     """Check if server pod is ready."""
 
@@ -118,6 +136,7 @@ async def create_server_pod(  # noqa: PLR0913
     spec: ArkClusterSpec,
     logger: kopf.Logger | None = None,
     dry_run: bool = False,
+    active_buildid: int | None = None,
     force_create: bool = False,
 ) -> bool:
     """Create ARK server job."""
@@ -168,6 +187,7 @@ async def create_server_pod(  # noqa: PLR0913
             has_map_game=has_map_game,
             game_port=envs["ARK_SERVER_GAME_PORT"],
             rcon_port=envs["ARK_SERVER_RCON_PORT"],
+            active_buildid=active_buildid,
         )
     )
 
@@ -401,6 +421,7 @@ async def restart_server_pods(  # noqa: PLR0913
     host: str | None = None,
     password: str | None = None,
     servers: list[str] | None = None,
+    active_buildid: int | None = None,
     wait_interval: timedelta | None = None,
     dry_run: bool = False,
 ) -> None:
@@ -494,6 +515,7 @@ async def restart_server_pods(  # noqa: PLR0913
                     spec=spec,
                     logger=logger,
                     active_volume=active_volume,
+                    active_buildid=active_buildid,
                     dry_run=dry_run,
                 )
 

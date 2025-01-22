@@ -334,6 +334,7 @@ async def restart(
             namespace=context.namespace,
             spec=context.spec,
             active_volume=active_volume,  # type: ignore[arg-type]
+            active_buildid=context.status.active_buildid,
             reason=" ".join(reason),
             host=str(context.host) if context.host else None,
             password=password,
