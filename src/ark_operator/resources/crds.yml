@@ -62,9 +62,9 @@ spec:
                     type: string
                     description: |-
                       IP to use for load balancer.
-                annotations:
-                  type: object
-                  x-kubernetes-preserve-unknown-fields: true
+                  annotations:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
               server:
                 type: object
                 properties:
