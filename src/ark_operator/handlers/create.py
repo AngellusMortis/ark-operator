@@ -13,6 +13,7 @@ from ark_operator.ark import (
     create_init_job,
     create_secrets,
     create_server_pod,
+    create_services,
     update_data_pvc,
     update_server_pvc,
 )
@@ -229,7 +230,10 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
-    tasks = [create_secrets(name=name, namespace=namespace, logger=logger)]
+    tasks = [
+        create_secrets(name=name, namespace=namespace, logger=logger),
+        create_services(name=name, namespace=namespace, spec=spec, logger=logger),
+    ]
 
     logger.debug("cluster spec: %s", spec)
     try:

@@ -161,6 +161,10 @@ def _verify_startup(namespace: str) -> None:
         _run(
             f"kubectl -n {namespace} wait --for=jsonpath='{{.status.readyPods}}'=1 arkcluster/ark --timeout=120s",
         )
+        result = _run(
+            f"kubectl -n {namespace} get service --no-headers -o custom-columns=':metadata.name'"
+        )
+        _assert_output(result, ["ark", "ark-rcon"])
     except Exception:
         _dump_namespace(namespace)
         raise

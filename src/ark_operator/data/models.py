@@ -165,6 +165,7 @@ class ArkServiceSpec(BaseK8sModel):
     load_balancer_ip: IPv4Address | IPv6Address | None = Field(
         alias="loadBalancerIP", default=None
     )
+    annotations: dict[str, Any] | None = None
 
 
 class ArkClusterSettings(BaseK8sModel):

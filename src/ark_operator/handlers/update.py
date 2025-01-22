@@ -7,6 +7,7 @@ import kopf
 
 from ark_operator.ark import (
     create_server_pod,
+    create_services,
     shutdown_server_pods,
     update_data_pvc,
     update_server_pvc,
@@ -237,6 +238,8 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
+
+    await create_services(name=name, namespace=namespace, spec=spec, logger=logger)
 
     logger.debug("cluster spec: %s", spec)
     if not update_servers:

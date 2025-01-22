@@ -358,7 +358,7 @@ async def restart_server_pods(  # noqa: PLR0913
         await update_cluster(
             name=name,
             namespace=namespace,
-            status={"state": f"Rolling Restart ({index + 1}/{total})"},
+            status={"ready": False, "state": f"Rolling Restart ({index + 1}/{total})"},
         )
         msg = spec.server.rolling_restart_format.format(map_name=get_map_name(map_id))
         if online_servers:
