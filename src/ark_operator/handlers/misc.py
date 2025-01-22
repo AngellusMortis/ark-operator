@@ -179,7 +179,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     patch = kwargs["patch"]
     logger = kwargs["logger"]
 
-    if status.ready is None and (
+    if not status.ready and (
         status.state.startswith("Running") or status.state is None
     ):
         status.ready = True
