@@ -52,6 +52,9 @@ DEFAULT_LOG_CONFIG = {
         "Connection": {
             "level": "WARNING",
         },
+        "httpx": {
+            "level": "WARNING",
+        },
     },
 }
 

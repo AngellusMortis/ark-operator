@@ -191,7 +191,11 @@ async def _read_secret(*, name: str, namespace: str) -> dict[str, str] | None:
         if ex.status == HTTPStatus.NOT_FOUND:
             return None
         raise  # TODO: # pragma: no cover
-    return cast(dict[str, str], obj.data)
+
+    data = cast(dict[str, str], obj.data)
+    for key, value in data.items():
+        data[key] = b64decode(value.encode("utf-8")).decode("utf-8")
+    return data
 
 
 async def read_secrets(*, name: str, namespace: str) -> dict[str, str] | None:
@@ -320,9 +324,7 @@ async def get_rcon_password(*, name: str, namespace: str) -> str:
     if not secrets or "ARK_SERVER_RCON_PASSWORD" not in secrets:
         raise RuntimeError(ERROR_NO_PASSWORD)
 
-    return b64decode(secrets["ARK_SERVER_RCON_PASSWORD"].encode("utf-8")).decode(
-        "utf-8"
-    )
+    return secrets["ARK_SERVER_RCON_PASSWORD"]
 
 
 @cached(TTLCache(8, ENV.int("ARK_OP_TTL_CACHE", 300)))  # type: ignore[misc]

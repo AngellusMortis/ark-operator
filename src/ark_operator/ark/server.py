@@ -210,15 +210,14 @@ async def _send_message(  # noqa: PLR0913
                 r.raise_for_status()
             except Exception:
                 logger.exception("Error sending Discord Webhook message")
-    else:
-        await send_cmd_all(
-            f"ServerChat {msg}",
-            spec=spec.server,
-            host=host,
-            password=password,
-            close=False,
-            servers=servers.copy(),
-        )
+    await send_cmd_all(
+        f"ServerChat {msg}",
+        spec=spec.server,
+        host=host,
+        password=password,
+        close=False,
+        servers=servers.copy(),
+    )
 
 
 async def _notify_server_pods(  # noqa: PLR0913
