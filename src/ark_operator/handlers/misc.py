@@ -223,6 +223,9 @@ def _is_ready(
     patch: kopf.Patch,
     logger: kopf.Logger,
 ) -> bool:
+    if not status.ready and status.state == "Updating Server":
+        return True
+
     if not status.ready or not status.state or not status.state.startswith("Running"):
         status.created_pods = 0
         status.ready_pods = 0
@@ -308,9 +311,6 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     )
     if not _is_ready(spec=spec, status=status, patch=patch, logger=logger):
         return
-    await check_update_job(
-        name=name, namespace=namespace, logger=logger, force_delete=True
-    )
 
     if await _create_pods(
         name=name, namespace=namespace, spec=spec, status=status, logger=logger
@@ -336,6 +336,10 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
             patch=patch,
         )
         return
+
+    await check_update_job(
+        name=name, namespace=namespace, logger=logger, force_delete=True
+    )
 
     containers = 0
     ready = 0
