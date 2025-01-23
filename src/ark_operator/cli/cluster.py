@@ -348,5 +348,8 @@ async def restart(
         await update_cluster(
             name=context.name,
             namespace=context.namespace,
-            status={"activeVolume": active_volume},
+            status={
+                "activeVolume": active_volume,
+                "activeBuildid": context.status.latest_buildid,
+            },
         )

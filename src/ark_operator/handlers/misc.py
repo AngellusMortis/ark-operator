@@ -98,6 +98,7 @@ async def _update_server(  # noqa: PLR0913
     update_volume: Literal["server-a", "server-b"] = (
         "server-a" if active_volume == "server-b" else "server-b"
     )
+
     try:
         job_result = await check_update_job(
             name=name, namespace=namespace, logger=logger
@@ -174,18 +175,6 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
     patch.status.update(**status.model_dump(include={"latest_buildid"}, by_alias=True))
     logger.debug("status update %s", patch.status)
     logger.info("Latest ARK version: %s", latest_version)
-
-    active_version = status.active_buildid or 1
-    if latest_version > active_version:
-        logger.info("Updating cluster from %s to %s", active_version, latest_version)
-        await _update_server(
-            name=kwargs["name"] or DEFAULT_NAME,
-            namespace=kwargs.get("namespace") or DEFAULT_NAMESPACE,
-            spec=ArkClusterSpec(**kwargs["spec"]),
-            logger=logger,
-            status=status,
-            patch=kwargs["patch"],
-        )
 
 
 async def _check_initial_status(  # noqa: PLR0913
@@ -326,6 +315,26 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     if await _create_pods(
         name=name, namespace=namespace, spec=spec, status=status, logger=logger
     ):
+        return
+
+    if (
+        status.latest_buildid
+        and status.active_buildid
+        and status.latest_buildid > status.active_buildid
+    ):
+        logger.info(
+            "Updating cluster from %s to %s",
+            status.latest_buildid,
+            status.active_buildid,
+        )
+        await _update_server(
+            name=name,
+            namespace=namespace,
+            spec=spec,
+            logger=logger,
+            status=status,
+            patch=patch,
+        )
         return
 
     containers = 0
