@@ -88,7 +88,7 @@ async def get_active_buildid(
     if not pod:
         return None
 
-    if "mort.is/ark_build" in pod.metadata.labels:
+    if "mort.is/ark-build" in pod.metadata.labels:
         return int(pod.metadata.labels["mort.is/ark-build"])
     return None
 
