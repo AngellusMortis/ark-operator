@@ -298,15 +298,16 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     ]
 
     logger.debug("cluster spec: %s", spec)
+    active_volume = status.active_volume or await get_active_volume(
+        name=name, namespace=namespace, spec=spec
+    )
+
     try:
         await asyncio.gather(*tasks)
         if is_resume and status.last_applied_version != ARK_SERVER_IMAGE_VERSION:
             old = status.last_applied_version
             new = ARK_SERVER_IMAGE_VERSION
             logger.info("Container version mismatch (%s -> %s)", old, new)
-            active_volume = status.active_volume or await get_active_volume(
-                name=name, namespace=namespace, spec=spec
-            )
             await restart_with_lock(
                 name=name,
                 namespace=namespace,
