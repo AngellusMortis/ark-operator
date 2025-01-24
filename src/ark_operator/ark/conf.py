@@ -316,6 +316,27 @@ async def get_map_envs(
     return envs
 
 
+async def get_mods(
+    *, name: str, namespace: str, spec: ArkClusterSpec
+) -> dict[str, set[str]]:
+    """Get list of mods with maps using them."""
+
+    mods: dict[str, set[str]] = {}
+    for map_id in spec.server.all_maps:
+        envs = await get_map_envs(
+            name=name, namespace=namespace, spec=spec, map_id=map_id
+        )
+        map_mods = list(envs.get("ARK_SERVER_MODS", "").split(","))
+        if map_id == "BobsMissions_WP":
+            map_mods.append("1005639")
+        for mod_id in map_mods:
+            maps = mods.get(mod_id, set())
+            maps.add(map_id)
+            mods[mod_id] = maps
+
+    return mods
+
+
 @cached(TTLCache(8, ENV.int("ARK_OP_TTL_CACHE", 60)))  # type: ignore[misc]
 async def get_rcon_password(*, name: str, namespace: str) -> str:
     """Read RCON password for cluster."""

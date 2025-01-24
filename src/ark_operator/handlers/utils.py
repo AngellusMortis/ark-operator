@@ -1,12 +1,18 @@
 """Utils for kopf."""
 
-import asyncio
+from __future__ import annotations
 
-import kopf
+import asyncio
+from typing import TYPE_CHECKING
+
 from environs import Env
 
 from ark_operator.ark import restart_server_pods
-from ark_operator.data import ArkClusterSpec
+
+if TYPE_CHECKING:
+    import kopf
+
+    from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 
 ENV = Env()
 DRY_RUN = ENV.bool("ARK_OP_KOPF_DRY_RUN", ENV.bool("ARK_OP_DRY_RUN", False))
@@ -18,6 +24,7 @@ ERROR_WAIT_INIT_JOB = "Waiting for volume init job to complete."
 ERROR_WAIT_INIT_RESOURCES = "Waiting for resources to be created."
 ERROR_WAIT_UPDATE_JOB = "Waiting for server update job to complete."
 ERROR_NO_LOCK = "Restart lock has not been created yet."
+ERROR_RESTARTING = "Waiting for restart to complete."
 
 TRACKED_INSTANCES: set[tuple[str, str]] = set()
 RESTART_LOCK: asyncio.Lock | None = None
@@ -56,6 +63,15 @@ def get_restart_lock() -> asyncio.Lock:
         raise RuntimeError(ERROR_NO_LOCK)
 
     return RESTART_LOCK
+
+
+def is_restarting(status: ArkClusterStatus) -> bool:
+    """Check if cluster is restating."""
+
+    if not status.ready and status.state is not None:
+        state = status.state.lower()
+        return "shutdown" in state or "restart" in state
+    return False
 
 
 async def restart_with_lock(  # noqa: PLR0913

@@ -17,7 +17,10 @@ from ark_operator.ark import (
     create_update_job,
     get_active_buildid,
     get_active_volume,
+    get_mod_lastest_update,
+    get_mods,
     get_server_pod,
+    has_cf_auth,
     is_server_pod_ready,
 )
 from ark_operator.data import (
@@ -152,6 +155,36 @@ async def _update_server(  # noqa: PLR0913
     logger.debug("status update %s", patch.status)
 
 
+async def _get_mod_updates(
+    *, name: str, namespace: str, spec: ArkClusterSpec
+) -> tuple[list[str], set[str]]:
+    mods = await get_mods(name=name, namespace=namespace, spec=spec)
+    pods = {}
+    for map_id in spec.server.all_maps:
+        pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        if pod:
+            pods[map_id] = pod
+
+    mod_names = {}
+    to_update: dict[str, set[str]] = {}
+    for mod_id in mods:
+        mod_name, last_update = await get_mod_lastest_update(mod_id)
+        mod_names[mod_id] = mod_name
+        for map_id, pod in pods.items():
+            if pod.metadata.creation_timestamp <= last_update:
+                maps = to_update.get(mod_id, set())
+                maps.add(map_id)
+                to_update[mod_id] = maps
+
+    maps_to_update = set()
+    mods_to_update = set()
+    for mod_id, maps in to_update.items():
+        mods_to_update.add(mod_names[mod_id])
+        maps_to_update |= maps
+
+    return list(maps_to_update), mods_to_update
+
+
 @kopf.timer(  # type: ignore[arg-type]
     "arkcluster", interval=ARK_UPDATE_INTERVAL, initial_delay=ARK_UPDATE_INTERVAL
 )
@@ -159,8 +192,11 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
     """Check for ARK server updates."""
 
     status = ArkClusterStatus(**kwargs["status"])
+    spec = ArkClusterSpec(**kwargs["spec"])
     patch = kwargs["patch"]
     logger = kwargs["logger"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs["namespace"] or DEFAULT_NAMESPACE
 
     if not status.ready or not status.state or not status.state.startswith("Running"):
         logger.info("Skipping update check because cluster is not ready.")
@@ -175,6 +211,39 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
     patch.status.update(**status.model_dump(include={"latest_buildid"}, by_alias=True))
     logger.debug("status update %s", patch.status)
     logger.info("Latest ARK version: %s", latest_version)
+
+    active_version = status.active_buildid or 1
+    # ARK update needs to happen first
+    if latest_version > active_version:
+        logger.info("ARK needs update %s -> %s", active_version, latest_version)
+        return
+
+    if not has_cf_auth():
+        logger.info("Skipping mod update check because no CurseForge API key")
+        return
+
+    maps_to_update, mods_to_update = await _get_mod_updates(
+        name=name, namespace=namespace, spec=spec
+    )
+    if not maps_to_update:
+        logger.info("No mods with updates")
+        return
+
+    logger.info("Mods have updates: %s, %s", maps_to_update, mods_to_update)
+    reason = f"mod update ({', '.join(mods_to_update)})"
+    active_volume = status.active_volume or await get_active_volume(
+        name=name, namespace=namespace, spec=spec
+    )
+    await restart_with_lock(
+        name=name,
+        namespace=namespace,
+        spec=spec,
+        reason=reason,
+        active_volume=active_volume,
+        active_buildid=status.active_buildid,
+        servers=maps_to_update,
+        logger=logger,
+    )
 
 
 async def _check_initial_status(  # noqa: PLR0913
