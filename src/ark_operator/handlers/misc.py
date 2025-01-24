@@ -13,6 +13,7 @@ import kopf
 
 from ark_operator.ark import (
     check_update_job,
+    close_cf_client,
     create_server_pod,
     create_update_job,
     get_active_buildid,
@@ -55,6 +56,7 @@ async def startup(**kwargs: Unpack[ActivityEvent]) -> None:
 
     level = ENV("ARK_OP_LOG_LEVEL", "INFO")
     settings = kwargs["settings"]
+    logger = kwargs["logger"]
 
     settings.posting.level = logging.getLevelNamesMapping()[level]
     init_logging(
@@ -64,6 +66,8 @@ async def startup(**kwargs: Unpack[ActivityEvent]) -> None:
     )
     create_restart_lock()
     await get_k8s_client()
+    if not has_cf_auth():
+        logger.warning("No CurseForge API key provided, will not do mod update checks")
 
 
 @kopf.on.cleanup()  # type: ignore[arg-type]
@@ -80,6 +84,8 @@ async def cleanup(**kwargs: Unpack[ActivityEvent]) -> None:
         await close_clients()
     except Exception as ex:  # noqa: BLE001
         logger.warning("Failed to close RCON client(s)", exc_info=ex)
+
+    await close_cf_client()
 
 
 async def _update_server(  # noqa: PLR0913

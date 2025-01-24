@@ -23,7 +23,7 @@ def get_cf_auth() -> str | None:
 def has_cf_auth() -> bool:
     """Check if CurseForge auth exists."""
 
-    return get_cf_auth() is None
+    return get_cf_auth() is not None
 
 
 async def get_cf_client() -> httpx.AsyncClient:
