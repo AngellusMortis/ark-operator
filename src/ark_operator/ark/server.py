@@ -245,6 +245,7 @@ async def _send_message(  # noqa: PLR0913
 ) -> None:
     secrets = await get_secrets(name=name, namespace=namespace)
     if secrets.discord_webhook:
+        logger.info("Sending message to Discord Webhook: %s", msg)
         async with httpx.AsyncClient() as client:
             try:
                 r = await client.post(secrets.discord_webhook, json={"content": msg})
@@ -258,6 +259,7 @@ async def _send_message(  # noqa: PLR0913
         password=password,
         close=False,
         servers=servers.copy(),
+        logger=logger,
     )
 
 
