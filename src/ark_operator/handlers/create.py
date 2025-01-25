@@ -34,8 +34,8 @@ from ark_operator.handlers.utils import (
     DEFAULT_NAMESPACE,
     DRY_RUN,
     ERROR_RESTARTING,
+    ERROR_UPDATE_STATUS,
     ERROR_WAIT_INIT_JOB,
-    ERROR_WAIT_INIT_RESOURCES,
     ERROR_WAIT_PVC,
     restart_with_lock,
 )
@@ -49,10 +49,8 @@ def _update_state(
     if status.ready or status.state != state:
         status.ready = False
         status.state = state
-        patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
-        )
-        raise kopf.TemporaryError(ERROR_WAIT_INIT_RESOURCES, delay=1)
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        raise kopf.TemporaryError(ERROR_UPDATE_STATUS, delay=1)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -70,7 +68,7 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if not status.state and not status.ready and not status.initalized:
-        patch.status.update(status.model_dump(by_alias=True))
+        patch.status.update(status.model_dump())
         logger.debug("status update %s", patch.status)
         return
 
@@ -78,15 +76,11 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
         status.active_volume = await get_active_volume(
             name=name, namespace=namespace, spec=spec
         )
-        patch.status.update(
-            **status.model_dump(include={"active_volume"}, by_alias=True)
-        )
+        patch.status.update(**status.model_dump(include={"active_volume"}))
         logger.debug("status update %s", patch.status)
     if status.active_buildid is None:
         status.active_buildid = status.latest_buildid
-        patch.status.update(
-            **status.model_dump(include={"active_buildid"}, by_alias=True)
-        )
+        patch.status.update(**status.model_dump(include={"active_buildid"}))
         logger.debug("status update %s", patch.status)
 
 
@@ -130,7 +124,7 @@ async def on_create_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         raise
 
     status.mark_stage_complete(ClusterStage.CREATE_PVC)
-    patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
+    patch.status.update(**status.model_dump(include={"stages"}))
     logger.debug("status update %s", patch.status)
 
 
@@ -146,7 +140,7 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC):
         status.initalized = True
-        patch.status.update(**status.model_dump(include={"initialized"}, by_alias=True))
+        patch.status.update(**status.model_dump(include={"initialized"}))
         return
 
     if not status.is_stage_completed(ClusterStage.CREATE_PVC):
@@ -195,8 +189,7 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
                 "latest_buildid",
                 "stages",
                 "initialized",
-            },
-            by_alias=True,
+            }
         )
     )
     logger.debug("status update %s", patch.status)
@@ -211,8 +204,7 @@ def _mark_ready(
     status.stages = None
     patch.status.update(
         **status.model_dump(
-            include={"initalized", "state", "ready", "stages", "last_applied_version"},
-            by_alias=True,
+            include={"initalized", "state", "ready", "stages", "last_applied_version"}
         )
     )
     logger.debug("status update %s", patch.status)

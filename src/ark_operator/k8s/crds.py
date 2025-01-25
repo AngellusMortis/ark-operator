@@ -79,7 +79,7 @@ async def update_cluster(
     *,
     name: str,
     namespace: str,
-    spec: ArkClusterSpec | dict[str, Any] | None = None,
+    spec: dict[str, Any] | None = None,
     status: ArkClusterStatus | dict[str, Any] | None = None,
 ) -> None:
     """Update ArkCluster."""
@@ -90,16 +90,12 @@ async def update_cluster(
 
     data: dict[str, Any] = {}
     if spec:
-        if isinstance(spec, ArkClusterSpec):
-            spec = spec.model_dump(mode="json", by_alias=True)
-            del spec["server"]["allMaps"]
-            del spec["server"]["allServers"]
         _LOGGER.debug("Updating spec: %s", spec)
         data["spec"] = spec
 
     if status:
         if isinstance(status, ArkClusterStatus):
-            status = status.model_dump(mode="json", by_alias=True)
+            status = status.model_dump(mode="json")
         _LOGGER.debug("Updating status: %s", status)
         data["status"] = status
 

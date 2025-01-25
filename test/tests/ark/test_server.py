@@ -225,7 +225,6 @@ async def test_create_server_pod_force_create(
     mock_update.assert_awaited_once_with(
         name="test",
         namespace="testing",
-        spec=spec,
         status={"lastAppliedVersion": ARK_SERVER_IMAGE_VERSION},
     )
     actual = k8s_v1_client.patch_namespaced_pod.call_args_list[0].kwargs["body"]

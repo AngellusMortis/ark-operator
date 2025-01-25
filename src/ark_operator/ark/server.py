@@ -236,7 +236,6 @@ async def create_server_pod(  # noqa: PLR0913
     await update_cluster(
         name=name,
         namespace=namespace,
-        spec=spec,
         status={"lastAppliedVersion": ARK_SERVER_IMAGE_VERSION},
     )
     return True
@@ -438,7 +437,11 @@ async def shutdown_server_pods(  # noqa: PLR0913
     if suspend:
         spec.server.suspend |= set(online_servers)
         logger.info("Suspending servers %s", online_servers)
-        await update_cluster(name=name, namespace=namespace, spec=spec)
+        await update_cluster(
+            name=name,
+            namespace=namespace,
+            spec={"server": {"suspend": spec.server.suspend}},
+        )
     await asyncio.gather(
         *[
             delete_server_pod(name=name, namespace=namespace, map_id=m, logger=logger)

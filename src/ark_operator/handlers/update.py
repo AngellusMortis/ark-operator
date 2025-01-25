@@ -25,6 +25,7 @@ from ark_operator.handlers.utils import (
     DEFAULT_NAMESPACE,
     DRY_RUN,
     ERROR_RESTARTING,
+    ERROR_UPDATE_STATUS,
     ERROR_WAIT_INIT_RESOURCES,
     restart_with_lock,
 )
@@ -56,10 +57,8 @@ def _update_state(status: ArkClusterStatus, patch: kopf.Patch) -> None:
     if status.ready:
         status.ready = False
         status.state = "Updating Resources"
-        patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
-        )
-        raise kopf.TemporaryError(ERROR_WAIT_INIT_RESOURCES, delay=1)
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
+        raise kopf.TemporaryError(ERROR_UPDATE_STATUS, delay=1)
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
@@ -89,7 +88,7 @@ async def on_update_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
 
     if not update_pvc:
         status.mark_stage_complete(ClusterStage.UPDATE_PVC)
-        patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
+        patch.status.update(**status.model_dump(include={"stages"}))
         logger.debug("status update %s", patch.status)
         return
 
@@ -117,7 +116,7 @@ async def on_update_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         raise
 
     status.mark_stage_complete(ClusterStage.UPDATE_PVC)
-    patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
+    patch.status.update(**status.model_dump(include={"stages"}))
     logger.debug("status update %s", patch.status)
 
 
@@ -184,9 +183,7 @@ def _mark_ready(
     status.ready = True
     status.state = "Running"
     status.stages = None
-    patch.status.update(
-        **status.model_dump(include={"ready", "state", "stages"}, by_alias=True)
-    )
+    patch.status.update(**status.model_dump(include={"ready", "state", "stages"}))
     logger.debug("status update %s", patch.status)
 
 

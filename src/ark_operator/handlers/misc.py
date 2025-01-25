@@ -99,7 +99,7 @@ async def _update_server(  # noqa: PLR0913
 ) -> None:
     status.state = "Updating Server"
     status.ready = False
-    patch.status.update(**status.model_dump(include={"state", "ready"}, by_alias=True))
+    patch.status.update(**status.model_dump(include={"state", "ready"}))
     logger.debug("status update %s", patch.status)
     active_volume = status.active_volume or await get_active_volume(
         name=name, namespace=namespace, spec=spec
@@ -155,7 +155,7 @@ async def _update_server(  # noqa: PLR0913
     status.active_volume = update_volume
     patch.status.update(
         **status.model_dump(
-            include={"state", "ready", "active_buildid", "active_volume"}, by_alias=True
+            include={"state", "ready", "active_buildid", "active_volume"}
         )
     )
     logger.debug("status update %s", patch.status)
@@ -214,7 +214,7 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
         steam = Steam(Path(gettempdir()) / "steam")
         latest_version = await steam.get_latest_ark_buildid()
     status.latest_buildid = latest_version
-    patch.status.update(**status.model_dump(include={"latest_buildid"}, by_alias=True))
+    patch.status.update(**status.model_dump(include={"latest_buildid"}))
     logger.debug("status update %s", patch.status)
     logger.info("Latest ARK version: %s", latest_version)
 
@@ -267,27 +267,21 @@ async def _check_initial_status(  # noqa: PLR0913
         status.ready = True
         if status.state is None:
             status.state = "Running"
-        patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
-        )
+        patch.status.update(**status.model_dump(include={"state", "ready"}))
         logger.debug("status update %s", patch.status)
 
     if status.ready and status.active_volume is None:
         status.active_volume = await get_active_volume(
             name=name, namespace=namespace, spec=spec
         )
-        patch.status.update(
-            **status.model_dump(include={"active_volume"}, by_alias=True)
-        )
+        patch.status.update(**status.model_dump(include={"active_volume"}))
         logger.debug("status update %s", patch.status)
     if status.ready and status.active_buildid is None:
         status.active_buildid = (
             await get_active_buildid(name=name, namespace=namespace, spec=spec)
             or status.latest_buildid
         )
-        patch.status.update(
-            **status.model_dump(include={"active_buildid"}, by_alias=True)
-        )
+        patch.status.update(**status.model_dump(include={"active_buildid"}))
         logger.debug("status update %s", patch.status)
 
 
@@ -315,8 +309,7 @@ def _is_ready(
                     "total_pods",
                     "state",
                     "suspended_pods",
-                },
-                by_alias=True,
+                }
             )
         )
         logger.debug("status update %s", patch.status)
@@ -456,8 +449,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
                 "total_pods",
                 "state",
                 "suspended_pods",
-            },
-            by_alias=True,
+            }
         )
     )
     logger.debug("status update %s", patch.status)

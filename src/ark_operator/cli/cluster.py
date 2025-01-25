@@ -184,7 +184,9 @@ async def suspend(
         context.spec.server.suspend.add(map_id)
 
     await update_cluster(
-        name=context.name, namespace=context.namespace, spec=context.spec
+        name=context.name,
+        namespace=context.namespace,
+        spec={"server": {"suspend": context.spec.server.suspend}},
     )
 
 
@@ -202,7 +204,9 @@ async def resume(
             raise CycloptsError(msg=ERROR_NOT_SUSPENDED.format(map_id=map_id)) from ex
 
     await update_cluster(
-        name=context.name, namespace=context.namespace, spec=context.spec
+        name=context.name,
+        namespace=context.namespace,
+        spec={"server": {"suspend": context.spec.server.suspend}},
     )
 
 
@@ -276,7 +280,9 @@ async def shutdown(
                 context.spec.server.suspend.add(map_id)
 
             await update_cluster(
-                name=context.name, namespace=context.namespace, spec=context.spec
+                name=context.name,
+                namespace=context.namespace,
+                spec={"server": {"suspend": context.spec.server.suspend}},
             )
         await send_cmd_all(
             "SaveWorld",
