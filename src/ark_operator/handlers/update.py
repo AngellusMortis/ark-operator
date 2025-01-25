@@ -188,7 +188,7 @@ def _mark_ready(
 
 
 @kopf.on.update("arkcluster")  # type: ignore[arg-type]
-async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
+async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:  # noqa: C901
     """Update an ARKCluster."""
 
     status = ArkClusterStatus(**kwargs["status"])
