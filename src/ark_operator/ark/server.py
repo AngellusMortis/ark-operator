@@ -369,16 +369,28 @@ async def shutdown_server_pods(  # noqa: PLR0913
         logger.error("Skipping shutdown because could not figure out host for cluster")
         return
 
-    wait_interval = wait_interval or spec.server.graceful_shutdown
-
+    wait_interval = (
+        wait_interval if wait_interval is not None else spec.server.graceful_shutdown
+    )
     online_servers = await _get_online_servers(
         name=name, namespace=namespace, spec=spec, servers=servers
     )
+    now = utc_now()
     logger.info("Shutting down servers [suspend: %s] %s", suspend, online_servers)
+
     await update_cluster(
         name=name,
         namespace=namespace,
-        status={"ready": False, "state": "Shutting Down"},
+        status={
+            "ready": False,
+            "state": "Shutting Down",
+            "restart": {
+                "time": (now + wait_interval).isoformat(),
+                "type": "shutdown",
+                "maps": online_servers,
+                "reason": reason,
+            },
+        },
     )
     await _notify_server_pods(
         name=name,
@@ -406,7 +418,7 @@ async def shutdown_server_pods(  # noqa: PLR0913
     await update_cluster(
         name=name,
         namespace=namespace,
-        status={"ready": True, "state": "Running"},
+        status={"ready": True, "state": "Running", "restart": None},
     )
 
 
@@ -434,16 +446,28 @@ async def restart_server_pods(  # noqa: PLR0913
         logger.error("Skipping restart because could not figure out host for cluster")
         return
 
-    wait_interval = wait_interval or spec.server.graceful_shutdown
+    wait_interval = (
+        wait_interval if wait_interval is not None else spec.server.graceful_shutdown
+    )
 
     online_servers = await _get_online_servers(
         name=name, namespace=namespace, spec=spec, servers=servers
     )
+    now = utc_now()
     logger.info("Restarting servers %s", online_servers)
     await update_cluster(
         name=name,
         namespace=namespace,
-        status={"ready": False, "state": "Rolling Restart"},
+        status={
+            "ready": False,
+            "state": "Rolling Restart",
+            "restart": {
+                "time": (now + wait_interval).isoformat(),
+                "type": "restart",
+                "maps": online_servers,
+                "reason": reason,
+            },
+        },
     )
     await _notify_server_pods(
         name=name,
@@ -469,12 +493,22 @@ async def restart_server_pods(  # noqa: PLR0913
         logger=logger,
     )
     total = len(online_servers)
-    for index, map_id in enumerate(online_servers.copy()):
+    servers_to_restart = online_servers.copy()
+    for index, map_id in enumerate(online_servers):
         progress = f"({index + 1}/{total})"
         await update_cluster(
             name=name,
             namespace=namespace,
-            status={"ready": False, "state": f"Rolling Restart {progress}"},
+            status={
+                "ready": False,
+                "state": f"Rolling Restart {progress}",
+                "restart": {
+                    "time": None,
+                    "type": "restart",
+                    "maps": servers_to_restart,
+                    "reason": reason,
+                },
+            },
         )
         msg = spec.server.rolling_restart_format.format(
             map_name=get_map_name(map_id), progress=progress
@@ -495,6 +529,21 @@ async def restart_server_pods(  # noqa: PLR0913
         await close_client(host=host, port=server.rcon_port)
         await delete_server_pod(
             name=name, namespace=namespace, map_id=map_id, logger=logger
+        )
+        servers_to_restart.remove(map_id)
+        await update_cluster(
+            name=name,
+            namespace=namespace,
+            status={
+                "ready": False,
+                "state": f"Rolling Restart {progress}",
+                "restart": {
+                    "time": None,
+                    "type": "restart",
+                    "maps": servers_to_restart,
+                    "reason": reason,
+                },
+            },
         )
         pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
         while pod is not None:
@@ -526,7 +575,16 @@ async def restart_server_pods(  # noqa: PLR0913
             await update_cluster(
                 name=name,
                 namespace=namespace,
-                status={"ready": False, "state": f"Rolling Restart {progress}"},
+                status={
+                    "ready": False,
+                    "state": f"Rolling Restart {progress}",
+                    "restart": {
+                        "time": None,
+                        "type": "restart",
+                        "maps": servers_to_restart,
+                        "reason": reason,
+                    },
+                },
             )
 
     await _send_message(
@@ -540,5 +598,7 @@ async def restart_server_pods(  # noqa: PLR0913
         logger=logger,
     )
     await update_cluster(
-        name=name, namespace=namespace, status={"ready": True, "state": "Running"}
+        name=name,
+        namespace=namespace,
+        status={"ready": True, "state": "Running", "restart": None},
     )

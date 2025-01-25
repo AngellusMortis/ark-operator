@@ -14,6 +14,8 @@ from ark_operator.exceptions import RCONError
 if TYPE_CHECKING:
     from ipaddress import IPv4Address, IPv6Address
 
+    from kopf import Logger
+
     from ark_operator.data import ArkServerSpec
 
 _LOGGER = logging.getLogger(__name__)
@@ -85,11 +87,13 @@ async def send_cmd_all(  # noqa: PLR0913
     close: bool = True,
     raise_exceptions: bool = True,
     servers: list[str] | None = None,
+    logger: logging.Logger | Logger | None = None,
 ) -> dict[str, str | BaseException]:
     """Run rcon command against all servers."""
 
     from ark_operator.ark import expand_maps
 
+    logger = logger or _LOGGER
     servers = servers or ["@all"]
     objs = [
         spec.all_servers[s] for s in expand_maps(servers, all_maps=spec.active_maps)
@@ -116,14 +120,14 @@ async def send_cmd_all(  # noqa: PLR0913
         return_responses[objs[index].map_id] = response
         if isinstance(response, Exception):
             if "timeout" in repr(response.__context__).lower():
-                _LOGGER.info("%s - %s", objs[index].map_name, cmd)
-                _LOGGER.warning("Timeout")
+                logger.info("%s - %s", objs[index].map_name, cmd)
+                logger.warning("Timeout")
                 continue
 
             if raise_exceptions:
                 raise response
 
-            _LOGGER.exception(
+            logger.exception(
                 "Error while sending command %s to server %s",
                 cmd,
                 objs[index].map_name,
@@ -131,7 +135,7 @@ async def send_cmd_all(  # noqa: PLR0913
             )
             continue
 
-        _LOGGER.info("%s - %s", objs[index].map_name, cmd)
-        _LOGGER.info(str(response).strip())
+        logger.info("%s - %s", objs[index].map_name, cmd)
+        logger.info(str(response).strip())
 
     return return_responses

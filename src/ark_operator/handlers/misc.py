@@ -192,7 +192,7 @@ async def _get_mod_updates(
 
 
 @kopf.timer(  # type: ignore[arg-type]
-    "arkcluster", interval=ARK_UPDATE_INTERVAL, initial_delay=ARK_UPDATE_INTERVAL
+    "arkcluster", interval=ARK_UPDATE_INTERVAL, initial_delay=60
 )
 async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
     """Check for ARK server updates."""

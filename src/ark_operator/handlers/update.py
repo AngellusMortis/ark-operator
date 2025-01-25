@@ -27,7 +27,6 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_PVC,
     ERROR_WAIT_UPDATE_JOB,
     add_tracked_instance,
-    is_restarting,
     restart_with_lock,
 )
 
@@ -59,7 +58,7 @@ async def on_update_state(**kwargs: Unpack[ChangeEvent]) -> None:
     status = ArkClusterStatus(**kwargs["status"])
     status.ready = status.ready or False
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
 
     if retry == 0:
@@ -117,7 +116,7 @@ async def on_update_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.is_stage_completed(ClusterStage.SERVER_PVC):
         return
@@ -165,7 +164,7 @@ async def on_update_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.is_stage_completed(ClusterStage.DATA_PVC):
         return
@@ -252,7 +251,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if (
         status.is_stage_completed(ClusterStage.DATA_PVC)

@@ -1,6 +1,7 @@
 """Create handlers for kopf."""
 
 import asyncio
+from datetime import timedelta
 from pathlib import Path
 from tempfile import gettempdir
 from typing import Unpack
@@ -14,7 +15,10 @@ from ark_operator.ark import (
     create_secrets,
     create_server_pod,
     create_services,
+    get_active_buildid,
     get_active_volume,
+    restart_server_pods,
+    shutdown_server_pods,
     update_data_pvc,
     update_server_pvc,
 )
@@ -33,10 +37,10 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_INIT_RESOURCES,
     ERROR_WAIT_PVC,
     add_tracked_instance,
-    is_restarting,
     restart_with_lock,
 )
 from ark_operator.steam import Steam
+from ark_operator.utils import utc_now
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -51,7 +55,7 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if not status.state and not status.ready and not status.initalized:
         patch.status.update(status.model_dump(by_alias=True))
@@ -87,7 +91,7 @@ async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:  # noqa: PLR09
     status = ArkClusterStatus(**kwargs["status"])
     status.ready = status.ready or False
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if retry == 0:
         status.ready = False
@@ -166,7 +170,7 @@ async def on_create_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     patch = kwargs["patch"]
     logger = kwargs["logger"]
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.initalized or status.is_stage_completed(ClusterStage.SERVER_PVC):
         return
@@ -201,7 +205,7 @@ async def on_create_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     patch = kwargs["patch"]
     logger = kwargs["logger"]
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.initalized or status.is_stage_completed(ClusterStage.DATA_PVC):
         return
@@ -235,7 +239,7 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
 
     status = ArkClusterStatus(**kwargs["status"])
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC):
         return
@@ -298,7 +302,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     reason = kwargs["reason"]
     is_resume = status.last_applied_version is not None or reason == kopf.Reason.RESUME
 
-    if is_restarting(status):
+    if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.is_stage_completed(ClusterStage.CREATE):
         return
@@ -366,3 +370,79 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         )
     )
     logger.debug("status update %s", patch.status)
+
+
+@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
+async def on_resume_restart(**kwargs: Unpack[ChangeEvent]) -> None:
+    """Resume handler to resume restart/shutdowns."""
+
+    status = ArkClusterStatus(**kwargs["status"])
+
+    if not status.restart:
+        return
+
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
+    spec = ArkClusterSpec(**kwargs["spec"])
+    logger = kwargs["logger"]
+
+    wait_interval = timedelta(seconds=0)
+    if status.restart.time:
+        now = utc_now()
+        if now > status.restart.time:
+            wait_interval = timedelta(seconds=10)
+        else:
+            wait_interval = status.restart.time - now
+
+    logger.info(
+        "Resuming %s (%s): %s", status.restart.type, wait_interval, status.restart
+    )
+    if status.restart.type == "shutdown":
+        await shutdown_server_pods(
+            name=name,
+            namespace=namespace,
+            spec=spec,
+            reason=status.restart.reason,
+            logger=logger,
+            servers=status.restart.maps,
+            wait_interval=wait_interval,
+        )
+    else:
+        active_volume = (
+            status.restart.active_volume
+            or status.active_volume
+            or await get_active_volume(name=name, namespace=namespace, spec=spec)
+        )
+        active_buildid = (
+            status.restart.active_buildid
+            or status.active_buildid
+            or await get_active_buildid(name=name, namespace=namespace, spec=spec)
+        )
+        # restart interrupted pod restarts
+        await asyncio.gather(
+            *[
+                create_server_pod(
+                    name=name,
+                    namespace=namespace,
+                    map_id=m,
+                    active_volume=active_volume,
+                    active_buildid=status.active_buildid,
+                    spec=spec,
+                    logger=logger,
+                    dry_run=DRY_RUN,
+                )
+                for m in spec.server.active_maps
+            ]
+        )
+        # resume restart
+        await restart_server_pods(
+            name=name,
+            namespace=namespace,
+            spec=spec,
+            reason=status.restart.reason,
+            logger=logger,
+            servers=status.restart.maps,
+            wait_interval=wait_interval,
+            active_volume=active_volume,
+            active_buildid=active_buildid,
+        )

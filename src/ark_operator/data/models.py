@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import warnings
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address  # required for Pydantic # noqa: TC003
 from pathlib import Path  # required for Pydantic # noqa: TC003
 from typing import Annotated, Any, Literal
@@ -22,13 +21,6 @@ from pydantic_settings import BaseSettings
 
 from ark_operator.data.types import ClusterStage  # required for Pydantic # noqa: TC001
 from ark_operator.utils import convert_timedelta, serialize_timedelta
-
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\-'")
-    warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\\('")
-    warnings.filterwarnings("ignore", message=r"invalid escape sequence '\\d'")
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-
 
 ALL_CANONICAL = ["TheIsland_WP", "ScorchedEarth_WP", "Aberration_WP", "Extinction_WP"]
 ALL_OFFICIAL = [
@@ -228,6 +220,17 @@ class ArkClusterSpec(BaseK8sModel):
     global_settings: ArkClusterSettings = ArkClusterSettings()
 
 
+class ArkClusterRestartStatus(BaseK8sModel):
+    """ArkCluster.status.restart CRD spec."""
+
+    time: datetime | None = None
+    maps: list[str] = []
+    type: Literal["shutdown", "restart"] = "restart"
+    reason: str = "resuming"
+    active_volume: str | None = None
+    active_buildid: int | None = None
+
+
 class ArkClusterStatus(BaseK8sModel):
     """ArkCluster.status CRD spec."""
 
@@ -244,6 +247,7 @@ class ArkClusterStatus(BaseK8sModel):
     suspended_pods: int | None = None
     last_applied_version: str | None = None
     kopf: dict[str, Any] | None = None
+    restart: ArkClusterRestartStatus | None = None
 
     @property
     def is_error(self) -> bool:

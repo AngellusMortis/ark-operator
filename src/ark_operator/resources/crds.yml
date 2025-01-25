@@ -297,3 +297,26 @@ spec:
                 type: object
                 x-kubernetes-preserve-unknown-fields: true
                 description: Internal field for kopf
+              restart:
+                type: object
+                description: Status of restart.
+                properties:
+                  time:
+                    type: string
+                    description: Scheduled time for restart.
+                  maps:
+                    type: array
+                    items:
+                      type: string
+                    description: Servers to restart.
+                  type:
+                    type: string
+                    enum: ["shutdown", "restart"]
+                    description: Type of restart.
+                  reason:
+                    type: string
+                    description: Restart reason
+                  active_volume:
+                    type: string
+                  active_buildid:
+                    type: integer

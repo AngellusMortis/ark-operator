@@ -12,7 +12,7 @@ from ark_operator.ark import restart_server_pods
 if TYPE_CHECKING:
     import kopf
 
-    from ark_operator.data import ArkClusterSpec, ArkClusterStatus
+    from ark_operator.data import ArkClusterSpec
 
 ENV = Env()
 DRY_RUN = ENV.bool("ARK_OP_KOPF_DRY_RUN", ENV.bool("ARK_OP_DRY_RUN", False))
@@ -63,15 +63,6 @@ def get_restart_lock() -> asyncio.Lock:
         raise RuntimeError(ERROR_NO_LOCK)
 
     return RESTART_LOCK
-
-
-def is_restarting(status: ArkClusterStatus) -> bool:
-    """Check if cluster is restating."""
-
-    if not status.ready and status.state is not None:
-        state = status.state.lower()
-        return "shutdown" in state or "restart" in state
-    return False
 
 
 async def restart_with_lock(  # noqa: PLR0913
