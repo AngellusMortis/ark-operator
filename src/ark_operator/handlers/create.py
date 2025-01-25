@@ -254,7 +254,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
 
     try:
         await asyncio.gather(*tasks)
-        last_version = status.last_applied_version or get_active_version(
+        last_version = status.last_applied_version or await get_active_version(
             name=name, namespace=namespace, spec=spec
         )
         if is_resume and last_version != ARK_SERVER_IMAGE_VERSION:
