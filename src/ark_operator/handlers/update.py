@@ -214,7 +214,7 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             logger.info("Skipping field change because default value: %s", change)
             continue
         if change.field not in FIELDS_NO_SERVER_UPDATE:
-            logger.info("Update servers due to field update: %s", change.field)
+            logger.info("Update servers due to field update: %s", change)
             update_servers = True
             # if there is only updates to global settings,
             # rolling restart is acceptable and better
