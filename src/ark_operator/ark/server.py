@@ -211,6 +211,12 @@ async def create_server_pod(  # noqa: PLR0913
     logger.info(
         "%s server pod: %s", "Patched" if exists else "Created", obj.metadata.name
     )
+    await update_cluster(
+        name=name,
+        namespace=namespace,
+        spec=spec,
+        status={"lastAppliedVersion": ARK_SERVER_IMAGE_VERSION},
+    )
     return True
 
 
