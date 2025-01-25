@@ -210,6 +210,9 @@ async def on_update_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         if change.operation == "add" and change.old is None and change.new is not None:
             logger.info("Skipping field change because default value: %s", change)
             continue
+        if change.old in [None, []] and change.new in [None, []]:
+            logger.info("Skipping field change because nothing was changed: %s", change)
+            continue
         if change.field not in FIELDS_NO_SERVER_UPDATE:
             logger.info("Update servers due to field update: %s", change)
             update_servers = True
