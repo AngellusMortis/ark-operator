@@ -31,10 +31,9 @@ if TYPE_CHECKING:
 class ClusterStage(StrEnum):
     """Cluster status stage."""
 
-    SERVER_PVC = "server_pvc"
-    DATA_PVC = "data_pvc"
+    CREATE_PVC = "create_pvc"
     INIT_PVC = "init_pvc"
-    CREATE = "create_resources"
+    UPDATE_PVC = "update_pvc"
 
 
 class ActivityEvent(TypedDict):

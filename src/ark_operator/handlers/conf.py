@@ -97,4 +97,5 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         servers=maps,
         logger=logger,
         dry_run=DRY_RUN,
+        trigger_time=kwargs["started"],
     )

@@ -133,9 +133,6 @@ def _verify_startup(namespace: str) -> None:
         )
         _assert_output(result, ["ark-server-a", "ark-server-b", "ark-data"])
         _run(
-            f"kubectl -n {namespace} wait --for=jsonpath='{{.status.active}}'=1 job/ark-init --timeout=30s",
-        )
-        _run(
             f"kubectl -n {namespace} wait --for=delete job/ark-init --timeout=300s",
         )
     except Exception:

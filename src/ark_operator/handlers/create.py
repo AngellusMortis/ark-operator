@@ -16,6 +16,7 @@ from ark_operator.ark import (
     create_server_pod,
     create_services,
     get_active_buildid,
+    get_active_version,
     get_active_volume,
     restart_server_pods,
     shutdown_server_pods,
@@ -36,11 +37,22 @@ from ark_operator.handlers.utils import (
     ERROR_WAIT_INIT_JOB,
     ERROR_WAIT_INIT_RESOURCES,
     ERROR_WAIT_PVC,
-    add_tracked_instance,
     restart_with_lock,
 )
 from ark_operator.steam import Steam
 from ark_operator.utils import utc_now
+
+
+def _update_state(
+    status: ArkClusterStatus, patch: kopf.Patch, state: str = "Creating Resources"
+) -> None:
+    if status.ready or status.state != state:
+        status.ready = False
+        status.state = state
+        patch.status.update(
+            **status.model_dump(include={"state", "ready"}, by_alias=True)
+        )
+        raise kopf.TemporaryError(ERROR_WAIT_INIT_RESOURCES, delay=1)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
@@ -80,90 +92,7 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]
 @kopf.on.create("arkcluster")
-async def on_create_state(**kwargs: Unpack[ChangeEvent]) -> None:  # noqa: PLR0915
-    """Create an ARKCluster."""
-
-    add_tracked_instance(kwargs["name"], kwargs["namespace"])
-
-    patch = kwargs["patch"]
-    retry = kwargs["retry"]
-    logger = kwargs["logger"]
-    status = ArkClusterStatus(**kwargs["status"])
-    status.ready = status.ready or False
-
-    if status.restart is not None:
-        raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
-    if retry == 0:
-        status.ready = False
-        status.stages = None
-        patch.status.update(
-            **status.model_dump(include={"state", "ready", "stages"}, by_alias=True)
-        )
-        logger.debug("status update %s", patch.status)
-    elif status.ready:
-        status.state = "Running"
-        status.stages = None
-        status.initalized = True
-        patch.status.update(
-            **status.model_dump(
-                include={"state", "ready", "stages", "initialized"}, by_alias=True
-            )
-        )
-        logger.debug("status update %s", patch.status)
-        return
-
-    if retry > 0 and status.is_error:
-        status.stages = None
-        patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
-        logger.debug("status update %s", patch.status)
-        raise kopf.PermanentError
-
-    server_done = status.initalized or status.is_stage_completed(
-        ClusterStage.SERVER_PVC
-    )
-    data_done = status.initalized or status.is_stage_completed(ClusterStage.DATA_PVC)
-    if not server_done or not data_done:
-        status.state = "Creating PVCs"
-        patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
-        )
-        logger.debug("status update %s", patch.status)
-        raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=3)
-
-    init_done = status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC)
-    if server_done and data_done and not init_done:
-        status.state = "Initializing PVCs"
-        patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
-        )
-        logger.debug("status update %s", patch.status)
-        raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=30)
-
-    all_initialized = status.initalized or all([server_done, data_done, init_done])
-    create_done = status.is_stage_completed(ClusterStage.CREATE)
-    if all_initialized and not create_done:
-        status.state = "Creating Resources"
-        patch.status.update(
-            **status.model_dump(include={"state", "ready"}, by_alias=True)
-        )
-        logger.debug("status update %s", patch.status)
-        raise kopf.TemporaryError(ERROR_WAIT_INIT_RESOURCES, delay=3)
-
-    status.ready = True
-    status.state = "Running"
-    status.stages = None
-    status.initalized = True
-    patch.status.update(
-        **status.model_dump(
-            include={"state", "ready", "stages", "initialized"}, by_alias=True
-        )
-    )
-    logger.debug("status update %s", patch.status)
-
-
-@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
-@kopf.on.create("arkcluster")
-async def on_create_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
+async def on_create_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
     status = ArkClusterStatus(**kwargs["status"])
@@ -172,8 +101,9 @@ async def on_create_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
 
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
-    if status.initalized or status.is_stage_completed(ClusterStage.SERVER_PVC):
+    if status.initalized or status.is_stage_completed(ClusterStage.CREATE_PVC):
         return
+    _update_state(status, patch)
 
     logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME
@@ -187,35 +117,6 @@ async def on_create_server_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
             spec=spec.server,
             logger=logger,
         )
-    except kopf.PermanentError as ex:
-        patch.status["state"] = f"Error: {ex!s}"
-        logger.debug("status update %s", patch.status)
-        raise
-
-    patch.status["stages"] = status.mark_stage_complete(ClusterStage.SERVER_PVC)
-    logger.debug("status update %s", patch.status)
-
-
-@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
-@kopf.on.create("arkcluster")
-async def on_create_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
-    """Create an ARKCluster."""
-
-    status = ArkClusterStatus(**kwargs["status"])
-    patch = kwargs["patch"]
-    logger = kwargs["logger"]
-
-    if status.restart is not None:
-        raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
-    if status.initalized or status.is_stage_completed(ClusterStage.DATA_PVC):
-        return
-
-    logger = kwargs["logger"]
-    name = kwargs["name"] or DEFAULT_NAME
-    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
-    spec = ArkClusterSpec(**kwargs["spec"])
-
-    try:
         await update_data_pvc(
             name=name,
             namespace=namespace,
@@ -228,7 +129,8 @@ async def on_create_data_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         logger.debug("status update %s", patch.status)
         raise
 
-    patch.status["stages"] = status.mark_stage_complete(ClusterStage.DATA_PVC)
+    status.mark_stage_complete(ClusterStage.CREATE_PVC)
+    patch.status.update(**status.model_dump(include={"stages"}, by_alias=True))
     logger.debug("status update %s", patch.status)
 
 
@@ -238,19 +140,20 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
     status = ArkClusterStatus(**kwargs["status"])
+    patch = kwargs["patch"]
 
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC):
+        status.initalized = True
+        patch.status.update(**status.model_dump(include={"initialized"}, by_alias=True))
         return
 
-    if not status.is_stage_completed(
-        ClusterStage.SERVER_PVC
-    ) or not status.is_stage_completed(ClusterStage.DATA_PVC):
+    if not status.is_stage_completed(ClusterStage.CREATE_PVC):
         raise kopf.TemporaryError(ERROR_WAIT_PVC, delay=1)
+    _update_state(status, patch, state="Initializing PVCs")
 
     logger = kwargs["logger"]
-    patch = kwargs["patch"]
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
@@ -283,9 +186,32 @@ async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     status.active_buildid = latest_version
     status.latest_buildid = latest_version
     status.mark_stage_complete(ClusterStage.INIT_PVC)
+    status.initalized = True
     patch.status.update(
         **status.model_dump(
-            include={"active_volume", "active_buildid", "latest_buildid", "stages"},
+            include={
+                "active_volume",
+                "active_buildid",
+                "latest_buildid",
+                "stages",
+                "initialized",
+            },
+            by_alias=True,
+        )
+    )
+    logger.debug("status update %s", patch.status)
+
+
+def _mark_ready(
+    status: ArkClusterStatus, patch: kopf.Patch, logger: kopf.Logger
+) -> None:
+    status.initalized = True
+    status.ready = True
+    status.state = "Running"
+    status.stages = None
+    patch.status.update(
+        **status.model_dump(
+            include={"initalized", "state", "ready", "stages", "last_applied_version"},
             by_alias=True,
         )
     )
@@ -300,17 +226,19 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
     reason = kwargs["reason"]
+    logger = kwargs["logger"]
     is_resume = status.last_applied_version is not None or reason == kopf.Reason.RESUME
 
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
-    if status.is_stage_completed(ClusterStage.CREATE):
+    if status.ready:
+        _mark_ready(status, patch, logger)
         return
 
     if not (status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC)):
         raise kopf.TemporaryError(ERROR_WAIT_INIT_JOB, delay=1)
+    _update_state(status, patch)
 
-    logger = kwargs["logger"]
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
@@ -326,7 +254,10 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
 
     try:
         await asyncio.gather(*tasks)
-        if is_resume and status.last_applied_version != ARK_SERVER_IMAGE_VERSION:
+        last_version = status.last_applied_version or get_active_version(
+            name=name, namespace=namespace, spec=spec
+        )
+        if is_resume and last_version != ARK_SERVER_IMAGE_VERSION:
             old = status.last_applied_version
             new = ARK_SERVER_IMAGE_VERSION
             logger.info("Container version mismatch (%s -> %s)", old, new)
@@ -339,6 +270,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
                 reason="container update",
                 logger=logger,
                 dry_run=DRY_RUN,
+                trigger_time=kwargs["started"],
             )
         await asyncio.gather(
             *[
@@ -362,14 +294,7 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         raise
 
     status.last_applied_version = ARK_SERVER_IMAGE_VERSION
-    status.mark_stage_complete(ClusterStage.CREATE)
-    patch.status.update(
-        **status.model_dump(
-            include={"last_applied_version", "stages"},
-            by_alias=True,
-        )
-    )
-    logger.debug("status update %s", patch.status)
+    _mark_ready(status, patch, logger)
 
 
 @kopf.on.resume("arkcluster")  # type: ignore[arg-type]

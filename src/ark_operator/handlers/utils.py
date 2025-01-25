@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from typing import TYPE_CHECKING
 
 from environs import Env
 
-from ark_operator.ark import restart_server_pods
+from ark_operator.ark import get_server_pod, restart_server_pods
 
 if TYPE_CHECKING:
+    from datetime import datetime
+
     import kopf
 
     from ark_operator.data import ArkClusterSpec
@@ -39,7 +42,8 @@ def add_tracked_instance(name: str | None, namespace: str | None) -> None:
 def remove_tracked_instance(name: str | None, namespace: str | None) -> None:
     """Remove tracked instance."""
 
-    TRACKED_INSTANCES.remove((name or DEFAULT_NAME, namespace or DEFAULT_NAMESPACE))
+    with suppress(KeyError):
+        TRACKED_INSTANCES.remove((name or DEFAULT_NAME, namespace or DEFAULT_NAMESPACE))
 
 
 def is_tracked(name: str | None, namespace: str | None) -> bool:
@@ -65,6 +69,20 @@ def get_restart_lock() -> asyncio.Lock:
     return RESTART_LOCK
 
 
+async def _check_servers_start(
+    *, name: str, namespace: str, servers: list[str], trigger_time: datetime
+) -> list[str]:
+    to_restart = []
+    for map_id in servers:
+        pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        if not pod:
+            continue
+        if pod.metadata.creation_timestamp < trigger_time:
+            to_restart.append(map_id)
+
+    return to_restart
+
+
 async def restart_with_lock(  # noqa: PLR0913
     *,
     name: str,
@@ -74,33 +92,42 @@ async def restart_with_lock(  # noqa: PLR0913
     active_volume: str,
     active_buildid: int | None,
     logger: kopf.Logger,
+    trigger_time: datetime | None = None,
     servers: list[str] | None = None,
     dry_run: bool = False,
 ) -> None:
     """Do restart with lock."""
 
     lock = get_restart_lock()
-    do_restart = True
     if lock.locked():
         logger.info("Restart already in progress, waiting until it completes")
-        do_restart = False
         return
 
     await lock.acquire()
     try:
-        if do_restart:
-            await restart_server_pods(
+        if trigger_time:
+            servers = await _check_servers_start(
                 name=name,
                 namespace=namespace,
-                spec=spec,
-                reason=reason,
-                active_volume=active_volume,
-                active_buildid=active_buildid,
-                servers=servers,
-                logger=logger,
-                dry_run=dry_run,
+                servers=servers or spec.server.all_maps,
+                trigger_time=trigger_time,
             )
-        else:
-            logger.warning("Skipped restart because one was already in progress")
+            if not servers:
+                logger.info(
+                    "Skipping restart because all servers have already been restarted."
+                )
+                return
+
+        await restart_server_pods(
+            name=name,
+            namespace=namespace,
+            spec=spec,
+            reason=reason,
+            active_volume=active_volume,
+            active_buildid=active_buildid,
+            servers=servers,
+            logger=logger,
+            dry_run=dry_run,
+        )
     finally:
         lock.release()

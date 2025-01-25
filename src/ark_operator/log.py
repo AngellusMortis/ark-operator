@@ -55,6 +55,12 @@ DEFAULT_LOG_CONFIG = {
         "httpx": {
             "level": "WARNING",
         },
+        "kopf": {
+            "level": "INFO",
+        },
+        "kubernetes_asyncio": {
+            "level": "WARNING",
+        },
     },
 }
 

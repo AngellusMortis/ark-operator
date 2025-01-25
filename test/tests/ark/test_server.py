@@ -9,7 +9,11 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from kubernetes_asyncio.client import ApiException
 
-from ark_operator.ark import create_server_pod, delete_server_pod
+from ark_operator.ark import (
+    ARK_SERVER_IMAGE_VERSION,
+    create_server_pod,
+    delete_server_pod,
+)
 from ark_operator.data import ArkClusterSpec
 from ark_operator.utils import VERSION
 
@@ -188,12 +192,15 @@ async def test_create_server_pod_exists(k8s_v1_client: Mock) -> None:
     k8s_v1_client.create_namespaced_pod.assert_not_awaited()
 
 
+@patch("ark_operator.ark.server.update_cluster")
 @patch(
     "ark_operator.ark.server.get_map_envs",
     AsyncMock(return_value=_ENVS),
 )
 @pytest.mark.asyncio
-async def test_create_server_pod_force_create(k8s_v1_client: Mock) -> None:
+async def test_create_server_pod_force_create(
+    mock_update: AsyncMock, k8s_v1_client: Mock
+) -> None:
     """Test create_server_pod."""
 
     pod = deepcopy(_SERVER_POD)
@@ -215,6 +222,12 @@ async def test_create_server_pod_force_create(k8s_v1_client: Mock) -> None:
         namespace="testing", name="test-island"
     )
     k8s_v1_client.patch_namespaced_pod.assert_awaited_once()
+    mock_update.assert_awaited_once_with(
+        name="test",
+        namespace="testing",
+        spec=spec,
+        status={"lastAppliedVersion": ARK_SERVER_IMAGE_VERSION},
+    )
     actual = k8s_v1_client.patch_namespaced_pod.call_args_list[0].kwargs["body"]
     assert actual == pod
 

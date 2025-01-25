@@ -47,6 +47,7 @@ async def on_delete_resources(**kwargs: Unpack[ChangeEvent]) -> None:
 
     tasks = [delete_secrets(name=name, namespace=namespace, logger=logger)]
     if not spec.server.persist:
+        logger.info("Deleteing server PVCs")
         tasks.append(
             delete_pvc(
                 name=f"{name}-server-a",
@@ -63,6 +64,7 @@ async def on_delete_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         )
 
     if not spec.data.persist:
+        logger.info("Deleteing data PVCs")
         tasks.append(
             delete_pvc(
                 name=f"{name}-data",

@@ -53,6 +53,28 @@ async def get_server_pod(*, name: str, namespace: str, map_id: str) -> V1Pod | N
     return obj
 
 
+async def get_active_version(
+    name: str, namespace: str, spec: ArkClusterSpec
+) -> str | None:
+    """Get active container version."""
+
+    for map_id in spec.server.all_maps:
+        pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
+        if pod:
+            break
+
+    if not pod:
+        return None
+
+    for container in pod.spec.containers:
+        if container.name != "ark":
+            continue
+
+        image = cast(str, container.image)
+        return image.split(":")[-1]
+    return None
+
+
 async def get_active_volume(
     name: str, namespace: str, spec: ArkClusterSpec
 ) -> Literal["server-a", "server-b"]:
