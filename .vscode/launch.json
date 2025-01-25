@@ -55,6 +55,13 @@
             "justMyCode": false,
         },
         {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Debug Tests",
             "type": "debugpy",
             "request": "launch",

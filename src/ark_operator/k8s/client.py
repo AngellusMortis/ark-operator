@@ -26,7 +26,10 @@ async def get_k8s_client() -> ApiClient:
 
     global _CLIENT  # noqa: PLW0603
 
-    if _CLIENT and _CLIENT.rest_client.pool_manager.closed:
+    if _CLIENT and (
+        _CLIENT.rest_client.pool_manager.closed
+        or _CLIENT.rest_client.pool_manager._loop.is_closed()  # noqa: SLF001
+    ):
         _CLIENT = None
 
     if _CLIENT is None:  # pragma: no branch

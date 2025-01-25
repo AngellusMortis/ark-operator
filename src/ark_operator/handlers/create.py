@@ -258,9 +258,11 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
             name=name, namespace=namespace, spec=spec
         )
         if is_resume and last_version != ARK_SERVER_IMAGE_VERSION:
-            old = status.last_applied_version
-            new = ARK_SERVER_IMAGE_VERSION
-            logger.info("Container version mismatch (%s -> %s)", old, new)
+            logger.info(
+                "Container version mismatch (%s -> %s)",
+                last_version,
+                ARK_SERVER_IMAGE_VERSION,
+            )
             await restart_with_lock(
                 name=name,
                 namespace=namespace,
