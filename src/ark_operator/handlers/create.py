@@ -203,9 +203,7 @@ def _mark_ready(
     status.state = "Running"
     status.stages = None
     patch.status.update(
-        **status.model_dump(
-            include={"initalized", "state", "ready", "stages", "last_applied_version"}
-        )
+        **status.model_dump(include={"initalized", "state", "ready", "stages"})
     )
     logger.debug("status update %s", patch.status)
 
@@ -219,14 +217,10 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     patch = kwargs["patch"]
     reason = kwargs["reason"]
     logger = kwargs["logger"]
-    is_resume = status.last_applied_version is not None or reason == kopf.Reason.RESUME
+    is_resume = reason == kopf.Reason.RESUME
 
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
-    if status.ready:
-        _mark_ready(status, patch, logger)
-        return
-
     if not (status.initalized or status.is_stage_completed(ClusterStage.INIT_PVC)):
         raise kopf.TemporaryError(ERROR_WAIT_INIT_JOB, delay=1)
     _update_state(status, patch)
@@ -246,9 +240,15 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
 
     try:
         await asyncio.gather(*tasks)
-        last_version = status.last_applied_version or await get_active_version(
+        last_version = await get_active_version(
             name=name, namespace=namespace, spec=spec
         )
+        if is_resume:
+            logger.info(
+                "New container version: %s, existing version: %s",
+                ARK_SERVER_IMAGE_VERSION,
+                last_version,
+            )
         if is_resume and last_version != ARK_SERVER_IMAGE_VERSION:
             logger.info(
                 "Container version mismatch (%s -> %s)",
@@ -287,7 +287,6 @@ async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
         logger.debug("status update %s", patch.status)
         raise
 
-    status.last_applied_version = ARK_SERVER_IMAGE_VERSION
     _mark_ready(status, patch, logger)
 
 

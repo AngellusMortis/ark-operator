@@ -277,7 +277,6 @@ class ArkClusterStatus(BaseK8sModel):
     created_pods: int | None = None
     ready_pods: int | None = None
     suspended_pods: int | None = None
-    last_applied_version: str | None = None
     kopf: dict[str, Any] | None = None
     restart: ArkClusterRestartStatus | None = None
 
