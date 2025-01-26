@@ -4,14 +4,23 @@ from __future__ import annotations
 
 import asyncio
 import json
-from pathlib import Path  # required for cyclopts  # noqa: TC003
+import logging
+from pathlib import Path  # required for cyclopts
+from tempfile import gettempdir
 from typing import TYPE_CHECKING, Annotated, Literal, cast
 
 from cyclopts import App, CycloptsError, Parameter
+from rich.console import Console
+from rich.table import Table
 
 from ark_operator.ark import (
     expand_maps,
+    get_active_buildid,
+    get_mod_lastest_update,
+    get_mods,
     get_rcon_password,
+    get_server_pod,
+    has_cf_auth,
     restart_server_pods,
     shutdown_server_pods,
 )
@@ -41,6 +50,7 @@ from ark_operator.steam import Steam
 from ark_operator.utils import comma_list
 
 if TYPE_CHECKING:
+    from datetime import datetime
     from ipaddress import IPv4Address, IPv6Address
 
 
@@ -56,6 +66,7 @@ ERROR_HOST_REQUIRED = "Host is required from the option or from loadBalancerIP o
 ERROR_INVALID_MAP = "Map {map_id} is not a valid map for this cluster."
 ERROR_NOT_SUSPENDED = "Map {map_id} is not suspended."
 ERROR_REASON_REQUIRED = "Reason for shutdown is required"
+_LOGGER = logging.getLogger(__name__)
 
 
 def _get_context() -> ClusterContext:
@@ -208,6 +219,68 @@ async def resume(
         namespace=context.namespace,
         spec={"server": {"suspend": context.spec.server.suspend}},
     )
+
+
+@cluster.command
+async def check_updates() -> None:
+    """Check the cluster to see if there are updates."""
+
+    context = _get_context()
+    steam = Steam(Path(gettempdir()) / "steam")
+    active_buildid = context.status.active_buildid or await get_active_buildid(
+        name=context.name, namespace=context.namespace, spec=context.spec
+    )
+    active_buildid = active_buildid or 1
+
+    _LOGGER.info("Active buildid %s", active_buildid)
+    latest_bulidid = await steam.get_latest_ark_buildid()
+    _LOGGER.info("Latest buildid %s", latest_bulidid)
+    if latest_bulidid > active_buildid:
+        await update_cluster(
+            name=context.name,
+            namespace=context.namespace,
+            status={"latestBuildid": latest_bulidid},
+        )
+    if not has_cf_auth():
+        _LOGGER.info("No CurseForge API provided, skipping mods")
+        return
+    mods = await get_mods(
+        name=context.name, namespace=context.namespace, spec=context.spec
+    )
+    creation_timestamp: datetime | None = None
+    for map_id in context.spec.server.all_maps:
+        pod = await get_server_pod(
+            name=context.name, namespace=context.namespace, map_id=map_id
+        )
+        if pod and (
+            creation_timestamp is None
+            or pod.metadata.creation_timestamp > creation_timestamp
+        ):
+            creation_timestamp = pod.metadata.creation_timestamp
+
+    assert creation_timestamp is not None  # noqa: S101
+    mod_updates = {m: await get_mod_lastest_update(m) for m in mods}
+    table = Table(title="Mods", row_styles=["dim", ""])
+    table.add_column("Mod ID")
+    table.add_column("Name")
+    table.add_column("Maps")
+    table.add_column("Last Check")
+    table.add_column("Last Update")
+    table.add_column("Update?")
+
+    for mod_id, maps in mods.items():
+        name, last_update = mod_updates[mod_id]
+        table.add_row(
+            mod_id,
+            name,
+            str(maps),
+            creation_timestamp.isoformat(),
+            last_update.isoformat(),
+            str(last_update > creation_timestamp),
+        )
+
+    console = Console()
+    console.print(table)
 
 
 @cluster.command
