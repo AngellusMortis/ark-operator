@@ -30,7 +30,7 @@ spec:
       serviceAccountName: ark-operator
       containers:
       - name: app
-        image: ghcr.io/angellusmortis/ark-operator:v0.10.6
+        image: ghcr.io/angellusmortis/ark-operator:v0.10.7
         imagePullPolicy: IfNotPresent
         securityContext:
           runAsUser: 1000
@@ -50,7 +50,7 @@ spec:
             # ==== Replace with namespace you want
             value: default
           - name: ARK_SERVER_IMAGE_VERSION
-            value: v0.10.6
+            value: v0.10.7
         resources:
           requests:
             cpu: "200m"

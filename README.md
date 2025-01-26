@@ -67,7 +67,7 @@ ARK_SERVER_AUTO_UPDATE=false
 ```yml
 services:
   club-ark:
-    image: ghcr.io/angellusmortis/ark-server:v0.10.3
+    image: ghcr.io/angellusmortis/ark-server:v0.10.7
     env_file: .env
     environment:
       ARK_SERVER_MAP: BobsMissions_WP
@@ -96,7 +96,7 @@ services:
       - "27020:27020"
       - "7777:7777"
   island:
-    image: ghcr.io/angellusmortis/ark-server:v0.10.3
+    image: ghcr.io/angellusmortis/ark-server:v0.10.7
     env_file: .env
     environment:
       ARK_SERVER_MAP: TheIsland_WP
@@ -307,16 +307,7 @@ A more in depth example can be found at [cluster-full.yml](https://github.com/An
 The ark operator will attempt to load the following Config Maps and Secrets to apply to the maps it runs. `{instance_name}` is the name of your `ArkCluster` object. `{map_slug}` is the slug that Ark Operator generates for a map. This will be the name of pods that created by the operator. Pods are in format: `{instance_name}-{map_slug}`. Map slug has to be used in many places because the actual map ID is not valid for Kubernetes objects.
 
 > [!WARNING]
-> The following Global envs/configs will NOT be applied to the `BobsMissions_WP` map. In many cases, you do not want the same settings on Club Ark you want for other maps, so you need map specific overrides for Club Ark.
->
-> Ignored Global Envs:
-> * ARK_SERVER_PARAMS
-> * ARK_SERVER_OPTS
-> * ARK_SERVER_MODS
->
-> Ignored Global Configs:
-> * GameUserSettings.ini
-> * Game.ini
+> Do not edit the `Game.ini` and `GameUserSettings.ini` files in side of the Data PVC. These files are generated using the below Config Maps / Secrets every time the map starts up. Editing the files inside of the PVC will result is data loss.
 
 * Config Map, `{instance_name}-global-envs` - [Environment Variables](#environment-variables) to apply to all maps. Will override values in `ArkCluster` object. `ARK_SERVER_PARAMS`, `ARK_SERVER_OPTS`, and `ARK_SERVER_MODS` are ignored for `BobsMissions_WP`.
 * Config Map, `{instance_name}-global-ark-config` - A config map that can have `Game.ini` and `GameUserSettings.ini` keys to apply a global config to all maps. Will be ignored for `BobsMissions_WP`.
