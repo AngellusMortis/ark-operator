@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from contextlib import suppress
 from datetime import timedelta
 from http import HTTPStatus
 from typing import TYPE_CHECKING, Any, Literal, cast
@@ -23,7 +24,7 @@ from ark_operator.ark.utils import (
     order_maps,
 )
 from ark_operator.k8s import get_v1_client, update_cluster
-from ark_operator.rcon import close_client, send_cmd_all
+from ark_operator.rcon import close_client, close_clients, send_cmd_all
 from ark_operator.templates import loader
 from ark_operator.utils import VERSION, human_format, notify_intervals, utc_now
 
@@ -307,6 +308,9 @@ async def _notify_server_pods(  # noqa: PLR0913
         logger.info("Skipping notify because gracefulShutdown is set to 0")
         return
 
+    with suppress(Exception):
+        await close_clients()
+
     logger.info("Notifying servers of shutdown (rolling: %s)", rolling)
     previous_interval: float | None = None
     for interval in notify_intervals(wait_interval):
@@ -421,19 +425,21 @@ async def shutdown_server_pods(  # noqa: PLR0913
             },
         },
     )
-    await _notify_server_pods(
-        name=name,
-        namespace=namespace,
-        spec=spec,
-        reason=reason,
-        logger=logger,
-        servers=online_servers,
-        host=host,
-        password=password,
-        rolling=False,
-        wait_interval=wait_interval,
-    )
-    await _close_clients(spec=spec, servers=online_servers, host=host)
+    try:
+        await _notify_server_pods(
+            name=name,
+            namespace=namespace,
+            spec=spec,
+            reason=reason,
+            logger=logger,
+            servers=online_servers,
+            host=host,
+            password=password,
+            rolling=False,
+            wait_interval=wait_interval,
+        )
+    finally:
+        await _close_clients(spec=spec, servers=online_servers, host=host)
     if suspend:
         spec.server.suspend |= set(online_servers)
         logger.info("Suspending servers %s", online_servers)
