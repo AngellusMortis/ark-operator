@@ -1,0 +1,151 @@
+apiVersion: mort.is/v1beta1
+kind: ArkCluster
+metadata:
+  name: ark
+  # ==== Replace with namespace you want
+  namespace: default
+spec:
+  # Optional IP address for the Service
+  # service:
+  #   loadBalancerIP: 192.168.2.100
+  server:
+    # what maps/servers you want to run
+    # default: [ @canonical ]
+    # @canonical means all of the Story maps (Island, SE, Aberration, Extinction)
+    # @official means all of the Story maps + other WC released maps (Center, Astraeos)
+    # Both also include Club Ark. You can use @canonicalNoClub or @officialNoClub to exclude Club Ark
+    # Specific maps can also be excluded with -MapID_WP (example: -Astraeos_WP will exclude Astraeos
+    # Specific other maps can be added one at a time
+    maps: [ "@official" ]
+    # The storage class you want to use for server PVCs
+    # storageClass:
+    # keep Server PVC after Cluster deletion (default is false)
+    persist: false
+    # size of Server PVCs (default is 50Gi, enough space for all servers)
+    size: 50Gi
+    # how much notice to give players before shutting down/restarting pods
+    # default: 30m, can be in the format ##h##m##s
+    gracefulShutdown: 30m
+    # Starting port for pods, each map will be +1 from previous
+    gamePortStart: 7777
+    # Starting RCON port for pods, each map will be +1 from previous
+    rconPortStart: 27020
+    # Resource limits for pods
+    resources:
+      limits:
+        cpu: 6000m
+        memory: 24Gi
+      requests:
+        cpu: 3000m
+        memory: 10Gi
+  data:
+    # keep Saved Data PVC after Cluster deletion (default is true)
+    persist: true
+    # size of Saved DAta PVC, may need to adjust
+    size: 50Gi
+    # The storage class you want to use for data PVC
+    # storageClass:
+  globalSettings:
+    # A format string for generating the name of your session names
+    # available variables:
+    # {map_name} - user friendly name of the map
+    sessionNameFormat: "ASA - {map_name}"
+    # map number of players per map
+    maxPlayers: 70
+    # Cluster ID for cluster, defaults to ark-cluster
+    clusterID: mortis
+    # Disable BattlEye
+    battleye: false
+    # Allow players, values ALL, XSX, PS5, PC, WINGDK
+    allowedPlatforms: [ ALL ]
+    # enable whitelist
+    whitelist: true
+    # options (- seperated values) to apply (does not apply to BobsMissions_WP)
+    opts: [ "ForceAllowCaveFlyers" , "GBUsageToForceRestart=22", "forceuseperfthreads", "ServerUseEventColors" ]
+    # parameters (? seperated values) to apply (does not apply to BobsMissions_WP)
+    params: [ "AdminLogging", "AllowFlyerCarryPvE", "serverPVE" ]
+    # mods to install on all servers (does not apply to BobsMissions_WP)
+    mods: [ 927090, 1056780 ]
+  # uid / gid for the user to run as
+  runAsUser: 1000
+  runAsGroup: 1000
+  # Node selector to run pods on
+  nodeSelector:
+    kubernetes.io/hostname: node-1
+  # tolerations for pods
+  tolerations:
+    - key: "type"
+      operator: "Equal"
+      value: "gamesOnly"
+      effect: "PreferNoSchedule"
+---
+# additional mods to add to BobsMissions_WP / Club Ark
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ark-map-envs-club-ark
+  # ==== Replace with namespace you want
+  namespace: default
+data:
+  ARK_SERVER_MODS: "1056780"
+---
+# override global mods list for only Extinction
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ark-map-envs-extinction
+  # ==== Replace with namespace you want
+  namespace: default
+data:
+  ARK_SERVER_MODS: "927090,1056780,1163881"
+---
+# global Game.ini / GameUserSettings.ini
+# will _not_ be applied to BobsMissions_WP
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ark-global-ark-config
+  # ==== Replace with namespace you want
+  namespace: default
+data:
+  Game.ini: |
+    [/script/shootergame.shootergamemode]
+    MaxDifficulty=True
+  GameUserSettings.ini: |
+    [ServerSettings]
+    AllowCaveBuildingPvE=True
+    AllowFlyerCarryPvE=True
+    DifficultyOffset=1.0
+    OverrideOfficialDifficulty=5.0
+    ServerPVE=True
+---
+# BobsMissions_WP / Club Ark configs
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ark-map-ark-config-club-ark
+  # ==== Replace with namespace you want
+  namespace: default
+data:
+  Game.ini: |
+    [/script/shootergame.shootergamemode]
+    MaxDifficulty=True
+  GameUserSettings.ini: |
+    [ServerSettings]
+    DifficultyOffset=1.0
+    OverrideOfficialDifficulty=5.0
+---
+# Extra secrets to apply to all maps
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ark-cluster-secrets
+  # ==== Replace with namespace you want
+  namespace: default
+type: Opaque
+stringdata:
+  ARK_SERVER_GLOBAL_GUS_SECRETS: |
+    [ShinyDiscord]
+    WebhookURL="https://discord.com/api/webhooks/#######/XXXXXXX"
+  ARK_SERVER_MULTIHOME: 1.1.1.1
+  ARK_SERVER_RCON_PASSWORD: password

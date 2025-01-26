@@ -1,0 +1,37 @@
+apiVersion: mort.is/v1beta1
+kind: ArkCluster
+metadata:
+  name: ark
+  # ==== Replace with namespace you want
+  namespace: default
+spec:
+  service:
+    # Optional IP address for the Service
+    # loadBalancerIP: 192.168.2.100
+  server:
+    # what maps/servers you want to run
+    # default: [ @canonical ]
+    # @canonical means all of the Story maps (Island, SE, Aberration, Extinction)
+    # @official means all of the Story maps + other WC released maps (Center, Astraeos)
+    # Both also include Club Ark. You can use @canonicalNoClub or @officialNoClub to exclude Club Ark
+    # Specific maps can also be excluded with -MapID_WP (example: -Astraeos_WP will exclude Astraeos
+    # Specific other maps can be added one at a time
+    maps: [ "@official" ]
+    # The storage class you want to use for server PVCs
+    # storageClass:
+    # keep Server PVC after Cluster deletion (default is false)
+    persist: false
+    # size of Server PVCs (default is 50Gi, enough space for all servers)
+    size: 50Gi
+  data:
+    # keep Saved Data PVC after Cluster deletion (default is true)
+    persist: true
+    # size of Saved DAta PVC, may need to adjust
+    size: 50Gi
+    # The storage class you want to use for data PVC
+    # storageClass:
+  globalSettings:
+    # A format string for generating the name of your session names
+    # available variables:
+    # {map_name} - user friendly name of the map
+    sessionNameFormat: "ASA - {map_name}"

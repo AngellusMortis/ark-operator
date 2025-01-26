@@ -36,7 +36,7 @@ def _get_context() -> CoreContext:
 def meta(
     *tokens: Annotated[str, Parameter(show=False, allow_leading_hyphen=True)],
     logging_format: OPTION_LOG_FORMAT = "auto",
-    logging_level: OPTION_LOG_LEVEL = "NOTSET",
+    logging_level: OPTION_LOG_LEVEL = "INFO",
     logging_config: OPTION_LOG_CONFIG = DEFAULT_LOG_CONFIG,
 ) -> int | None:
     """ARK Operator."""
