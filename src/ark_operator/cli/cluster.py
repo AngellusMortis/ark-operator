@@ -254,7 +254,7 @@ async def check_updates() -> None:
         )
         if pod and (
             creation_timestamp is None
-            or pod.metadata.creation_timestamp > creation_timestamp
+            or pod.metadata.creation_timestamp < creation_timestamp
         ):
             creation_timestamp = pod.metadata.creation_timestamp
 
