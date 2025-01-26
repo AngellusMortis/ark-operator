@@ -266,7 +266,7 @@ async def check_updates() -> None:
     table.add_column("Name")
     table.add_column("Maps")
     table.add_column("Last Check")
-    table.add_column("Last Update")
+    table.add_column("Last Update ⮟")
     table.add_column("Update?")
 
     for mod_id, (name, last_update) in mod_updates.items():
