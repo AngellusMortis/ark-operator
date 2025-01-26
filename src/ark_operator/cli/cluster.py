@@ -270,7 +270,7 @@ async def check_updates() -> None:
     table.add_column("Update?")
 
     for mod_id, (name, last_update) in mod_updates.items():
-        maps = mod_updates[mod_id]
+        maps = mods[mod_id]
         table.add_row(
             mod_id,
             name,
