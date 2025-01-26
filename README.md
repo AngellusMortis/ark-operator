@@ -256,6 +256,10 @@ flowchart TD
     PVC-data --> Pod-extinction
 ```
 
+### Service / Networking Support
+
+Networking in k8s is hard. There are so many cloud specific variations. As a result, the operator has only been tested against [MetalLB](https://metallb.io/) for bare metal installs. If you are having issues getting the service working and servers exposed to the public for other popular k8s variants, make an issue so to discuss.
+
 ### Manifests
 
 There are two example manifests provided one with mod update checks (requires a [CurseForge API key](https://console.curseforge.com/)) and one without.
