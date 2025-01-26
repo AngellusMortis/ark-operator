@@ -27,6 +27,7 @@ from ark_operator.handlers.utils import (
     ERROR_RESTARTING,
     ERROR_UPDATE_STATUS,
     ERROR_WAIT_INIT_RESOURCES,
+    add_tracked_instance,
     restart_with_lock,
 )
 
@@ -67,7 +68,10 @@ async def on_update_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
 
     status = ArkClusterStatus(**kwargs["status"])
     patch = kwargs["patch"]
+    name = kwargs["name"] or DEFAULT_NAME
+    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
 
+    add_tracked_instance(name, namespace)
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if status.is_stage_completed(ClusterStage.UPDATE_PVC):
@@ -92,8 +96,6 @@ async def on_update_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
         logger.debug("status update %s", patch.status)
         return
 
-    name = kwargs["name"] or DEFAULT_NAME
-    namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
     try:

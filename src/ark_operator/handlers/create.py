@@ -37,6 +37,7 @@ from ark_operator.handlers.utils import (
     ERROR_UPDATE_STATUS,
     ERROR_WAIT_INIT_JOB,
     ERROR_WAIT_PVC,
+    add_tracked_instance,
     restart_with_lock,
 )
 from ark_operator.steam import Steam
@@ -65,6 +66,7 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
     spec = ArkClusterSpec(**kwargs["spec"])
 
+    add_tracked_instance(name, namespace)
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
     if not status.state and not status.ready and not status.initalized:
