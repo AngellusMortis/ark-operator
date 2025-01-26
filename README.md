@@ -229,10 +229,46 @@ See the [ARK wiki](https://ark.wiki.gg/wiki/Server_configuration) for full list 
 
 ## K8s Operator
 
+### Manifests
+
+> [!WARNING]
+> WIP come back later.
+
+### Helm
+
 > [!WARNING]
 > WIP come back later.
 
 ## Development
 
-> [!WARNING]
-> WIP come back later.
+### Requirements
+
+* [Docker](https://docs.docker.com/get-started/get-docker/) or a container engine that is compatible with VS Code
+* [VS Code with Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers)
+* A local Kubernetes cluster (1.30+) with at least 100GB of PVC storage, credentials should be set up in the default `~/.kube` folder
+* The namespace `ark-dev` for local dev (you can change this, but it requires editing files that are not gitignored)
+
+### Setup
+
+1. Clone repo
+2. Open the folder in VS Code
+3. You will be prompted to "Reopen folder to develop in a container", click "Reopen in Container"
+
+### Testing
+
+Test is fully integrated with the dev container and VS Code. You can run tests fully with
+
+* VS Code's test explorer
+* Run `pytest` or `pytest -m 'not k8s'` directly from command line
+* Run `test-code` or `test-code --fast` directly from command line
+* Run the "Test Code" or "Test Code (fast)" tasks in VS Code (Command Palette -> Tasks: Run Task -> Test Code)
+
+The "fast" option for the tests will ignore the `k8s` mark and run only tests that do not require a k8s cluster to run (no e2e tests).
+
+### Formating & Linting
+
+Similar to testing, it is fully integrated with the dev container and VS Code. You can run formatting and linting with
+
+* VS Code will do _most_ of the linting/formatting by default everytime you save and edit code
+* Run `format-code` and `lint-code` directly from the command line (check the files in `.bin/` to see the full list of commands)
+* Run the "Format & Lint Code" task in VS Code (Command Palette -> Tasks: Run Task -> Format & Lint Code)
