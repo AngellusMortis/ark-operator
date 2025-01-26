@@ -260,6 +260,7 @@ async def check_updates() -> None:
 
     assert creation_timestamp is not None  # noqa: S101
     mod_updates = {m: await get_mod_lastest_update(m) for m in mods}
+    mod_updates = dict(sorted(mod_updates.items(), key=lambda x: x[1][1], reverse=True))
     table = Table(title="Mods", row_styles=["dim", ""])
     table.add_column("Mod ID")
     table.add_column("Name")
@@ -268,8 +269,8 @@ async def check_updates() -> None:
     table.add_column("Last Update")
     table.add_column("Update?")
 
-    for mod_id, maps in mods.items():
-        name, last_update = mod_updates[mod_id]
+    for mod_id, (name, last_update) in mod_updates.items():
+        maps = mod_updates[mod_id]
         table.add_row(
             mod_id,
             name,
