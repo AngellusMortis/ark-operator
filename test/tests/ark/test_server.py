@@ -136,6 +136,7 @@ _SERVER_POD = {
     "ark_operator.ark.server.get_map_envs",
     AsyncMock(return_value=_ENVS),
 )
+@patch("ark_operator.ark.server.update_cluster", AsyncMock())
 @pytest.mark.asyncio
 async def test_create_server_pod(k8s_v1_client: Mock) -> None:
     """Test create_server_pod."""
