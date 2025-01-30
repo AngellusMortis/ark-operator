@@ -261,6 +261,7 @@ class ArkClusterRestartStatus(BaseK8sModel):
     reason: str = "resuming"
     active_volume: str | None = None
     active_buildid: int | None = None
+    mods: dict[str, int] | None = None
 
 
 class ArkClusterStatus(BaseK8sModel):
@@ -268,6 +269,7 @@ class ArkClusterStatus(BaseK8sModel):
 
     ready: bool = False
     state: States | str = "Initializing"
+    last_update: datetime | None = None
     initalized: bool = False
     stages: dict[ClusterStage, bool] | None = None
     active_volume: Literal["server-a", "server-b"] | None = None
@@ -279,6 +281,7 @@ class ArkClusterStatus(BaseK8sModel):
     suspended_pods: int | None = None
     kopf: dict[str, Any] | None = None
     restart: ArkClusterRestartStatus | None = None
+    mods: dict[str, int] | None = None
 
     @property
     def is_error(self) -> bool:
@@ -304,3 +307,15 @@ class ArkClusterSecrets(BaseK8sModel):
     """ark-operator-secrets secret model."""
 
     discord_webhook: str | None = None
+
+
+@dataclass
+class ModStatus:
+    """Mod data."""
+
+    id: str
+    name: str
+    file_id: int
+    maps: set[str]
+    last_update: datetime
+    old_file_id: int | None = None

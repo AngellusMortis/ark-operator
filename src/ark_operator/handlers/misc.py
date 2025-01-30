@@ -18,8 +18,8 @@ from ark_operator.ark import (
     create_update_job,
     get_active_buildid,
     get_active_volume,
-    get_mod_lastest_update,
-    get_mods,
+    get_mod_status,
+    get_mod_updates,
     get_server_pod,
     has_cf_auth,
     is_server_pod_ready,
@@ -43,11 +43,13 @@ from ark_operator.k8s import get_k8s_client
 from ark_operator.log import DEFAULT_LOG_CONFIG, init_logging
 from ark_operator.rcon import close_clients
 from ark_operator.steam import Steam
+from ark_operator.utils import utc_now
 
 if TYPE_CHECKING:
     from kopf import Patch
 
 ARK_UPDATE_INTERVAL = timedelta(minutes=15).total_seconds()
+ARK_LAST_UPDATE_CHECK = timedelta(minutes=30)
 
 
 @kopf.on.startup()  # type: ignore[arg-type]
@@ -161,36 +163,6 @@ async def _update_server(  # noqa: PLR0913
     logger.debug("status update %s", patch.status)
 
 
-async def _get_mod_updates(
-    *, name: str, namespace: str, spec: ArkClusterSpec
-) -> tuple[list[str], set[str]]:
-    mods = await get_mods(name=name, namespace=namespace, spec=spec)
-    pods = {}
-    for map_id in spec.server.all_maps:
-        pod = await get_server_pod(name=name, namespace=namespace, map_id=map_id)
-        if pod:
-            pods[map_id] = pod
-
-    mod_names = {}
-    to_update: dict[str, set[str]] = {}
-    for mod_id in mods:
-        mod_name, last_update = await get_mod_lastest_update(mod_id)
-        mod_names[mod_id] = mod_name
-        for map_id, pod in pods.items():
-            if pod.metadata.creation_timestamp <= last_update:
-                maps = to_update.get(mod_id, set())
-                maps.add(map_id)
-                to_update[mod_id] = maps
-
-    maps_to_update = set()
-    mods_to_update = set()
-    for mod_id, maps in to_update.items():
-        mods_to_update.add(mod_names[mod_id])
-        maps_to_update |= maps
-
-    return list(maps_to_update), mods_to_update
-
-
 @kopf.timer(  # type: ignore[arg-type]
     "arkcluster", interval=ARK_UPDATE_INTERVAL, initial_delay=60
 )
@@ -228,15 +200,27 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
         logger.info("Skipping mod update check because no CurseForge API key")
         return
 
-    maps_to_update, mods_to_update = await _get_mod_updates(
-        name=name, namespace=namespace, spec=spec
-    )
-    if not maps_to_update:
+    mods = await get_mod_status(name=name, namespace=namespace, spec=spec)
+    if not mods:
+        return
+    mod_updates = get_mod_updates(status, mods)
+
+    if not mod_updates:
         logger.info("No mods with updates")
+        status.mods = {f"id_{m.id}": m.file_id for m in mods.values()}
+        patch.status.update(mods=status.mods)
         return
 
-    logger.info("Mods have updates: %s, %s", maps_to_update, mods_to_update)
-    reason = f"mod update ({', '.join(mods_to_update)})"
+    logger.info("Mods have updates: %s", mod_updates)
+    maps_to_update = set()
+    for mod in mod_updates.values():
+        maps_to_update |= mod.maps
+    if len(mod_updates) > 2:  # noqa: PLR2004
+        reason = "multiple mod updates"
+    else:
+        reason = f"mod update ({', '.join(m.name for m in mod_updates.values())})"
+    reason = reason.replace("'", "")
+
     active_volume = status.active_volume or await get_active_volume(
         name=name, namespace=namespace, spec=spec
     )
@@ -247,8 +231,9 @@ async def check_updates(**kwargs: Unpack[TimerEvent]) -> None:
         reason=reason,
         active_volume=active_volume,
         active_buildid=status.active_buildid,
-        servers=maps_to_update,
+        servers=list(maps_to_update),
         logger=logger,
+        mod_status={f"id_{m.id}": m.file_id for m in mods.values()},
     )
 
 
@@ -295,6 +280,25 @@ def _is_ready(
     if not status.ready and status.state == "Updating Server":
         return True
 
+    now = utc_now()
+    if (
+        not status.ready
+        and status.last_update
+        and (now - status.last_update) > ARK_LAST_UPDATE_CHECK
+    ):
+        logger.warning("No status recent status update for cluster, force reseting")
+        status.ready = True
+        status.state = "Running"
+        patch.status.update(
+            **status.model_dump(
+                include={
+                    "ready",
+                    "state",
+                }
+            )
+        )
+        return True
+
     if not status.ready or not status.state or not status.state.startswith("Running"):
         status.created_pods = 0
         status.ready_pods = 0
@@ -329,6 +333,11 @@ async def _create_pods(
 ) -> bool:
     active_volume = status.active_volume or await get_active_volume(
         name=name, namespace=namespace, spec=spec
+    )
+    logger.info(
+        "Creating missing server pods: %s (%s)",
+        spec.server.active_maps,
+        spec.server.suspend,
     )
     try:
         created = await asyncio.gather(

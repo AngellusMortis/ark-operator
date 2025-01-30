@@ -69,7 +69,13 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     add_tracked_instance(name, namespace)
     if status.restart is not None:
         raise kopf.TemporaryError(ERROR_RESTARTING, delay=30)
-    if not status.state and not status.ready and not status.initalized:
+    if (
+        not kwargs["status"]
+        and not status.state
+        and not status.ready
+        and not status.initalized
+    ):
+        logger.info("Initializing status")
         patch.status.update(status.model_dump())
         logger.debug("status update %s", patch.status)
         return

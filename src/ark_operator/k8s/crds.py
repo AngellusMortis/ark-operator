@@ -16,6 +16,7 @@ from ark_operator.command import run_async
 from ark_operator.data import ArkClusterSpec, ArkClusterStatus
 from ark_operator.exceptions import K8sError
 from ark_operator.k8s.client import get_crd_client, get_v1_ext_client
+from ark_operator.utils import utc_now
 
 CRD_FILE = Path(__file__).parent.parent / "resources" / "crds.yml"
 ERROR_CRDS_INSTALLED = "ArkCluster CRDs are already installed"
@@ -98,8 +99,11 @@ async def update_cluster(
             status = status.model_dump(mode="json")
         _LOGGER.debug("Updating status: %s", status)
         data["status"] = status
+        data["status"]["lastUpdate"] = utc_now().isoformat()
 
     await run_async(  # noqa: S604
         f"echo '{json.dumps(data)}' | kubectl -n {namespace} patch arkcluster {name} --type merge --patch-file=/dev/stdin",  # noqa: E501
         shell=True,
+        check=True,
+        output_level=logging.INFO,
     )

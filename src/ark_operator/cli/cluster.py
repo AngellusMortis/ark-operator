@@ -16,10 +16,9 @@ from rich.table import Table
 from ark_operator.ark import (
     expand_maps,
     get_active_buildid,
-    get_mod_lastest_update,
-    get_mods,
+    get_mod_status,
+    get_mod_updates,
     get_rcon_password,
-    get_server_pod,
     has_cf_auth,
     restart_server_pods,
     shutdown_server_pods,
@@ -50,7 +49,6 @@ from ark_operator.steam import Steam
 from ark_operator.utils import comma_list
 
 if TYPE_CHECKING:
-    from datetime import datetime
     from ipaddress import IPv4Address, IPv6Address
 
 
@@ -197,7 +195,7 @@ async def suspend(
     await update_cluster(
         name=context.name,
         namespace=context.namespace,
-        spec={"server": {"suspend": context.spec.server.suspend}},
+        spec={"server": {"suspend": list(context.spec.server.suspend)}},
     )
 
 
@@ -217,7 +215,7 @@ async def resume(
     await update_cluster(
         name=context.name,
         namespace=context.namespace,
-        spec={"server": {"suspend": context.spec.server.suspend}},
+        spec={"server": {"suspend": list(context.spec.server.suspend)}},
     )
 
 
@@ -244,44 +242,48 @@ async def check_updates() -> None:
     if not has_cf_auth():
         _LOGGER.info("No CurseForge API provided, skipping mods")
         return
-    mods = await get_mods(
+    mods = await get_mod_status(
         name=context.name, namespace=context.namespace, spec=context.spec
     )
-    creation_timestamp: datetime | None = None
-    for map_id in context.spec.server.all_maps:
-        pod = await get_server_pod(
-            name=context.name, namespace=context.namespace, map_id=map_id
-        )
-        if pod and (
-            creation_timestamp is None
-            or pod.metadata.creation_timestamp < creation_timestamp
-        ):
-            creation_timestamp = pod.metadata.creation_timestamp
+    if not mods:
+        return
 
-    assert creation_timestamp is not None  # noqa: S101
-    mod_updates = {m: await get_mod_lastest_update(m) for m in mods}
-    mod_updates = dict(sorted(mod_updates.items(), key=lambda x: x[1][1], reverse=True))
+    mod_updates = get_mod_updates(context.status, mods)
     table = Table(title="Mods", row_styles=["dim", ""])
     table.add_column("Mod ID")
     table.add_column("Name")
     table.add_column("Maps")
-    table.add_column("Last Check")
+    table.add_column("Current File")
+    table.add_column("New File")
     table.add_column("Last Update ⮟")
     table.add_column("Update?")
 
-    for mod_id, (name, last_update) in mod_updates.items():
-        maps = mods[mod_id]
+    for mod in mods.values():
+        update_mod = mod_updates.get(mod.id)
         table.add_row(
-            mod_id,
-            name,
-            str(maps),
-            creation_timestamp.isoformat(),
-            last_update.isoformat(),
-            str(last_update > creation_timestamp),
+            mod.id,
+            mod.name,
+            str(mod.maps),
+            str(update_mod.old_file_id if update_mod else mod.file_id),
+            str(mod.file_id),
+            mod.last_update.isoformat(),
+            str(update_mod is not None),
         )
 
     console = Console()
     console.print(table)
+
+
+@cluster.command
+async def force_ready() -> None:
+    """Force mark the cluster as ready."""
+
+    context = _get_context()
+    await update_cluster(
+        name=context.name,
+        namespace=context.namespace,
+        status={"ready": True, "state": "Running", "restart": None},
+    )
 
 
 @cluster.command

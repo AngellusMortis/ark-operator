@@ -474,6 +474,7 @@ async def restart_server_pods(  # noqa: PLR0913
     servers: list[str] | None = None,
     active_buildid: int | None = None,
     wait_interval: timedelta | None = None,
+    mod_status: dict[str, int] | None = None,
     dry_run: bool = False,
 ) -> None:
     """Gracefully do rolling restart ARK Cluster pods."""
@@ -505,6 +506,7 @@ async def restart_server_pods(  # noqa: PLR0913
                 "type": "restart",
                 "maps": online_servers,
                 "reason": reason,
+                "mods": mod_status,
             },
         },
     )
@@ -546,6 +548,7 @@ async def restart_server_pods(  # noqa: PLR0913
                     "type": "restart",
                     "maps": servers_to_restart,
                     "reason": reason,
+                    "mods": mod_status,
                 },
             },
         )
@@ -581,6 +584,7 @@ async def restart_server_pods(  # noqa: PLR0913
                     "type": "restart",
                     "maps": servers_to_restart,
                     "reason": reason,
+                    "mods": mod_status,
                 },
             },
         )
@@ -622,6 +626,7 @@ async def restart_server_pods(  # noqa: PLR0913
                         "type": "restart",
                         "maps": servers_to_restart,
                         "reason": reason,
+                        "mods": mod_status,
                     },
                 },
             )
@@ -636,8 +641,11 @@ async def restart_server_pods(  # noqa: PLR0913
         servers=online_servers,
         logger=logger,
     )
+    status = {"ready": True, "state": "Running", "restart": None}
+    if mod_status:
+        status["mods"] = mod_status
     await update_cluster(
         name=name,
         namespace=namespace,
-        status={"ready": True, "state": "Running", "restart": None},
+        status=status,
     )

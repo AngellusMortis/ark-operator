@@ -261,6 +261,9 @@ spec:
               state:
                 type: string
                 description: What operator is currently doing
+              lastUpdate:
+                type: string
+                description: Last time status was updated
               initalized:
                 type: boolean
                 description: Has PVCs been initalized
@@ -320,3 +323,11 @@ spec:
                     type: string
                   active_buildid:
                     type: integer
+                  mods:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                    description: Internal field for tracking mod updates
+              mods:
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+                description: Internal field for tracking mod updates

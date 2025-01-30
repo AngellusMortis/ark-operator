@@ -9,6 +9,7 @@ from ark_operator.data.models import (
     ArkServerSpec,
     Config,
     GameServer,
+    ModStatus,
 )
 from ark_operator.data.types import (
     ActivityEvent,
@@ -30,6 +31,7 @@ __all__ = [
     "ClusterStage",
     "Config",
     "GameServer",
+    "ModStatus",
     "TimerEvent",
     "WebhookEvent",
 ]

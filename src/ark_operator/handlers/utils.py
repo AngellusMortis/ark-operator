@@ -95,6 +95,7 @@ async def restart_with_lock(  # noqa: PLR0913
     logger: kopf.Logger,
     trigger_time: datetime | None = None,
     servers: list[str] | None = None,
+    mod_status: dict[str, int] | None = None,
     dry_run: bool = False,
 ) -> None:
     """Do restart with lock."""
@@ -110,7 +111,7 @@ async def restart_with_lock(  # noqa: PLR0913
             servers = await _check_servers_start(
                 name=name,
                 namespace=namespace,
-                servers=servers or spec.server.all_maps,
+                servers=servers or spec.server.active_maps,
                 trigger_time=trigger_time,
             )
             if not servers:
@@ -128,6 +129,7 @@ async def restart_with_lock(  # noqa: PLR0913
             active_buildid=active_buildid,
             servers=servers,
             logger=logger,
+            mod_status=mod_status,
             dry_run=dry_run,
         )
     finally:

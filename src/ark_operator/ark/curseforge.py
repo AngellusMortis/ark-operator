@@ -52,7 +52,7 @@ async def close_cf_client() -> None:
         _CLIENT = None
 
 
-async def get_mod_lastest_update(mod_id: str) -> tuple[str, datetime]:
+async def get_mod_lastest_update(mod_id: str) -> tuple[str, int, datetime]:
     """Get latest update time for mod."""
 
     client = await get_cf_client()
@@ -68,4 +68,8 @@ async def get_mod_lastest_update(mod_id: str) -> tuple[str, datetime]:
         raise RuntimeError(ERROR_NO_FILES)
 
     latest_file = data["data"]["latestFiles"][0]
-    return data["data"]["name"], datetime.fromisoformat(latest_file["fileDate"])
+    return (
+        data["data"]["name"],
+        latest_file["id"],
+        datetime.fromisoformat(latest_file["fileDate"]),
+    )

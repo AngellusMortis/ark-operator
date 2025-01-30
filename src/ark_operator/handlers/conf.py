@@ -79,9 +79,9 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         return
 
     maps = (
-        [get_map_id_from_slug(map_slug, tuple(cluster.server.all_maps))]
+        [get_map_id_from_slug(map_slug, tuple(cluster.server.active_maps))]
         if map_slug
-        else cluster.server.all_maps
+        else cluster.server.active_maps
     )
     logger.info("Restarting servers %s due to configuration update", maps)
     active_volume = status.active_volume or await get_active_volume(

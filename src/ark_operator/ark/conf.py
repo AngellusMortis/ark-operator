@@ -15,8 +15,14 @@ from asyncache import cached
 from cachetools import TTLCache
 from kubernetes_asyncio.client import ApiException
 
+from ark_operator.ark.curseforge import get_mod_lastest_update, has_cf_auth
 from ark_operator.ark.utils import ENV, get_map_slug
-from ark_operator.data import ArkClusterSecrets, ArkClusterSpec
+from ark_operator.data import (
+    ArkClusterSecrets,
+    ArkClusterSpec,
+    ArkClusterStatus,
+    ModStatus,
+)
 from ark_operator.k8s import get_v1_client
 from ark_operator.templates import loader
 from ark_operator.utils import VERSION
@@ -335,6 +341,45 @@ async def get_mods(
             mods[mod_id] = maps
 
     return mods
+
+
+async def get_mod_status(
+    *, name: str, namespace: str, spec: ArkClusterSpec
+) -> dict[str, ModStatus] | None:
+    """Get status of all mods from CurseForge."""
+
+    if not has_cf_auth():
+        return None
+
+    mods = await get_mods(name=name, namespace=namespace, spec=spec)
+    status = {}
+    for mod_id, maps in mods.items():
+        mod_name, file_id, last_update = await get_mod_lastest_update(mod_id)
+        status[mod_id] = ModStatus(
+            id=mod_id,
+            name=mod_name,
+            file_id=file_id,
+            maps=maps,
+            last_update=last_update,
+        )
+
+    return dict(sorted(status.items(), key=lambda x: x[1].last_update, reverse=True))
+
+
+def get_mod_updates(
+    status: ArkClusterStatus, latest_status: dict[str, ModStatus]
+) -> dict[str, ModStatus]:
+    """Get mod updates for cluster."""
+
+    mod_status = status.mods or {}
+    to_update = {}
+    for mod in latest_status.values():
+        key = f"id_{mod.id}"
+        if key in mod_status and mod_status[key] < mod.file_id:
+            mod.old_file_id = mod_status.get(key)
+            to_update[mod.id] = mod
+
+    return to_update
 
 
 @cached(TTLCache(8, ENV.int("ARK_OP_TTL_CACHE", 60)))  # type: ignore[misc]
