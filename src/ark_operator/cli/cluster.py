@@ -220,7 +220,7 @@ async def resume(
 
 
 @cluster.command
-async def check_updates() -> None:
+async def check_updates(*, ark: bool = True, mods: bool = True) -> None:
     """Check the cluster to see if there are updates."""
 
     context = _get_context()
@@ -230,25 +230,30 @@ async def check_updates() -> None:
     )
     active_buildid = active_buildid or 1
 
-    _LOGGER.info("Active buildid %s", active_buildid)
-    latest_bulidid = await steam.get_latest_ark_buildid()
-    _LOGGER.info("Latest buildid %s", latest_bulidid)
-    if latest_bulidid > active_buildid:
-        await update_cluster(
-            name=context.name,
-            namespace=context.namespace,
-            status={"latestBuildid": latest_bulidid},
-        )
+    if ark:
+        _LOGGER.info("Active buildid %s", active_buildid)
+        latest_bulidid = await steam.get_latest_ark_buildid()
+        _LOGGER.info("Latest buildid %s", latest_bulidid)
+        if latest_bulidid > active_buildid:
+            await update_cluster(
+                name=context.name,
+                namespace=context.namespace,
+                status={"latestBuildid": latest_bulidid},
+            )
+
+    if not mods:
+        return
     if not has_cf_auth():
         _LOGGER.info("No CurseForge API provided, skipping mods")
         return
-    mods = await get_mod_status(
+    mod_status = await get_mod_status(
         name=context.name, namespace=context.namespace, spec=context.spec
     )
-    if not mods:
+    if not mod_status:
+        _LOGGER.info("No mods found")
         return
 
-    mod_updates = get_mod_updates(context.status, mods)
+    mod_updates = get_mod_updates(context.status, mod_status)
     table = Table(title="Mods", row_styles=["dim", ""])
     table.add_column("Mod ID")
     table.add_column("Name")
@@ -258,7 +263,7 @@ async def check_updates() -> None:
     table.add_column("Last Update ⮟")
     table.add_column("Update?")
 
-    for mod in mods.values():
+    for mod in mod_status.values():
         update_mod = mod_updates.get(mod.id)
         table.add_row(
             mod.id,

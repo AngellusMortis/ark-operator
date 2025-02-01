@@ -36,6 +36,7 @@ from ark_operator.handlers.utils import (
     DRY_RUN,
     ENV,
     ERROR_WAIT_UPDATE_JOB,
+    add_tracked_instance,
     create_restart_lock,
     restart_with_lock,
 )
@@ -378,6 +379,7 @@ async def check_status(**kwargs: Unpack[TimerEvent]) -> None:
     name = kwargs["name"] or DEFAULT_NAME
     namespace = kwargs.get("namespace") or DEFAULT_NAMESPACE
 
+    add_tracked_instance(name=name, namespace=namespace)
     await _check_initial_status(
         name=name,
         namespace=namespace,
