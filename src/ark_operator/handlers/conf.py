@@ -83,6 +83,10 @@ async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
         if map_slug
         else cluster.server.active_maps
     )
+    # global config changes do not affect Club Ark
+    if not map_slug and "BobsMissions_WP" in maps:
+        maps.remove("BobsMissions_WP")
+
     logger.info("Restarting servers %s due to configuration update", maps)
     active_volume = status.active_volume or await get_active_volume(
         name=name, namespace=namespace, spec=cluster
