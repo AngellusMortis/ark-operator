@@ -2,9 +2,9 @@
 #    uv pip compile --output-file=requirements.txt pyproject.toml
 aiofiles==24.1.0
     # via ark-operator (pyproject.toml)
-aiohappyeyeballs==2.4.4
+aiohappyeyeballs==2.4.6
     # via aiohttp
-aiohttp==3.11.11
+aiohttp==3.11.12
     # via
     #   kopf
     #   kubernetes-asyncio
@@ -31,7 +31,7 @@ cachetools==5.5.1
     #   asyncache
     #   google-auth
     #   steam
-certifi==2024.12.14
+certifi==2025.1.31
     # via
     #   httpcore
     #   httpx
@@ -44,7 +44,7 @@ click==8.1.8
     # via kopf
 colorama==0.4.6
     # via ark-operator (pyproject.toml)
-cyclopts @ git+https://github.com/BrianPugh/cyclopts@037fffcc50cd960805589dc15409d8c6118a7a90
+cyclopts==3.6.0
     # via ark-operator (pyproject.toml)
 docstring-parser==0.16
     # via cyclopts
@@ -102,7 +102,7 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via jinja2
-marshmallow==3.26.0
+marshmallow==3.26.1
     # via environs
 mdurl==0.1.2
     # via markdown-it-py

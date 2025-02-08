@@ -29,7 +29,7 @@ dependencies = [
     "asyncache",
     "asyncer",
     "colorama",
-    "cyclopts @ git+https://github.com/BrianPugh/cyclopts@json-data",
+    "cyclopts >= 3.6.0",
     "environs",
     "gamercon-async",
     "httpx",
