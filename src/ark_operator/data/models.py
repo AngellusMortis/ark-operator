@@ -25,21 +25,6 @@ from ark_operator.utils import convert_timedelta, serialize_timedelta
 if TYPE_CHECKING:
     from pydantic.main import IncEx
 
-ALL_CANONICAL = ["TheIsland_WP", "ScorchedEarth_WP", "Aberration_WP", "Extinction_WP"]
-ALL_OFFICIAL = [
-    "TheIsland_WP",
-    "TheCenter_WP",
-    "ScorchedEarth_WP",
-    "Aberration_WP",
-    "Extinction_WP",
-]
-MAP_LOOPUP_MAP = {
-    "@canonical": ["BobsMissions_WP", *ALL_CANONICAL],
-    "@canonicalNoClub": ALL_CANONICAL,
-    "@official": ["BobsMissions_WP", *ALL_OFFICIAL],
-    "@officialNoClub": ALL_OFFICIAL,
-}
-
 States = Literal[
     "Initializing",
     "Initializing PVCs",

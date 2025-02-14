@@ -40,6 +40,7 @@ ALL_OFFICIAL = [
     "ScorchedEarth_WP",
     "Aberration_WP",
     "Extinction_WP",
+    "Astraeos_WP",
 ]
 MAP_SHORTHAND_LOOKUP = {
     "@canonical": ["BobsMissions_WP", *ALL_CANONICAL],
