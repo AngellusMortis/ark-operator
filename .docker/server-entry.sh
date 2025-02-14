@@ -61,7 +61,13 @@ function shutdown() {
     kill -15 $pid
 }
 
-rm -f $ARK_SERVER_DIR/.perm-test $ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/.started 2>/dev/null 1>&2
+if [[ -f $ARK_SERVER_DIR/.perm-test ]]; then
+    rm -f $ARK_SERVER_DIR/.perm-test
+fi
+if [[ -f $ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/.started ]]; then
+    rm -f $ARK_DATA_DIR/maps/$ARK_SERVER_MAP/saved/.started
+fi
+
 echo arkctl version: $(arkctl --version)
 echo "log_level: $ARK_OP_LOG_LEVEL"
 echo "ark_dir: $ARK_SERVER_DIR"

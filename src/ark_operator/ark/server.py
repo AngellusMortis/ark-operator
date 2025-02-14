@@ -89,13 +89,10 @@ async def get_active_volume(
     if not pod:
         return "server-a"
 
-    for volume in pod.spec.volumes:
-        if volume.name == "server":
-            return cast(
-                Literal["server-a", "server-b"],
-                volume.persistent_volume_claim.claim_name.replace(f"{name}-", ""),
-            )
-    return "server-a"
+    return cast(
+        Literal["server-a", "server-b"],
+        pod.metadata.labels["mort.is/active-volume"],
+    )
 
 
 async def get_active_buildid(
@@ -280,15 +277,19 @@ async def _send_message(  # noqa: PLR0913
                 r.raise_for_status()
             except Exception:
                 logger.exception("Error sending Discord Webhook message")
-    await send_cmd_all(
-        f"ServerChat {msg}",
-        spec=spec.server,
-        host=host,
-        password=password,
-        close=False,
-        servers=servers.copy(),
-        logger=logger,
-    )
+
+    try:
+        await send_cmd_all(
+            f"ServerChat {msg}",
+            spec=spec.server,
+            host=host,
+            password=password,
+            close=False,
+            servers=servers.copy(),
+            logger=logger,
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("Could not send message to servers")
 
 
 async def _notify_server_pods(  # noqa: PLR0913
@@ -368,15 +369,22 @@ async def _get_online_servers(
     namespace: str,
     spec: ArkClusterSpec,
     servers: list[str] | None = None,
+    logger: kopf.Logger | logging.Logger,
 ) -> list[str]:
-    online_servers = [
-        m
+    pods = {
+        m: await get_server_pod(name=name, namespace=namespace, map_id=m)
         for m in spec.server.active_maps
-        if await get_server_pod(name=name, namespace=namespace, map_id=m)
-    ]
+    }
 
+    online_servers = [m for m in spec.server.active_maps if pods.get(m)]
     if servers:
         online_servers = list(set(servers).intersection(set(online_servers)))
+
+    for server in list(online_servers):
+        if (pod := pods.get(server)) and not is_server_pod_ready(pod):
+            logger.info("Deleting offline server pod: %s", server)
+            await delete_server_pod(name=name, namespace=namespace, map_id=server)
+            online_servers.remove(server)
     return order_maps(online_servers)
 
 
@@ -406,7 +414,7 @@ async def shutdown_server_pods(  # noqa: PLR0913
         wait_interval if wait_interval is not None else spec.server.graceful_shutdown
     )
     online_servers = await _get_online_servers(
-        name=name, namespace=namespace, spec=spec, servers=servers
+        name=name, namespace=namespace, spec=spec, servers=servers, logger=logger
     )
     now = utc_now()
     logger.info("Shutting down servers [suspend: %s] %s", suspend, online_servers)
@@ -491,7 +499,7 @@ async def restart_server_pods(  # noqa: PLR0913
     )
 
     online_servers = await _get_online_servers(
-        name=name, namespace=namespace, spec=spec, servers=servers
+        name=name, namespace=namespace, spec=spec, servers=servers, logger=logger
     )
     now = utc_now()
     logger.info("Restarting servers %s", online_servers)

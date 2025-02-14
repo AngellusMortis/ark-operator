@@ -54,8 +54,8 @@ def _update_state(
         raise kopf.TemporaryError(ERROR_UPDATE_STATUS, delay=1)
 
 
-@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
-@kopf.on.create("arkcluster")
+@kopf.on.resume("arkcluster")
+@kopf.on.create("arkcluster")  # type: ignore[arg-type]
 async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
@@ -92,8 +92,8 @@ async def on_create_init(**kwargs: Unpack[ChangeEvent]) -> None:
         logger.debug("status update %s", patch.status)
 
 
-@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
-@kopf.on.create("arkcluster")
+@kopf.on.resume("arkcluster")
+@kopf.on.create("arkcluster")  # type: ignore[arg-type]
 async def on_create_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
@@ -136,8 +136,8 @@ async def on_create_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     logger.debug("status update %s", patch.status)
 
 
-@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
-@kopf.on.create("arkcluster")
+@kopf.on.resume("arkcluster")
+@kopf.on.create("arkcluster")  # type: ignore[arg-type]
 async def on_create_init_pvc(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 
@@ -216,8 +216,8 @@ def _mark_ready(
     logger.debug("status update %s", patch.status)
 
 
-@kopf.on.resume("arkcluster")  # type: ignore[arg-type]
-@kopf.on.create("arkcluster")
+@kopf.on.resume("arkcluster")
+@kopf.on.create("arkcluster")  # type: ignore[arg-type]
 async def on_create_resources(**kwargs: Unpack[ChangeEvent]) -> None:
     """Create an ARKCluster."""
 

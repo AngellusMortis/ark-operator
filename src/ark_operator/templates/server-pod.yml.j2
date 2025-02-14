@@ -9,6 +9,7 @@ metadata:
     app.kubernetes.io/component: server
     app.kubernetes.io/part-of: ark-operator
     app.kubernetes.io/managed-by: ark-operator
+    mort.is/active-volume: "{{ active_volume }}"
     {% if active_buildid %}
     mort.is/ark-build: "{{ active_buildid }}"
     {% endif %}

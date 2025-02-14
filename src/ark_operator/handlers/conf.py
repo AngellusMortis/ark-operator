@@ -23,12 +23,12 @@ NAME_PATTERN = re.compile(
 )
 
 
-@kopf.on.resume("configmap")  # type: ignore[arg-type]
+@kopf.on.resume("configmap")
 @kopf.on.create("configmap")
 @kopf.on.update("configmap")
 @kopf.on.resume("secret")
 @kopf.on.create("secret")
-@kopf.on.update("secret")
+@kopf.on.update("secret")  # type: ignore[arg-type]
 async def on_update_conf(**kwargs: Unpack[ChangeEvent]) -> None:
     """Check ArkCluster configs for changes."""
 
