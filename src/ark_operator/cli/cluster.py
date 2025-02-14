@@ -110,6 +110,7 @@ def meta(  # noqa: PLR0913
     cluster_status: ArkClusterStatus | None = None
     if status:
         cluster_status = ArkClusterStatus(**json.loads(status))
+
     if not spec or not cluster_status:
         spec, cluster_status = _get_cluster(name=name, namespace=namespace)
 

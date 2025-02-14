@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address  # required for Pydantic # noqa: TC003
 from pathlib import Path  # required for Pydantic # noqa: TC003
 from typing import TYPE_CHECKING, Annotated, Any, Literal
@@ -14,7 +15,6 @@ from pydantic import (
     ConfigDict,
     Field,
     PlainSerializer,
-    computed_field,
 )
 from pydantic.alias_generators import to_camel
 from pydantic_settings import BaseSettings
@@ -125,8 +125,7 @@ class ArkServerSpec(BaseK8sModel):
     restart_complete_message: str = "Completed rolling restart"
     rolling_restart_format: str = "Restarting server for {map_name} {progress}"
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
+    @cached_property
     def all_maps(self) -> list[str]:
         """Expand maps into list of full maps."""
 
@@ -141,8 +140,7 @@ class ArkServerSpec(BaseK8sModel):
         maps = set(self.all_maps)
         return list(maps - self.suspend)
 
-    @computed_field  # type: ignore[prop-decorator]
-    @property
+    @cached_property
     def all_servers(self) -> dict[str, GameServer]:
         """Return list of all servers."""
 

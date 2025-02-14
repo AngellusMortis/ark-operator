@@ -130,8 +130,8 @@ async def create_init_job(  # noqa: PLR0913
         spec=spec,
         logger=logger,
         dry_run=dry_run,
-        spec_json=spec.model_dump_json(),
-        status_json=status.model_dump_json(),
+        spec_json=spec.model_dump_json(exclude_none=True, exclude_defaults=True),
+        status_json=status.model_dump_json(exclude_none=True, exclude_defaults=True),
     )
 
 

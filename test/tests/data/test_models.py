@@ -39,6 +39,7 @@ from ark_operator.data.models import ArkServerSpec, GameServer
                 "ScorchedEarth_WP",
                 "Aberration_WP",
                 "Extinction_WP",
+                "Astraeos_WP",
             ],
         ),
         (
@@ -49,10 +50,11 @@ from ark_operator.data.models import ArkServerSpec, GameServer
                 "ScorchedEarth_WP",
                 "Aberration_WP",
                 "Extinction_WP",
+                "Astraeos_WP",
             ],
         ),
         (
-            ["Astraeos_WP", "@canonicalNoClub", "@official"],
+            ["Amissa_WP", "@canonicalNoClub", "@official"],
             [
                 "BobsMissions_WP",
                 "TheIsland_WP",
@@ -61,6 +63,7 @@ from ark_operator.data.models import ArkServerSpec, GameServer
                 "Aberration_WP",
                 "Extinction_WP",
                 "Astraeos_WP",
+                "Amissa_WP",
             ],
         ),
         (

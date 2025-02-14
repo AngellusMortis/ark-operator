@@ -30,6 +30,7 @@ _SERVER_POD = {
             "app.kubernetes.io/component": "server",
             "app.kubernetes.io/part-of": "ark-operator",
             "app.kubernetes.io/managed-by": "ark-operator",
+            "mort.is/active-volume": "server-a",
         },
     },
     "spec": {
